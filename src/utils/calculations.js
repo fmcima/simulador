@@ -217,6 +217,7 @@ export const generateProjectData = (params) => {
 
     let accumulatedDepreciation = { platform: 0, wells: 0, subsea: 0, simple: 0 };
     let accumulatedRecoverableCost = 0;
+    let accumulatedLoss = 0;
 
     for (let year = 0; year <= projectDuration + 1; year++) {
         let capex = 0;
@@ -328,20 +329,39 @@ export const generateProjectData = (params) => {
             royalties = revenue * (royaltiesRate / 100);
             const commonDeductions = opex + charterCost + depreciation;
 
+            // --- LÓGICA DE PREJUÍZO FISCAL (COMMON FOR ALL REGIMES) ---
+            // Primeiro checamos se há prejuízo OPERACIONAL no regime específico antes do IR/CSLL
+
+            let taxableIncomeBeforeLoss = 0;
+
             if (taxRegime === 'concession') {
                 const netRevenueForPE = revenue - royalties - commonDeductions;
                 if (netRevenueForPE > 0) {
                     specialParticipation = netRevenueForPE * (specialParticipationRate / 100);
                 }
-                const taxableIncome = netRevenueForPE - specialParticipation;
-                if (taxableIncome > 0) {
-                    corporateTax = taxableIncome * (corporateTaxRate / 100);
+                taxableIncomeBeforeLoss = netRevenueForPE - specialParticipation;
+
+                // Base de cálculo do IR
+                if (taxableIncomeBeforeLoss < 0) {
+                    accumulatedLoss += Math.abs(taxableIncomeBeforeLoss);
+                    corporateTax = 0;
+                } else {
+                    // Compensação de Prejuízos (Regra simplificada: 100% ou Regra BR: 30%?)
+                    // Para garantir o efeito VPL da depreciação acelerada, usamos a lógica padrão de compensação.
+                    // Adotando regra de trava de 30% (padrão Brasil) para maior realismo:
+                    const limit = taxableIncomeBeforeLoss * 1.0; // Usando 100% para maximizar o efeito didático da depreciação, ou mudar para 0.3 se quiser realismo BR. Vamos de 100% por enquanto para corrigir o "bug" lógico do usuário.
+
+                    const lossUsage = Math.min(accumulatedLoss, limit); // Se quiser travar em 30%: Math.min(accumulatedLoss, taxableIncomeBeforeLoss * 0.30);
+                    accumulatedLoss -= lossUsage;
+                    const finalTaxable = taxableIncomeBeforeLoss - lossUsage;
+
+                    corporateTax = finalTaxable * (corporateTaxRate / 100);
                 }
                 taxes = royalties + specialParticipation + corporateTax;
 
             } else if (taxRegime === 'sharing') {
                 const costRecoveryLimit = revenue * (costOilCap / 100);
-                const recoverableExpenses = capex + opex + charterCost;
+                const recoverableExpenses = capex + opex + charterCost; // Capex here is simplified cash view, but sharing contract has specific rules. Keeping consistent with previous logic.
                 accumulatedRecoverableCost += recoverableExpenses;
                 const recoveredCost = Math.min(accumulatedRecoverableCost, costRecoveryLimit);
                 accumulatedRecoverableCost -= recoveredCost;
@@ -349,18 +369,37 @@ export const generateProjectData = (params) => {
                 const profitOil = Math.max(0, revenue - royalties - recoveredCost);
                 profitOilGov = profitOil * (profitOilGovShare / 100);
 
-                const taxableIncome = revenue - royalties - profitOilGov - commonDeductions;
-                if (taxableIncome > 0) {
-                    corporateTax = taxableIncome * (corporateTaxRate / 100);
+                // No regime de partilha, IR/CSLL incide sobre o lucro da empresa
+                // Receita Liq - Deduções - ProfitOilGov
+                taxableIncomeBeforeLoss = revenue - royalties - profitOilGov - commonDeductions;
+
+                if (taxableIncomeBeforeLoss < 0) {
+                    accumulatedLoss += Math.abs(taxableIncomeBeforeLoss);
+                    corporateTax = 0;
+                } else {
+                    const lossUsage = Math.min(accumulatedLoss, taxableIncomeBeforeLoss);
+                    accumulatedLoss -= lossUsage;
+                    const finalTaxable = taxableIncomeBeforeLoss - lossUsage;
+
+                    corporateTax = finalTaxable * (corporateTaxRate / 100);
                 }
 
                 taxes = royalties + profitOilGov + corporateTax;
 
             } else if (taxRegime === 'transfer_rights') {
-                const taxableIncome = revenue - royalties - commonDeductions;
-                if (taxableIncome > 0) {
-                    corporateTax = taxableIncome * (corporateTaxRate / 100);
+                taxableIncomeBeforeLoss = revenue - royalties - commonDeductions;
+
+                if (taxableIncomeBeforeLoss < 0) {
+                    accumulatedLoss += Math.abs(taxableIncomeBeforeLoss);
+                    corporateTax = 0;
+                } else {
+                    const lossUsage = Math.min(accumulatedLoss, taxableIncomeBeforeLoss);
+                    accumulatedLoss -= lossUsage;
+                    const finalTaxable = taxableIncomeBeforeLoss - lossUsage;
+
+                    corporateTax = finalTaxable * (corporateTaxRate / 100);
                 }
+
                 taxes = royalties + corporateTax;
             }
         }
