@@ -266,14 +266,14 @@ export default function App() {
 
                 {/* --- VIEW: SINGLE --- */}
                 {activeTab === 'single' && (
-                    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
-                        {/* INPUT FORM (Bottom on Mobile, Left on Desktop) */}
-                        <div className="order-2 lg:order-1 lg:col-span-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* INPUT FORM (Top on Mobile, Left on Desktop) */}
+                        <div className="lg:col-span-3">
                             <ProjectInputForm params={projectA} setParams={setProjectA} label="Parâmetros do Projeto" />
                         </div>
 
-                        {/* CHARTS & ANALYTICS (Top on Mobile, Right on Desktop) */}
-                        <div className="order-1 lg:order-2 lg:col-span-9 space-y-6">
+                        {/* CHARTS & ANALYTICS (Bottom on Mobile, Right on Desktop) */}
+                        <div className="lg:col-span-9 space-y-6">
 
 
                             {/* Chart */}
@@ -390,9 +390,9 @@ export default function App() {
 
                 {/* --- VIEW: PRODUCTION CURVE --- */}
                 {activeTab === 'production' && (
-                    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
-                        {/* CONTROLS (Bottom on Mobile) */}
-                        <div className="order-2 lg:order-1 lg:col-span-4 space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* CONTROLS */}
+                        <div className="lg:col-span-4 space-y-6">
                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                                 <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                     <Settings className="w-5 h-5 text-blue-600" /> Parâmetros de Produção
@@ -469,8 +469,8 @@ export default function App() {
                             </div>
                         </div>
 
-                        {/* CHART (Top on Mobile) */}
-                        <div className="order-1 lg:order-2 lg:col-span-8 space-y-6">
+                        {/* CHART */}
+                        <div className="lg:col-span-8 space-y-6">
                             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-[500px]">
                                 <h3 className="text-lg font-bold text-slate-800 mb-2">Curva de Produção Estimada</h3>
                                 <p className="text-sm text-slate-500 mb-6">Perfil de produção anual em mil barris por dia (kbpd).</p>
@@ -497,9 +497,9 @@ export default function App() {
 
                 {/* --- VIEW: BRENT CURVE --- */}
                 {activeTab === 'brent' && (
-                    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         {/* CONTROLS */}
-                        <div className="order-2 lg:order-1 lg:col-span-4 space-y-6">
+                        <div className="lg:col-span-4 space-y-6">
                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                                 <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                     <TrendingUp className="w-5 h-5 text-blue-600" /> Cenários de Preço Brent
@@ -576,7 +576,7 @@ export default function App() {
                         </div>
 
                         {/* CHART */}
-                        <div className="order-1 lg:order-2 lg:col-span-8 space-y-6">
+                        <div className="lg:col-span-8 space-y-6">
                             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-[500px]">
                                 <h3 className="text-lg font-bold text-slate-800 mb-2">Projeção do Preço Brent (Nominal)</h3>
                                 <ResponsiveContainer width="100%" height="85%">
