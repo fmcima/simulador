@@ -253,6 +253,17 @@ export default function App() {
 
             <div className="p-4 md:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
 
+
+                {/* --- PERSISTENT HEADER: Economic Indicators --- */}
+                <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <KPICard title="VPL (NPV)" value={formatBillions(resultsA.metrics.vpl)} type={resultsA.metrics.vpl > 0 ? 'positive' : 'negative'} subtext="Valor Presente Líquido" />
+                    <KPICard title="TIR (IRR)" value={resultsA.metrics.tir ? `${resultsA.metrics.tir.toFixed(2)}%` : 'N/A'} type="blue" subtext={`Hurdle: ${projectA.discountRate}%`} />
+                    <KPICard title="TIR - TMA" value={resultsA.metrics.spread ? `${resultsA.metrics.spread.toFixed(2)}%` : '-'} type={resultsA.metrics.spread > 0 ? 'positive' : 'negative'} subtext="Spread de Retorno" />
+                    <KPICard title="VPL / IA" value={resultsA.metrics.vpl_ia.toFixed(2) + 'x'} type={resultsA.metrics.vpl_ia > 0 ? 'purple' : 'neutral'} subtext="Eficiência do Investimento" />
+                    <KPICard title="Payback" value={resultsA.metrics.payback ? `${resultsA.metrics.payback.toFixed(1)} anos` : '> Dur.'} type="neutral" subtext="Descontado" />
+                    <KPICard title="Brent Equilíbrio" value={resultsA.metrics.breakevenBrent ? `$${resultsA.metrics.breakevenBrent.toFixed(2)}` : 'N/A'} type="neutral" subtext="Preço para VPL = 0" tooltip="Preço constante do Brent necessário para zerar o VPL do projeto (Breakeven Price)." />
+                </div>
+
                 {/* --- VIEW: SINGLE --- */}
                 {activeTab === 'single' && (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -261,15 +272,7 @@ export default function App() {
                         </div>
 
                         <div className="lg:col-span-9 space-y-6">
-                            {/* KPIs Row */}
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                <KPICard title="VPL (NPV)" value={formatBillions(resultsA.metrics.vpl)} type={resultsA.metrics.vpl > 0 ? 'positive' : 'negative'} subtext="Valor Presente Líquido" />
-                                <KPICard title="TIR (IRR)" value={resultsA.metrics.tir ? `${resultsA.metrics.tir.toFixed(2)}%` : 'N/A'} type="blue" subtext={`Hurdle: ${projectA.discountRate}%`} />
-                                <KPICard title="TIR - TMA" value={resultsA.metrics.spread ? `${resultsA.metrics.spread.toFixed(2)}%` : '-'} type={resultsA.metrics.spread > 0 ? 'positive' : 'negative'} subtext="Spread de Retorno" />
-                                <KPICard title="VPL / IA" value={resultsA.metrics.vpl_ia.toFixed(2) + 'x'} type={resultsA.metrics.vpl_ia > 0 ? 'purple' : 'neutral'} subtext="Eficiência do Investimento" />
-                                <KPICard title="Payback" value={resultsA.metrics.payback ? `${resultsA.metrics.payback.toFixed(1)} anos` : '> Dur.'} type="neutral" subtext="Descontado" />
-                                <KPICard title="Brent Equilíbrio" value={resultsA.metrics.breakevenBrent ? `$${resultsA.metrics.breakevenBrent.toFixed(2)}` : 'N/A'} type="neutral" subtext="Preço para VPL = 0" tooltip="Preço constante do Brent necessário para zerar o VPL do projeto (Breakeven Price)." />
-                            </div>
+
 
                             {/* Chart */}
                             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-[500px] hover:shadow-md transition-shadow">
