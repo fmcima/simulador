@@ -30,7 +30,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             </span>
                         </label>
                         <input
-                            type="range" min="10000000" max="10000000000" step="10000000"
+                            type="range" min="10000000" max="10000000000" step="100000000"
                             value={params.totalCapex}
                             onChange={(e) => handleChange('totalCapex', Number(e.target.value))}
                             className={`w-full ${colorClass}`}
