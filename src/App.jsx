@@ -379,7 +379,25 @@ export default function App() {
                                             />
                                             <Tooltip
                                                 cursor={{ strokeDasharray: '3 3' }}
-                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                content={({ active, payload }) => {
+                                                    if (active && payload && payload.length) {
+                                                        const data = payload[0].payload;
+                                                        return (
+                                                            <div className="bg-white p-3 border border-slate-200 shadow-md rounded-lg outline-none">
+                                                                <p className="text-xs font-bold text-slate-700 mb-1">
+                                                                    Variação CAPEX: <span className={data.variation > 0 ? 'text-red-600' : data.variation < 0 ? 'text-emerald-600' : 'text-slate-700'}>
+                                                                        {data.variation > 0 ? '+' : ''}{data.variation.toFixed(0)}%
+                                                                    </span>
+                                                                </p>
+                                                                <div className="space-y-0.5">
+                                                                    <p className="text-xs text-slate-500">Spread (TIR - TMA): <span className="font-medium text-slate-700">{data.spread?.toFixed(1)}%</span></p>
+                                                                    <p className="text-xs text-slate-500">VPL / IA: <span className="font-medium text-slate-700">{data.vpl_ia?.toFixed(1)}x</span></p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
                                             />
                                             <Scatter name="Sensibilidade" data={resultsA.capexSensitivityData} fill="#8884d8" line={{ stroke: '#8884d8', strokeWidth: 2 }}>
                                                 {resultsA.capexSensitivityData.map((entry, index) => (
