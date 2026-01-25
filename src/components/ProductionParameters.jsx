@@ -77,8 +77,8 @@ const ProductionParameters = ({ params, setParams }) => {
         }
     };
 
-    // Calculate API price differential
-    const apiPriceDiff = ((params.oilAPI || 28) - 30) * 1.5;
+    // Calculate API price differential (±0.4% per degree, max ±8%)
+    const apiPriceDiff = ((params.oilAPI || 28) - 30) * 0.4;
     const apiLabel = params.oilAPI > 30 ? 'Premium (Leve)' : params.oilAPI < 25 ? 'Desconto (Pesado)' : 'Referência (Médio)';
 
     return (

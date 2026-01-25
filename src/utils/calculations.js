@@ -124,6 +124,13 @@ export const generateProjectData = (params) => {
         opexVariable = 4,
         workoverCost = 10000000,
         costInflation = 2,
+
+        // Produção Detalhada (Reservatório & Fluidos)
+        productionMode = 'simple',
+        oilAPI = 28,
+        gor = 150, // m³/m³
+        maxLiquids = 200000, // bpd capacidade de líquidos
+
         discountRate, projectDuration,
 
         // Tributário & Depreciação
@@ -212,8 +219,11 @@ export const generateProjectData = (params) => {
 
     let capexWeights = [];
     let weightSum = 0;
-    const peakIndex = (capexDuration - 1) * capexPeakRelative;
-    const sigma = Math.max(0.1, (capexDuration) / (capexConcentration || 1));
+    // capexPeakRelative agora é o ano do pico (1 a capexDuration), então convertemos para índice (0-based)
+    const peakIndex = Math.max(0, Math.min(capexDuration - 1, (capexPeakRelative || capexDuration) - 1));
+    // capexConcentration agora é % (0-100), quanto maior, mais concentrado
+    const concentrationFactor = Math.max(1, capexConcentration / 10); // 10% = 1, 100% = 10
+    const sigma = Math.max(0.1, (capexDuration) / concentrationFactor);
     for (let i = 0; i < capexDuration; i++) {
         const w = Math.exp(-Math.pow(i - peakIndex, 2) / (2 * sigma * sigma));
         capexWeights.push(w);
@@ -282,19 +292,45 @@ export const generateProjectData = (params) => {
                 productionVolume = peakProduction * Math.pow(1 - declineRate / 100, yearsPostPlateau);
             }
 
+            // Aplicar restrição de capacidade de líquidos (BSW/Gargalo)
+            // Quanto mais velho o campo, maior o water cut (simplificado)
+            if (productionMode === 'detailed' && productionYear > rampUpDuration + plateauDuration) {
+                const yearsInDecline = productionYear - (rampUpDuration + plateauDuration);
+                // Water cut aumenta ~5% por ano após platô, até máx 80%
+                const waterCut = Math.min(0.80, 0.10 + yearsInDecline * 0.05);
+                // Máximo de óleo = capacidade de líquidos * (1 - water cut)
+                const maxOilFromLiquids = (maxLiquids / 1000) * (1 - waterCut); // kbpd
+                productionVolume = Math.min(productionVolume, maxOilFromLiquids);
+            }
+
             productionMMbbl = (productionVolume * 1000 * 365) / 1000000;
-            revenue = productionMMbbl * 1000000 * netOilPrice;
+
+            // Ajuste de preço pelo Grau API (base: 30º = 0%)
+            // ±0.4% por grau acima/abaixo de 30 (máx ±8% para API 10-50)
+            const apiPriceAdjustment = productionMode === 'detailed' ? 1 + ((oilAPI - 30) * 0.004) : 1;
+            const adjustedOilPrice = netOilPrice * apiPriceAdjustment;
+            revenue = productionMMbbl * 1000000 * adjustedOilPrice;
+
             // Cálculo de OPEX baseado no modo
+            let gasInjectionCost = 0;
+            if (productionMode === 'detailed' && gor > 200) {
+                // GOR acima de 200 m³/m³: custo de injeção de gás excedente
+                // Custo de ~$1.50/bbl para gás excedente reinjetado
+                const excessGOR = gor - 200;
+                const excessGasVolume = productionMMbbl * excessGOR / 1000; // MM m³
+                gasInjectionCost = excessGasVolume * 1500000; // ~$1.5M por MM m³
+            }
+
             if (opexMode === 'detailed') {
-                // Detailed Model: Fixed + Variable + Workover Provision
+                // Detailed Model: Fixed + Variable + Workover Provision + Gas Injection
                 const inflationFactor = Math.pow(1 + costInflation / 100, productionYear - 1);
                 const fixedOpex = opexFixed * inflationFactor;
                 const variableOpex = productionMMbbl * 1000000 * opexVariable;
                 const workover = workoverCost * inflationFactor;
-                opex = fixedOpex + variableOpex + workover;
+                opex = fixedOpex + variableOpex + workover + gasInjectionCost;
             } else {
-                // Simple Model: % of Revenue
-                opex = revenue * (opexMargin / 100);
+                // Simple Model: % of Revenue + gas injection if in detailed production mode
+                opex = revenue * (opexMargin / 100) + gasInjectionCost;
             }
 
             if (platformOwnership === 'chartered') {

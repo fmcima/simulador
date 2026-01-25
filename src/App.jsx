@@ -33,8 +33,8 @@ export default function App() {
     const defaultParams = {
         totalCapex: 6000000000,
         capexDuration: 5,
-        capexPeakRelative: 0.9,
-        capexConcentration: 5,
+        capexPeakRelative: 4, // Ano do pico de investimento (1 a capexDuration)
+        capexConcentration: 50, // Concentração em % (0-100)
 
         // Contratação & Incentivos
         platformOwnership: 'owned',
@@ -256,7 +256,7 @@ export default function App() {
                                 {tab === 'compare' && <Split size={16} />}
                                 {tab === 'cashflow_table' && <TableIcon size={16} />}
                                 {tab === 'references' && <BookOpen size={16} />}
-                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'tax' ? 'Fiscal' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Brent' : tab === 'cashflow_table' ? 'Tabela' : 'Referências'}</span>
+                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'tax' ? 'Tributos' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Preços' : tab === 'cashflow_table' ? 'Tabela' : 'Referências'}</span>
                             </button>
                         ))}
                     </div>

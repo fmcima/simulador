@@ -63,18 +63,18 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
 
                         <div>
                             <label className="text-xs font-medium text-slate-500 block mb-1 flex justify-between">
-                                <span>Ano do Pico</span>
-                                <span className="font-bold">{params.capexPeakRelative}</span>
+                                <span>Ano do Pico de Investimento</span>
+                                <span className="font-bold">Ano {params.capexPeakRelative || 1}</span>
                             </label>
-                            <input type="range" min="0" max="1" step="0.1" value={params.capexPeakRelative} onChange={(e) => handleChange('capexPeakRelative', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                            <input type="range" min="1" max={params.capexDuration} step="1" value={params.capexPeakRelative || 1} onChange={(e) => handleChange('capexPeakRelative', Number(e.target.value))} className={`w-full ${colorClass}`} />
                         </div>
 
                         <div>
                             <label className="text-xs font-medium text-slate-500 block mb-1 flex justify-between">
-                                <span>Concentração</span>
-                                <span className="font-bold">{params.capexConcentration}</span>
+                                <span>Concentração do Investimento</span>
+                                <span className="font-bold">{params.capexConcentration}%</span>
                             </label>
-                            <input type="range" min="1" max="10" step="0.5" value={params.capexConcentration} onChange={(e) => handleChange('capexConcentration', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                            <input type="range" min="0" max="100" step="10" value={params.capexConcentration} onChange={(e) => handleChange('capexConcentration', Number(e.target.value))} className={`w-full ${colorClass}`} />
                         </div>
                     </div>
                 </div>
