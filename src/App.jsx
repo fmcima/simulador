@@ -86,10 +86,11 @@ export default function App() {
         depreciationMode: 'detailed',
         capexSplit: { platform: 40, wells: 40, subsea: 20 },
         depreciationConfig: {
-            platform: { method: 'accelerated', years: 5 },
+            platform: { method: 'accelerated', years: 2 },
             wells: { method: 'uop', years: 5 },
-            subsea: { method: 'accelerated', years: 5 }
-        }
+            subsea: { method: 'accelerated', years: 2 }
+        },
+        rdRate: 1 // Investimento em P&D (% Receita) - valor inicial visível
     };
 
     const [projectA, setProjectA] = useState({ ...defaultParams });
