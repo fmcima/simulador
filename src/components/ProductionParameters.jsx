@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Droplets, ArrowUpRight, ArrowDownRight, Activity, Beaker } from 'lucide-react';
+import { Settings, Droplets, ArrowUpRight, ArrowDownRight, Activity, Beaker, Ship } from 'lucide-react';
 
 const ProductionParameters = ({ params, setParams }) => {
 
@@ -254,6 +254,165 @@ const ProductionParameters = ({ params, setParams }) => {
                                     </p>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* FPSO COMPLEXITY & COST ESTIMATION */}
+                        <div className="mt-8 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-blue-600 text-white rounded-lg">
+                                    <Ship size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-blue-900">Custo Estimado do FPSO</h3>
+                                    <p className="text-xs text-blue-600">Estimativa de CAPEX do FPSO baseada nos parâmetros do reservatório (~45% do CAPEX total)</p>
+                                </div>
+                            </div>
+
+                            {(() => {
+                                // FPSO COST ESTIMATION LOGIC
+                                const capacity = params.peakProduction || 150; // kbpd
+                                const api = params.oilAPI || 28;
+                                const gorValue = params.gor || 150;
+
+                                // 1. BASE COST: FPSO-only cost is approximately $10-15k per bpd capacity
+                                // Using $12k/bpd as base (FPSO represents ~45% of total project CAPEX)
+                                const baseCostPerBpd = 12000; // US$/bpd (FPSO only)
+                                const baseCost = capacity * 1000 * baseCostPerBpd; // Total FPSO base cost
+
+                                // 2. API ADJUSTMENT: Heavy oil requires more processing
+                                // API > 35 (light): -10% (less processing)
+                                // API 25-35 (medium): 0%
+                                // API < 25 (heavy): +15% (more heating, processing)
+                                let apiAdjustment = 0;
+                                let apiRationale = '';
+                                if (api > 35) {
+                                    apiAdjustment = -0.10;
+                                    apiRationale = 'Óleo leve (> 35º API) - menos módulos de processamento necessários';
+                                } else if (api < 25) {
+                                    apiAdjustment = 0.15;
+                                    apiRationale = 'Óleo pesado (< 25º API) - requer aquecimento e mais processamento';
+                                } else {
+                                    apiAdjustment = 0;
+                                    apiRationale = 'Óleo médio (25-35º API) - processamento padrão';
+                                }
+
+                                // 3. GOR ADJUSTMENT: High GOR requires gas handling equipment
+                                // GOR < 100: 0% (low gas)
+                                // GOR 100-250: +10% (moderate gas handling)
+                                // GOR 250-400: +20% (significant gas facilities)
+                                // GOR > 400: +30% (major gas infrastructure)
+                                let gorAdjustment = 0;
+                                let gorRationale = '';
+                                if (gorValue < 100) {
+                                    gorAdjustment = 0;
+                                    gorRationale = 'Baixo GOR (< 100 m³/m³) - equipamentos mínimos de gás';
+                                } else if (gorValue < 250) {
+                                    gorAdjustment = 0.10;
+                                    gorRationale = 'GOR moderado (100-250 m³/m³) - separação e tratamento básico';
+                                } else if (gorValue < 400) {
+                                    gorAdjustment = 0.20;
+                                    gorRationale = 'Alto GOR (250-400 m³/m³) - instalações significativas de gás';
+                                } else {
+                                    gorAdjustment = 0.30;
+                                    gorRationale = 'GOR muito alto (> 400 m³/m³) - infraestrutura completa de gás/reinjeção';
+                                }
+
+                                // TOTAL CALCULATION
+                                const totalAdjustment = 1 + apiAdjustment + gorAdjustment;
+                                const estimatedFpsoCost = baseCost * totalAdjustment;
+                                const costPerBpdFinal = estimatedFpsoCost / (capacity * 1000);
+
+                                return (
+                                    <div className="space-y-4">
+                                        {/* ESTIMATED COST */}
+                                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-slate-600">CAPEX Estimado do FPSO:</span>
+                                                <span className="text-2xl font-bold text-blue-700">
+                                                    ${(estimatedFpsoCost / 1000000000).toFixed(2)}B
+                                                </span>
+                                            </div>
+                                            <div className="mt-2 text-xs text-slate-500 text-right">
+                                                ${costPerBpdFinal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} por bpd de capacidade
+                                            </div>
+                                        </div>
+
+                                        {/* RATIONALE BREAKDOWN */}
+                                        <div className="space-y-3">
+                                            <h4 className="text-xs font-bold uppercase text-blue-800 tracking-wider">Racional da Estimativa</h4>
+
+                                            {/* Base Cost */}
+                                            <div className="flex items-start gap-3 p-3 bg-white rounded-lg">
+                                                <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-slate-700">Custo Base (Capacidade)</span>
+                                                        <span className="text-sm font-bold text-slate-800">${(baseCost / 1000000000).toFixed(2)}B</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500 mt-1">
+                                                        {capacity}k bpd × $12.000/bpd = custo base FPSO (~45% do projeto total)
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* API Adjustment */}
+                                            <div className="flex items-start gap-3 p-3 bg-white rounded-lg">
+                                                <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-xs font-bold">2</div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-slate-700">Ajuste por Qualidade do Óleo</span>
+                                                        <span className={`text-sm font-bold ${apiAdjustment > 0 ? 'text-red-600' : apiAdjustment < 0 ? 'text-green-600' : 'text-slate-600'}`}>
+                                                            {apiAdjustment > 0 ? '+' : ''}{(apiAdjustment * 100).toFixed(0)}%
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500 mt-1">
+                                                        API {api}º: {apiRationale}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* GOR Adjustment */}
+                                            <div className="flex items-start gap-3 p-3 bg-white rounded-lg">
+                                                <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-xs font-bold">3</div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-sm font-medium text-slate-700">Ajuste por Razão Gás-Óleo</span>
+                                                        <span className={`text-sm font-bold ${gorAdjustment > 0 ? 'text-red-600' : 'text-slate-600'}`}>
+                                                            {gorAdjustment > 0 ? '+' : ''}{(gorAdjustment * 100).toFixed(0)}%
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500 mt-1">
+                                                        GOR {gorValue} m³/m³: {gorRationale}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* APPLY TO PROJECT BUTTON */}
+                                        <button
+                                            onClick={() => {
+                                                // FPSO = 45% do total, então: Total = FPSO / 0.45
+                                                const totalProjectCapex = Math.round(estimatedFpsoCost / 0.45);
+                                                setParams(prev => ({
+                                                    ...prev,
+                                                    totalCapex: totalProjectCapex,
+                                                    capexSplit: {
+                                                        platform: 45, // FPSO
+                                                        wells: 35,    // Poços
+                                                        subsea: 20    // Subsea
+                                                    }
+                                                }));
+                                            }}
+                                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center justify-center gap-2"
+                                        >
+                                            Aplicar Estimativa ao CAPEX do Projeto
+                                        </button>
+                                        <p className="text-[10px] text-center text-blue-600">
+                                            Calcula CAPEX total (~${(estimatedFpsoCost / 0.45 / 1000000000).toFixed(2)}B) e define split: FPSO 45% | Poços 35% | Subsea 20%
+                                        </p>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}

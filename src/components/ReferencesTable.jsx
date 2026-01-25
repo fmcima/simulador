@@ -86,6 +86,24 @@ const ReferencesTable = () => {
             concept: "Workover",
             implementation: "Provisão anual para intervenção pesada em poços e sistemas submarinos.",
             source: "Boletins de Mercado de Sondas (ex: Bassoe Offshore, Fearnleys) e Histórico de Operações na Bacia de Campos."
+        },
+        {
+            category: "Estimativa de CAPEX",
+            concept: "Custo Base do FPSO",
+            implementation: "Custo estimado de $10.000-15.000 por bpd de capacidade para o FPSO (casco + topsides + instalação). Valor base de $12.000/bpd utilizado.",
+            source: "Rystad Energy - Global FPSO Cost Analysis (2023); Wood Mackenzie - Deepwater Cost Benchmarking; Relatórios de Projeto da Petrobras (Sépia, Atapu, Mero)."
+        },
+        {
+            category: "Estimativa de CAPEX",
+            concept: "Distribuição de CAPEX (Split)",
+            implementation: "Rateio típico para projetos offshore: Plataforma/FPSO (~45%), Poços de Desenvolvimento (~35%), Sistema Submarino (~20%).",
+            source: "Wood Mackenzie - Deepwater Project Economics; ANP - Planos de Desenvolvimento; Benchmarking de Projetos Pré-Sal (Tupi, Búzios, Lula)."
+        },
+        {
+            category: "Estimativa de CAPEX",
+            concept: "Ajustes de Complexidade (API/GOR)",
+            implementation: "Óleo pesado (<25º API) adiciona +15% ao custo do FPSO (aquecimento, separadores). GOR alto (>250 m³/m³) adiciona +20-30% (tratamento e reinjeção de gás).",
+            source: "Estudos de Viabilidade de FPSOs (SBM Offshore, Modec, BW Offshore); Relatórios Técnicos de Engenharia de Processos."
         }
     ];
 
