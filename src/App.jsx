@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import {
     Activity, LayoutTemplate, LineChart as ChartIcon, Landmark, Settings,
-    Split, Table as TableIcon, Maximize, Minimize, Ship, TrendingUp
+    Split, Table as TableIcon, Maximize, Minimize, Ship, TrendingUp, BookOpen
 } from 'lucide-react';
 
 import KPICard from './components/KPICard';
@@ -13,6 +13,7 @@ import ProjectInputForm from './components/ProjectInputForm';
 import TaxParameters from './components/TaxParameters';
 import ComparisonView from './components/ComparisonView';
 import CashFlowTable from './components/CashFlowTable';
+import ReferencesTable from './components/ReferencesTable';
 import { useProjectCalculations } from './hooks/useProjectCalculations';
 import {
     formatCurrency, formatBillions, formatMillionsNoDecimals, calculatePeakFromReserves, getBrentCurve
@@ -225,7 +226,7 @@ export default function App() {
 
                 <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
                     <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right">
-                        {['single', 'production', 'brent', 'tax', 'compare', 'cashflow_table'].map(tab => (
+                        {['single', 'production', 'brent', 'tax', 'compare', 'cashflow_table', 'references'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -237,7 +238,8 @@ export default function App() {
                                 {tab === 'tax' && <Landmark size={16} />}
                                 {tab === 'compare' && <Split size={16} />}
                                 {tab === 'cashflow_table' && <TableIcon size={16} />}
-                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'tax' ? 'Fiscal' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Brent' : 'Tabela'}</span>
+                                {tab === 'references' && <BookOpen size={16} />}
+                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'tax' ? 'Fiscal' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Brent' : tab === 'cashflow_table' ? 'Tabela' : 'Referências'}</span>
                             </button>
                         ))}
                     </div>
@@ -622,6 +624,11 @@ export default function App() {
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                         <CashFlowTable data={resultsA.yearlyData} />
                     </div>
+                )}
+
+                {/* --- VIEW: REFERENCES --- */}
+                {activeTab === 'references' && (
+                    <ReferencesTable />
                 )}
 
             </div>
