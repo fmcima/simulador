@@ -407,6 +407,11 @@ export const generateProjectData = (params) => {
         const freeCashFlow = revenue - opex - charterCost - taxes - capex;
         const previousAccumulated = year > 0 ? data[year - 1].accumulatedCashFlow : 0;
 
+        // Benefício Fiscal Potencial (Nominal) da Depreciação = Depreciação * Alíquota
+        // Nota: O benefício real depende do lucro tributável e prejuízo acumulado, 
+        // mas para fins de visualização de "Potencial de Economia", usa-se o nominal.
+        const depreciationTaxShield = depreciation * (corporateTaxRate / 100);
+
         data.push({
             year,
             capex: -capex,
@@ -419,6 +424,7 @@ export const generateProjectData = (params) => {
             profitOilGov: -profitOilGov,
             depreciation: -depreciation,
             capexTax: -capexTax,
+            depreciationTaxShield, // New field, positive value representing saving
             freeCashFlow,
             accumulatedCashFlow: previousAccumulated + freeCashFlow,
             isDecomYear,

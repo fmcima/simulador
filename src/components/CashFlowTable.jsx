@@ -19,7 +19,7 @@ const CashFlowTable = ({ data }) => {
         { key: 'brentPrice', label: 'Brent ($/bbl)', align: 'right', format: (v) => v.toFixed(2) },
         { key: 'revenue', label: 'Receita Bruta ($MM)', align: 'right', format: formatMoney, color: 'text-emerald-700' },
         { key: 'capex', label: 'CAPEX ($MM)', align: 'right', format: formatMoney, color: 'text-red-600' },
-        { key: 'capexTax', label: 'Imp. CAPEX ($MM)', align: 'right', format: formatMoney, color: (v) => v < 0 ? 'text-red-500' : 'text-slate-400' },
+        { key: 'depreciationTaxShield', label: 'Benefício Fiscal Deprec. ($MM)', align: 'right', format: formatMoney, color: 'text-emerald-600' },
         { key: 'opex', label: 'OPEX ($MM)', align: 'right', format: formatMoney, color: 'text-orange-600' },
         { key: 'taxes', label: 'Tributos ($MM)', align: 'right', format: formatMoney, color: 'text-purple-600' },
         { key: 'freeCashFlow', label: 'FCL ($MM)', align: 'right', format: formatMoney, bold: true, color: (v) => v >= 0 ? 'text-blue-700' : 'text-red-600' },
