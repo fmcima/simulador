@@ -1,8 +1,10 @@
-import React from 'react';
-import { Settings, Droplets, ArrowUpRight, ArrowDownRight, Activity, Beaker, Ship } from 'lucide-react';
+import React, { useState } from 'react';
+import { Settings, Droplets, ArrowUpRight, ArrowDownRight, Activity, Beaker, Ship, Check } from 'lucide-react';
 
 const ProductionParameters = ({ params, setParams }) => {
 
+
+    const [applied, setApplied] = useState(false);
     const mode = params.productionMode || 'simple';
 
     const handleChange = (field, value) => {
@@ -388,7 +390,7 @@ const ProductionParameters = ({ params, setParams }) => {
                                             </div>
                                         </div>
 
-                                        {/* APPLY TO PROJECT BUTTON */}
+
                                         <button
                                             onClick={() => {
                                                 // FPSO = 45% do total, então: Total = FPSO / 0.45
@@ -402,10 +404,24 @@ const ProductionParameters = ({ params, setParams }) => {
                                                         subsea: 20    // Subsea
                                                     }
                                                 }));
+
+                                                // Visual feedback
+                                                setApplied(true);
+                                                setTimeout(() => setApplied(false), 2000);
                                             }}
-                                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center justify-center gap-2"
+                                            disabled={applied}
+                                            className={`w-full py-3 rounded-lg text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 ${applied
+                                                ? 'bg-emerald-500 text-white cursor-default scale-[1.02]'
+                                                : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-[1.01]'
+                                                }`}
                                         >
-                                            Aplicar Estimativa ao CAPEX do Projeto
+                                            {applied ? (
+                                                <>
+                                                    <Check size={18} /> Aplicado com Sucesso!
+                                                </>
+                                            ) : (
+                                                'Aplicar Estimativa ao CAPEX do Projeto'
+                                            )}
                                         </button>
                                         <p className="text-[10px] text-center text-blue-600">
                                             Calcula CAPEX total (~${(estimatedFpsoCost / 0.45 / 1000000000).toFixed(2)}B) e define split: FPSO 45% | Poços 35% | Subsea 20%

@@ -90,7 +90,11 @@ export default function App() {
             wells: { method: 'uop', years: 5 },
             subsea: { method: 'accelerated', years: 2 }
         },
-        rdRate: 1 // Investimento em P&D (% Receita) - valor inicial visível
+        // Novos Parâmetros de Contratação
+        platformOwnership: 'owned', // Default é própria
+        charterPV: 2500000000, // Valor default para afretamento (se mudar para chartered)
+        charterSplit: { charter: 85, service: 15 }, // Split do contrato de afretamento
+        serviceTaxRate: 14.25, // Impostos indiretos (PIS/COFINS/ISS) sobre parcela de serviço
     };
 
     const [projectA, setProjectA] = useState({ ...defaultParams });
@@ -100,7 +104,9 @@ export default function App() {
         peakProduction: 180,
         plateauDuration: 4,
         platformOwnership: 'chartered',
-        charterPV: 2500000000
+        charterPV: 2500000000,
+        charterSplit: { charter: 85, service: 15 },
+        serviceTaxRate: 14.25
     });
 
     // Cálculos

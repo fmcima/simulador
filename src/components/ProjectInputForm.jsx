@@ -23,8 +23,84 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                 <div className="space-y-3">
 
                     <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Modelo de Contratação da Plataforma</label>
+                        <select
+                            value={params.platformOwnership || 'owned'}
+                            onChange={(e) => handleChange('platformOwnership', e.target.value)}
+                            className="w-full text-xs p-1.5 rounded border border-slate-300 outline-none focus:border-blue-500 mb-3"
+                        >
+                            <option value="owned">Própria (EPC - CAPEX)</option>
+                            <option value="chartered">Afretada (Lease - OPEX)</option>
+                        </select>
+
+                        {params.platformOwnership === 'chartered' && (
+                            <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mb-4 animate-in fade-in slide-in-from-top-2 space-y-3">
+                                <div>
+                                    <label className="text-xs font-medium text-orange-800 flex justify-between">
+                                        <span>Custo Presente Afretamento (PV)</span>
+                                        <span className="font-bold">{formatBillions(params.charterPV || 0)}</span>
+                                    </label>
+                                    <input
+                                        type="range" min="0" max="5000000000" step="50000000"
+                                        value={params.charterPV || 0}
+                                        onChange={(e) => handleChange('charterPV', Number(e.target.value))}
+                                        className="w-full accent-orange-500"
+                                    />
+                                    <p className="text-[10px] text-orange-600 mt-1">
+                                        Valor Presente Líquido dos pagamentos de afretamento.
+                                    </p>
+                                </div>
+
+                                {/* Charter Split */}
+                                <div>
+                                    <label className="text-xs font-medium text-orange-800 mb-1 block">Split Contratual (Afretamento vs Serviços)</label>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1">
+                                            <span className="text-[10px] text-slate-500 block">Afretamento (Isento)</span>
+                                            <div className="flex items-center bg-white border border-slate-200 rounded px-2">
+                                                <input
+                                                    type="number"
+                                                    value={params.charterSplit?.charter || 85}
+                                                    onChange={(e) => {
+                                                        const val = Math.min(100, Math.max(0, Number(e.target.value)));
+                                                        handleChange('charterSplit', { charter: val, service: 100 - val });
+                                                    }}
+                                                    className="w-full py-1 text-xs font-bold outline-none text-orange-700"
+                                                />
+                                                <span className="text-xs text-slate-400">%</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <span className="text-[10px] text-slate-500 block">Serviços (Tributado)</span>
+                                            <div className="flex items-center bg-slate-100 border border-slate-200 rounded px-2">
+                                                <span className="w-full py-1 text-xs font-bold text-slate-600 block">
+                                                    {params.charterSplit?.service || 15}
+                                                </span>
+                                                <span className="text-xs text-slate-400">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Service Tax Rate */}
+                                <div>
+                                    <label className="text-xs font-medium text-orange-800 flex justify-between">
+                                        <span>Impostos sobre Serviços (PIS/COFINS/ISS)</span>
+                                        <span className="font-bold">{params.serviceTaxRate || 14.25}%</span>
+                                    </label>
+                                    <input
+                                        type="range" min="0" max="30" step="0.25"
+                                        value={params.serviceTaxRate || 14.25}
+                                        onChange={(e) => handleChange('serviceTaxRate', Number(e.target.value))}
+                                        className="w-full accent-orange-500"
+                                    />
+                                </div>
+
+                            </div>
+                        )}
+
                         <label className="text-xs font-medium text-slate-500 mb-1 block flex justify-between">
-                            <span>Investimento Total (USD)</span>
+                            <span>Investimento Total (CAPEX)</span>
                             <span className="text-[10px] text-slate-400">
                                 {params.platformOwnership === 'chartered' ? '(Poços + Subsea)' : '(Plataforma + Poços + Subsea)'}
                             </span>

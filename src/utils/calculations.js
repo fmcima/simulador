@@ -147,7 +147,8 @@ export const generateProjectData = (params) => {
         // Novos Parâmetros de Contratação
         platformOwnership, // 'owned' | 'chartered'
         charterPV,
-        charterSplitPercent,
+        charterSplit = { charter: 85, service: 15 },
+        serviceTaxRate = 14.25,
         repetroRatio = { platform: 100, wells: 100, subsea: 100 },
         capexTaxRate = 40
     } = params;
@@ -195,11 +196,27 @@ export const generateProjectData = (params) => {
     if (platformOwnership === 'chartered') {
         const r = discountRate / 100;
         const n = projectDuration;
+        // Cálculo Base Anual
+        const pv = Number(charterPV) || 0;
+        let baseAnnualCharter = 0;
         if (r > 0 && n > 0) {
-            annualCharterCost = (charterPV * r) / (1 - Math.pow(1 + r, -n));
+            baseAnnualCharter = (pv * r) / (1 - Math.pow(1 + r, -n));
         } else if (n > 0) {
-            annualCharterCost = charterPV / n;
+            baseAnnualCharter = pv / n;
         }
+
+        // Aplicar Split e Impostos Indiretos (PIS/COFINS/ISS) sobre a parcela de serviços
+        // Garantindo tipagem numérica para evitar bugs de concatenação ou NaN
+        const cSplit = Number(charterSplit?.charter);
+        const sSplit = Number(charterSplit?.service);
+        const sTax = Number(serviceTaxRate);
+
+        const safeCharterPct = (!isNaN(cSplit) ? cSplit : 85) / 100;
+        const safeServicePct = (!isNaN(sSplit) ? sSplit : 15) / 100;
+        const safeTaxRate = (!isNaN(sTax) ? sTax : 14.25) / 100;
+
+        // Custo Efetivo = Parte Charter (Isenta) + Parte Serviço * (1 + Taxas)
+        annualCharterCost = (baseAnnualCharter * safeCharterPct) + (baseAnnualCharter * safeServicePct * (1 + safeTaxRate));
 
         const nonPlatformSplitSum = capexSplit.wells + capexSplit.subsea;
         const factor = nonPlatformSplitSum > 0 ? 100 / nonPlatformSplitSum : 0;
