@@ -12,6 +12,7 @@ import KPICard from './components/KPICard';
 import ProjectInputForm from './components/ProjectInputForm';
 import TaxParameters from './components/TaxParameters';
 import OpexParameters from './components/OpexParameters';
+import ProductionParameters from './components/ProductionParameters';
 import ComparisonView from './components/ComparisonView';
 import CashFlowTable from './components/CashFlowTable';
 import ReferencesTable from './components/ReferencesTable';
@@ -53,6 +54,12 @@ export default function App() {
         rampUpDuration: 3,
         plateauDuration: 4,
         declineRate: 8,
+
+        // Produção Detalhada
+        productionMode: 'simple', // 'simple' | 'detailed'
+        oilAPI: 28, // Grau API típico offshore
+        gor: 150, // Razão Gás-Óleo m³/m³
+        maxLiquids: 200000, // Capacidade de líquidos bpd
 
         // OPEX
         opexMargin: 20,
@@ -403,86 +410,13 @@ export default function App() {
                 {/* --- VIEW: PRODUCTION CURVE --- */}
                 {activeTab === 'production' && (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        {/* CONTROLS */}
-                        <div className="lg:col-span-4 space-y-6">
-                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <Settings className="w-5 h-5 text-blue-600" /> Parâmetros de Produção
-                                </h2>
-
-                                <div className="space-y-6">
-                                    {/* Perfis Pré-definidos */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-2">Perfil de Campo (Tipo)</label>
-                                        <div className="grid grid-cols-1 gap-2">
-                                            <button onClick={() => applyProductionProfile('pre-salt')} className="p-2 text-left rounded border border-slate-200 hover:bg-slate-50 transition-colors">
-                                                <div className="font-bold text-sm text-slate-800">Pré-Sal Offshore (Brasil)</div>
-                                                <div className="text-[10px] text-slate-500">Alta produtividade, platô estendido (4 anos), declínio 8%.</div>
-                                            </button>
-                                            <button onClick={() => applyProductionProfile('post-salt')} className="p-2 text-left rounded border border-slate-200 hover:bg-slate-50 transition-colors">
-                                                <div className="font-bold text-sm text-slate-800">Pós-Sal Offshore (Brasil)</div>
-                                                <div className="text-[10px] text-slate-500">Campos maduros, declínio mais acentuado (12%), rampa suave.</div>
-                                            </button>
-                                            <button onClick={() => applyProductionProfile('onshore')} className="p-2 text-left rounded border border-slate-200 hover:bg-slate-50 transition-colors">
-                                                <div className="font-bold text-sm text-slate-800">Onshore (Brasil)</div>
-                                                <div className="text-[10px] text-slate-500">Vida longa, platô estendido (6 anos), declínio lento (6%).</div>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Definição de Volume Total */}
-                                    <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-100">
-                                        <label className="block text-sm font-bold text-emerald-800 mb-1">Volume Total Recuperável (MM bbl)</label>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <input
-                                                type="number"
-                                                value={projectA.totalReserves}
-                                                onChange={(e) => handleChangeProjectA('totalReserves', Number(e.target.value))}
-                                                className="w-full p-2 border border-emerald-300 rounded text-right font-mono font-bold outline-none ring-offset-1 focus:ring-2 focus:ring-emerald-400"
-                                            />
-                                        </div>
-                                        <button
-                                            onClick={applyReservesToPeak}
-                                            className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-colors shadow-sm"
-                                        >
-                                            Calcular Pico Necessário
-                                        </button>
-                                        <div className="mt-2 text-center text-[10px] text-emerald-700">
-                                            Pico atual: <span className="font-bold">{projectA.peakProduction} kbpd</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Sliders de Ajuste Fino */}
-                                    <div className="space-y-4 pt-2 border-t border-slate-100">
-                                        <h4 className="text-xs font-bold uppercase text-slate-400">Ajuste Fino da Curva</h4>
-                                        <div>
-                                            <label className="text-xs font-medium text-slate-600 flex justify-between">
-                                                <span>Tempo de Ramp up (anos)</span>
-                                                <span className="font-bold">{projectA.rampUpDuration}</span>
-                                            </label>
-                                            <input type="range" min="1" max="10" value={projectA.rampUpDuration} onChange={(e) => handleChangeProjectA('rampUpDuration', Number(e.target.value))} className="w-full accent-blue-600" />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-medium text-slate-600 flex justify-between">
-                                                <span>Duração do Platô (anos)</span>
-                                                <span className="font-bold">{projectA.plateauDuration}</span>
-                                            </label>
-                                            <input type="range" min="0" max="15" value={projectA.plateauDuration} onChange={(e) => handleChangeProjectA('plateauDuration', Number(e.target.value))} className="w-full accent-blue-600" />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-medium text-slate-600 flex justify-between">
-                                                <span>Taxa de Declínio (%)</span>
-                                                <span className="font-bold">{projectA.declineRate}%</span>
-                                            </label>
-                                            <input type="range" min="1" max="30" value={projectA.declineRate} onChange={(e) => handleChangeProjectA('declineRate', Number(e.target.value))} className="w-full accent-blue-600" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        {/* CONTROLS - Using new ProductionParameters component */}
+                        <div className="lg:col-span-5">
+                            <ProductionParameters params={projectA} setParams={setProjectA} />
                         </div>
 
                         {/* CHART */}
-                        <div className="lg:col-span-8 space-y-6">
+                        <div className="lg:col-span-7 space-y-6">
                             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-[500px]">
                                 <h3 className="text-lg font-bold text-slate-800 mb-2">Curva de Produção Estimada</h3>
                                 <p className="text-sm text-slate-500 mb-6">Perfil de produção anual em mil barris por dia (kbpd).</p>
@@ -647,6 +581,6 @@ export default function App() {
                 )}
 
             </div>
-        </div>
+        </div >
     );
 }
