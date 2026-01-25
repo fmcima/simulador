@@ -148,6 +148,8 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         </div>
                     )}
 
+
+
                     <div>
                         <label className="text-xs font-medium text-slate-500 flex justify-between">
                             <span>Produção Pico (mil bpd)</span>
@@ -191,6 +193,20 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                     <div>
                         <label className="text-xs font-medium text-slate-500">Duração (Anos): {params.projectDuration}</label>
                         <input type="range" min="10" max="40" step="1" value={params.projectDuration} onChange={(e) => handleChange('projectDuration', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                    </div>
+
+                    {/* INFLAÇÃO DE CUSTOS */}
+                    <div>
+                        <label className="text-xs font-medium text-slate-500 flex justify-between">
+                            <span>Inflação de Custos (Real %)</span>
+                            <span className="text-[10px] bg-slate-100 px-1 rounded">{params.costInflation}%</span>
+                        </label>
+                        <input
+                            type="range" min="0" max="10" step="0.5"
+                            value={params.costInflation}
+                            onChange={(e) => handleChange('costInflation', Number(e.target.value))}
+                            className={`w-full ${colorClass}`}
+                        />
                     </div>
                 </div>
             </div>

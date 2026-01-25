@@ -117,6 +117,13 @@ export const generateProjectData = (params) => {
         capexPeakRelative, capexConcentration,
         peakProduction, brentSpread,
         rampUpDuration, plateauDuration, declineRate, opexMargin,
+
+        // OPEX Detalhado
+        opexMode = 'simple',
+        opexFixed = 100000000,
+        opexVariable = 4,
+        workoverCost = 10000000,
+        costInflation = 2,
         discountRate, projectDuration,
 
         // Tributário & Depreciação
@@ -277,7 +284,18 @@ export const generateProjectData = (params) => {
 
             productionMMbbl = (productionVolume * 1000 * 365) / 1000000;
             revenue = productionMMbbl * 1000000 * netOilPrice;
-            opex = revenue * (opexMargin / 100);
+            // Cálculo de OPEX baseado no modo
+            if (opexMode === 'detailed') {
+                // Detailed Model: Fixed + Variable + Workover Provision
+                const inflationFactor = Math.pow(1 + costInflation / 100, productionYear - 1);
+                const fixedOpex = opexFixed * inflationFactor;
+                const variableOpex = productionMMbbl * 1000000 * opexVariable;
+                const workover = workoverCost * inflationFactor;
+                opex = fixedOpex + variableOpex + workover;
+            } else {
+                // Simple Model: % of Revenue
+                opex = revenue * (opexMargin / 100);
+            }
 
             if (platformOwnership === 'chartered') {
                 charterCost = annualCharterCost;

@@ -5,12 +5,13 @@ import {
 } from 'recharts';
 import {
     Activity, LayoutTemplate, LineChart as ChartIcon, Landmark, Settings,
-    Split, Table as TableIcon, Maximize, Minimize, Ship, TrendingUp, BookOpen
+    Split, Table as TableIcon, Maximize, Minimize, Ship, TrendingUp, BookOpen, Wrench
 } from 'lucide-react';
 
 import KPICard from './components/KPICard';
 import ProjectInputForm from './components/ProjectInputForm';
 import TaxParameters from './components/TaxParameters';
+import OpexParameters from './components/OpexParameters';
 import ComparisonView from './components/ComparisonView';
 import CashFlowTable from './components/CashFlowTable';
 import ReferencesTable from './components/ReferencesTable';
@@ -52,7 +53,15 @@ export default function App() {
         rampUpDuration: 3,
         plateauDuration: 4,
         declineRate: 8,
+
+        // OPEX
         opexMargin: 20,
+        opexMode: 'simple', // 'simple' | 'detailed'
+        opexFixed: 100000000, // $100M/ano (típico para ~150kbpd)
+        opexVariable: 4, // $4/bbl
+        workoverCost: 10000000, // $10M/ano
+        costInflation: 2, // 2% a.a.
+
         totalReserves: 1000,
 
         discountRate: 10,
@@ -226,7 +235,7 @@ export default function App() {
 
                 <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
                     <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right">
-                        {['single', 'production', 'brent', 'tax', 'compare', 'cashflow_table', 'references'].map(tab => (
+                        {['single', 'production', 'opex', 'brent', 'tax', 'compare', 'cashflow_table', 'references'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -234,12 +243,13 @@ export default function App() {
                             >
                                 {tab === 'single' && <LayoutTemplate size={16} />}
                                 {tab === 'production' && <Settings size={16} />}
+                                {tab === 'opex' && <Wrench size={16} />}
                                 {tab === 'brent' && <ChartIcon size={16} />}
                                 {tab === 'tax' && <Landmark size={16} />}
                                 {tab === 'compare' && <Split size={16} />}
                                 {tab === 'cashflow_table' && <TableIcon size={16} />}
                                 {tab === 'references' && <BookOpen size={16} />}
-                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'tax' ? 'Fiscal' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Brent' : tab === 'cashflow_table' ? 'Tabela' : 'Referências'}</span>
+                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'tax' ? 'Fiscal' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Brent' : tab === 'cashflow_table' ? 'Tabela' : 'Referências'}</span>
                             </button>
                         ))}
                     </div>
@@ -624,6 +634,11 @@ export default function App() {
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                         <CashFlowTable data={resultsA.yearlyData} />
                     </div>
+                )}
+
+                {/* --- VIEW: OPEX --- */}
+                {activeTab === 'opex' && (
+                    <OpexParameters params={projectA} setParams={setProjectA} />
                 )}
 
                 {/* --- VIEW: REFERENCES --- */}

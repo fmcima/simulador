@@ -68,6 +68,24 @@ const ReferencesTable = () => {
             concept: "Onshore",
             implementation: "Volumes menores, ramp-up curto, vida útil longa com declínio lento (~6%).",
             source: "Modelagem Típica baseada em campos terrestres (Bacias Potiguar, Recôncavo). Fonte: Dados públicos da ANP."
+        },
+        {
+            category: "Custos Operacionais (OPEX)",
+            concept: "OPEX Fixo",
+            implementation: "Custo anual de aluguel de sonda, pessoal, logística e manutenção de rotina. Representa ~90% do OPEX em projetos de alta complexidade offshore.",
+            source: "Benchmarking de Projetos Offshore (Bacia de Santos/Campos). Relatórios de Operadoras (Petrobras, Equinor)."
+        },
+        {
+            category: "Custos Operacionais (OPEX)",
+            concept: "OPEX Variável",
+            implementation: "Custos consumíveis (químicos, tratamento de água, energia) estimados por barril produzido.",
+            source: "Relatórios de Consultorias Especializadas (ex: Wood Mackenzie, Rystad Energy, S&P Global) para FPSOs em águas ultra-profundas."
+        },
+        {
+            category: "Custos Operacionais (OPEX)",
+            concept: "Workover",
+            implementation: "Provisão anual para intervenção pesada em poços e sistemas submarinos.",
+            source: "Boletins de Mercado de Sondas (ex: Bassoe Offshore, Fearnleys) e Histórico de Operações na Bacia de Campos."
         }
     ];
 

@@ -269,6 +269,23 @@ const TaxParameters = ({ params, setParams }) => {
                                 </>
                             )}
                         </div>
+
+                        {/* P&D */}
+                        <div>
+                            <label className="text-sm font-medium text-slate-700 flex justify-between mb-2">
+                                <span className="flex items-center gap-2"><Activity size={16} className="text-slate-400" /> Investimento em P&D (% Receita)</span>
+                                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">{params.rdRate}%</span>
+                            </label>
+                            <input
+                                type="range" min="0" max="2" step="0.1"
+                                value={params.rdRate}
+                                onChange={(e) => handleChange('rdRate', Number(e.target.value))}
+                                className="w-full accent-emerald-600"
+                            />
+                            <p className="text-xs text-slate-500 mt-2">
+                                Obrigação de 1% da Receita Bruta para campos de grande produção. Dedutível da base do IRPJ/CSLL.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
