@@ -212,24 +212,24 @@ export default function App() {
         <div ref={containerRef} className={`min-h-screen bg-slate-50 text-slate-800 font-sans overflow-auto ${isCssFullScreen ? 'fixed inset-0 z-[9999]' : ''}`}>
 
             {/* Navbar / Tabs */}
-            <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
-                <div className="flex items-center gap-2">
-                    <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-lg shadow-blue-200">
+            <div className="bg-white border-b border-slate-200 px-4 py-3 lg:px-6 lg:py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-20 shadow-sm">
+                <div className="flex items-center gap-2 w-full lg:w-auto">
+                    <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-lg shadow-blue-200 shrink-0">
                         <Activity size={20} />
                     </div>
-                    <div>
-                        <h1 className="text-lg font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">Simulador de Projeto de Investimento de E&P</h1>
-                        <p className="text-xs text-slate-500">Análise Econômica de Projetos</p>
+                    <div className="min-w-0">
+                        <h1 className="text-lg font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 truncate">Simulador E&P</h1>
+                        <p className="text-xs text-slate-500 hidden sm:block">Análise Econômica de Projetos</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 flex-1 overflow-hidden">
-                    <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto w-full no-scrollbar">
+                <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
+                    <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right">
                         {['single', 'production', 'brent', 'tax', 'compare', 'cashflow_table'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeTab === tab ? 'bg-white shadow-sm text-blue-700 ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                                className={`flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeTab === tab ? 'bg-white shadow-sm text-blue-700 ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
                             >
                                 {tab === 'single' && <LayoutTemplate size={16} />}
                                 {tab === 'production' && <Settings size={16} />}
@@ -243,7 +243,7 @@ export default function App() {
                     </div>
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                        className="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors shrink-0"
                         title="Tela Inteira"
                     >
                         {isFullScreen || isCssFullScreen ? <Minimize size={18} /> : <Maximize size={18} />}
