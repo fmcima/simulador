@@ -17,30 +17,30 @@ const CashFlowTable = ({ data }) => {
         { key: 'year', label: 'Ano', align: 'center' },
         { key: 'productionVolume', label: 'Produção (kbpd)', align: 'right', format: (v) => v.toFixed(1) },
         { key: 'brentPrice', label: 'Brent ($/bbl)', align: 'right', format: (v) => v.toFixed(2) },
-        { key: 'revenue', label: 'Receita Bruta ($MM)', align: 'right', format: formatMoney, color: 'text-emerald-700' },
-        { key: 'capex', label: 'CAPEX ($MM)', align: 'right', format: formatMoney, color: 'text-red-600' },
-        { key: 'depreciationTaxShield', label: 'Benefício Fiscal Deprec. ($MM)', align: 'right', format: formatMoney, color: 'text-emerald-600' },
-        { key: 'opex', label: 'OPEX ($MM)', align: 'right', format: formatMoney, color: 'text-orange-600' },
-        { key: 'taxes', label: 'Tributos ($MM)', align: 'right', format: formatMoney, color: 'text-purple-600' },
-        { key: 'freeCashFlow', label: 'FCL ($MM)', align: 'right', format: formatMoney, bold: true, color: (v) => v >= 0 ? 'text-blue-700' : 'text-red-600' },
+        { key: 'revenue', label: 'Receita Bruta ($MM)', align: 'right', format: formatMoney, color: 'text-emerald-700 dark:text-emerald-400' },
+        { key: 'capex', label: 'CAPEX ($MM)', align: 'right', format: formatMoney, color: 'text-red-600 dark:text-red-400' },
+        { key: 'depreciationTaxShield', label: 'Benefício Fiscal Deprec. ($MM)', align: 'right', format: formatMoney, color: 'text-emerald-600 dark:text-emerald-400' },
+        { key: 'opex', label: 'OPEX ($MM)', align: 'right', format: formatMoney, color: 'text-orange-600 dark:text-orange-400' },
+        { key: 'taxes', label: 'Tributos ($MM)', align: 'right', format: formatMoney, color: 'text-purple-600 dark:text-purple-400' },
+        { key: 'freeCashFlow', label: 'FCL ($MM)', align: 'right', format: formatMoney, bold: true, color: (v) => v >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-red-600 dark:text-red-400' },
         { key: 'accumulatedCashFlow', label: 'Acumulado ($MM)', align: 'right', format: formatMoney, bold: true },
     ];
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div>
-                    <h2 className="text-lg font-bold text-slate-800">Demonstrativo de Fluxo de Caixa</h2>
-                    <p className="text-sm text-slate-500">Detalhamento anual dos principais componentes financeiros.</p>
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Demonstrativo de Fluxo de Caixa</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Detalhamento anual dos principais componentes financeiros.</p>
                 </div>
-                <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">
                     <Download size={16} /> Exportar CSV
                 </button>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase text-xs">
                         <tr>
                             {columns.map((col) => (
                                 <th key={col.key} className={`p-4 whitespace-nowrap text-${col.align === 'center' ? 'center' : col.align === 'right' ? 'right' : 'left'}`}>
@@ -49,9 +49,9 @@ const CashFlowTable = ({ data }) => {
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {data.map((row) => (
-                            <tr key={row.year} className={`hover:bg-blue-50/50 transition-colors ${row.isDecomYear ? 'bg-orange-50/30' : ''}`}>
+                            <tr key={row.year} className={`hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-colors ${row.isDecomYear ? 'bg-orange-50/30 dark:bg-orange-950/20' : ''}`}>
                                 {columns.map((col) => {
                                     const value = row[col.key];
                                     // CAPEX, OPEX, Taxes vêm negativos do backend para o gráfico, mas na tabela é usual mostrar positivo como "saída" ou manter o sinal. 
@@ -66,7 +66,7 @@ const CashFlowTable = ({ data }) => {
                                     // O usuário verá -100 no Capex.
 
                                     let displayValue = value;
-                                    let textColor = typeof col.color === 'function' ? col.color(value) : col.color || 'text-slate-700';
+                                    let textColor = typeof col.color === 'function' ? col.color(value) : col.color || 'text-slate-700 dark:text-slate-200';
 
                                     if (col.format) displayValue = col.format(value);
 

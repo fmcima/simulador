@@ -25,28 +25,28 @@ const OpexParameters = ({ params, setParams }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                    <div className="p-2 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">
                         <Wrench size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800">Custos Operacionais (OPEX)</h2>
-                        <p className="text-sm text-slate-500">Defina a estrutura de custos de operação da unidade.</p>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Custos Operacionais (OPEX)</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Defina a estrutura de custos de operação da unidade.</p>
                     </div>
                 </div>
 
                 {/* MODE SWITCH */}
-                <div className="bg-slate-100 p-1 rounded-lg flex mb-6">
+                <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex mb-6">
                     <button
                         onClick={() => handleChange('opexMode', 'simple')}
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.opexMode === 'simple' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.opexMode === 'simple' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                     >
                         Simplificado (% da Receita)
                     </button>
                     <button
                         onClick={() => handleChange('opexMode', 'detailed')}
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.opexMode === 'detailed' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.opexMode === 'detailed' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                     >
                         Detalhado (Fixo + Variável)
                     </button>
@@ -54,10 +54,10 @@ const OpexParameters = ({ params, setParams }) => {
 
                 {/* CAPACITY REFERENCE (only in detailed mode) */}
                 {params.opexMode === 'detailed' && (
-                    <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-100 flex justify-between items-center">
+                    <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900 flex justify-between items-center">
                         <div>
-                            <p className="text-sm font-medium text-purple-800">Capacidade da Unidade: <span className="font-bold">{capacity} kbpd</span></p>
-                            <p className="text-xs text-purple-600">Valores típicos calculados com base nesta capacidade (fontes: Petrobras, Rystad Energy)</p>
+                            <p className="text-sm font-medium text-purple-800 dark:text-purple-200">Capacidade da Unidade: <span className="font-bold">{capacity} kbpd</span></p>
+                            <p className="text-xs text-purple-600 dark:text-purple-400">Valores típicos calculados com base nesta capacidade (fontes: Petrobras, Rystad Energy)</p>
                         </div>
                         <button
                             onClick={suggestTypicalValues}
@@ -71,9 +71,9 @@ const OpexParameters = ({ params, setParams }) => {
                 {params.opexMode === 'simple' ? (
                     <div className="space-y-6">
                         <div>
-                            <label className="text-sm font-medium text-slate-700 flex justify-between mb-2">
-                                <span className="flex items-center gap-2"><Percent size={16} className="text-slate-400" /> Margem Operacional (% da Receita Bruta)</span>
-                                <span className="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">{params.opexMargin}%</span>
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                <span className="flex items-center gap-2"><Percent size={16} className="text-slate-400 dark:text-slate-500" /> Margem Operacional (% da Receita Bruta)</span>
+                                <span className="font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/30 px-2 py-1 rounded">{params.opexMargin}%</span>
                             </label>
                             <input
                                 type="range" min="10" max="60" step="1"
@@ -81,7 +81,7 @@ const OpexParameters = ({ params, setParams }) => {
                                 onChange={(e) => handleChange('opexMargin', Number(e.target.value))}
                                 className="w-full accent-purple-600"
                             />
-                            <p className="text-xs text-slate-500 mt-2">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                 Estima o OPEX total como uma porcentagem direta da receita bruta anual. Útil para fases iniciais de projeto (FEL 1/2).
                             </p>
                         </div>
@@ -90,9 +90,9 @@ const OpexParameters = ({ params, setParams }) => {
                     <div className="space-y-8">
                         {/* OPEX FIXO */}
                         <div>
-                            <label className="text-sm font-medium text-slate-700 flex justify-between mb-2">
-                                <span className="flex items-center gap-2"><DollarSign size={16} className="text-slate-400" /> OPEX Fixo (Anual)</span>
-                                <span className="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">{formatMillionsNoDecimals(params.opexFixed)}/ano</span>
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                <span className="flex items-center gap-2"><DollarSign size={16} className="text-slate-400 dark:text-slate-500" /> OPEX Fixo (Anual)</span>
+                                <span className="font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/30 px-2 py-1 rounded">{formatMillionsNoDecimals(params.opexFixed)}/ano</span>
                             </label>
                             <input
                                 type="range" min="0" max="500000000" step="10000000"
@@ -100,16 +100,16 @@ const OpexParameters = ({ params, setParams }) => {
                                 onChange={(e) => handleChange('opexFixed', Number(e.target.value))}
                                 className="w-full accent-purple-600"
                             />
-                            <p className="text-xs text-slate-500 mt-2">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                 Custos que não variam com a produção (Aluguel de Sonda, Pessoal, Logística Básica, Manutenção de Rotina). Representa ~90% do OPEX em offshore.
                             </p>
                         </div>
 
                         {/* OPEX VARIÁVEL */}
                         <div>
-                            <label className="text-sm font-medium text-slate-700 flex justify-between mb-2">
-                                <span className="flex items-center gap-2"><Activity size={16} className="text-slate-400" /> OPEX Variável (por Barril)</span>
-                                <span className="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">{formatCurrency(params.opexVariable)}/bbl</span>
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                <span className="flex items-center gap-2"><Activity size={16} className="text-slate-400 dark:text-slate-500" /> OPEX Variável (por Barril)</span>
+                                <span className="font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/30 px-2 py-1 rounded">{formatCurrency(params.opexVariable)}/bbl</span>
                             </label>
                             <input
                                 type="range" min="0" max="25" step="0.5"
@@ -117,16 +117,16 @@ const OpexParameters = ({ params, setParams }) => {
                                 onChange={(e) => handleChange('opexVariable', Number(e.target.value))}
                                 className="w-full accent-purple-600"
                             />
-                            <p className="text-xs text-slate-500 mt-2">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                 Custos consumíveis (Produtos Químicos, Tratamento de Água, Energia extra) por barril produzido.
                             </p>
                         </div>
 
                         {/* WORKOVER */}
                         <div>
-                            <label className="text-sm font-medium text-slate-700 flex justify-between mb-2">
-                                <span className="flex items-center gap-2"><Wrench size={16} className="text-slate-400" /> Provisão para Workover (Anual)</span>
-                                <span className="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">{formatMillionsNoDecimals(params.workoverCost)}/ano</span>
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                <span className="flex items-center gap-2"><Wrench size={16} className="text-slate-400 dark:text-slate-500" /> Provisão para Workover (Anual)</span>
+                                <span className="font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/30 px-2 py-1 rounded">{formatMillionsNoDecimals(params.workoverCost)}/ano</span>
                             </label>
                             <input
                                 type="range" min="0" max="100000000" step="5000000"
@@ -134,7 +134,7 @@ const OpexParameters = ({ params, setParams }) => {
                                 onChange={(e) => handleChange('workoverCost', Number(e.target.value))}
                                 className="w-full accent-purple-600"
                             />
-                            <p className="text-xs text-slate-500 mt-2">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                 Provisão anual média para intervenções pesadas em poços e reparos submarinos.
                             </p>
                         </div>

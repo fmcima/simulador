@@ -5,8 +5,11 @@ import {
 } from 'recharts';
 import {
     Activity, LayoutTemplate, LineChart as ChartIcon, Landmark, Settings,
-    Split, Table as TableIcon, Maximize, Minimize, Ship, TrendingUp, BookOpen, Wrench
+    Split, Table as TableIcon, Maximize, Minimize, Ship, TrendingUp, BookOpen, Wrench,
+    Moon, Sun
 } from 'lucide-react';
+
+import { useTheme } from './hooks/useTheme';
 
 import KPICard from './components/KPICard';
 import ProjectInputForm from './components/ProjectInputForm';
@@ -24,6 +27,7 @@ import {
 // --- Componente Principal ---
 
 export default function App() {
+    const { theme, toggleTheme } = useTheme();
     const [activeTab, setActiveTab] = useState('single');
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isCssFullScreen, setIsCssFullScreen] = useState(false);
@@ -196,31 +200,31 @@ export default function App() {
             const data = payload[0].payload;
 
             return (
-                <div className="bg-white p-3 border border-slate-100 shadow-lg rounded-lg text-xs">
-                    <p className="font-bold text-slate-700 mb-2">Ano {label}</p>
+                <div className="bg-white dark:bg-slate-800 p-3 border border-slate-100 dark:border-slate-700 shadow-lg rounded-lg text-xs">
+                    <p className="font-bold text-slate-700 dark:text-slate-200 mb-2">Ano {label}</p>
                     <div className="space-y-1">
                         <div className="flex justify-between gap-4">
-                            <span className="text-slate-500">Receita:</span>
-                            <span className="font-medium text-emerald-600">{formatMillionsNoDecimals(data.revenue)}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Receita:</span>
+                            <span className="font-medium text-emerald-600 dark:text-emerald-400">{formatMillionsNoDecimals(data.revenue)}</span>
                         </div>
                         <div className="flex justify-between gap-4">
-                            <span className="text-slate-500">OPEX:</span>
-                            <span className="font-medium text-red-500">{formatMillionsNoDecimals(Math.abs(data.opex))}</span>
+                            <span className="text-slate-500 dark:text-slate-400">OPEX:</span>
+                            <span className="font-medium text-red-500 dark:text-red-400">{formatMillionsNoDecimals(Math.abs(data.opex))}</span>
                         </div>
                         <div className="flex justify-between gap-4">
-                            <span className="text-slate-500">Depreciação:</span>
-                            <span className="font-medium text-slate-600">{formatMillionsNoDecimals(Math.abs(data.depreciation))}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Depreciação:</span>
+                            <span className="font-medium text-slate-600 dark:text-slate-300">{formatMillionsNoDecimals(Math.abs(data.depreciation))}</span>
                         </div>
                         <div className="flex justify-between gap-4">
-                            <span className="text-slate-500">Impostos:</span>
-                            <span className="font-medium text-purple-600">{formatMillionsNoDecimals(Math.abs(data.taxes))}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Impostos:</span>
+                            <span className="font-medium text-purple-600 dark:text-purple-400">{formatMillionsNoDecimals(Math.abs(data.taxes))}</span>
                         </div>
-                        <div className="my-1 border-t border-slate-100 pt-1">
+                        <div className="my-1 border-t border-slate-100 dark:border-slate-700 pt-1">
                             <div className="flex justify-between gap-4 font-bold">
-                                <span className="text-blue-600">FCL:</span>
-                                <span>{formatMillionsNoDecimals(data.freeCashFlow)}</span>
+                                <span className="text-blue-600 dark:text-blue-400">FCL:</span>
+                                <span className="dark:text-slate-200">{formatMillionsNoDecimals(data.freeCashFlow)}</span>
                             </div>
-                            <div className="flex justify-between gap-4 text-emerald-500">
+                            <div className="flex justify-between gap-4 text-emerald-500 dark:text-emerald-400">
                                 <span>Acumulado:</span>
                                 <span>{formatMillionsNoDecimals(data.accumulatedCashFlow)}</span>
                             </div>
@@ -233,27 +237,27 @@ export default function App() {
     };
 
     return (
-        <div ref={containerRef} className={`min-h-screen bg-slate-50 text-slate-800 font-sans overflow-auto ${isCssFullScreen ? 'fixed inset-0 z-[9999]' : ''}`}>
+        <div ref={containerRef} className={`min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-auto transition-colors duration-300 ${isCssFullScreen ? 'fixed inset-0 z-[9999]' : ''}`}>
 
             {/* Navbar / Tabs */}
-            <div className="bg-white border-b border-slate-200 px-4 py-3 lg:px-6 lg:py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-20 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 lg:px-6 lg:py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-20 shadow-sm transition-colors duration-300">
                 <div className="flex items-center gap-2 w-full lg:w-auto">
                     <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-lg shadow-blue-200 shrink-0">
                         <Activity size={20} />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="text-lg font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 truncate">Simulador E&P</h1>
-                        <p className="text-xs text-slate-500 hidden sm:block">Análise Econômica de Projetos</p>
+                        <h1 className="text-lg font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 truncate">Simulador E&P</h1>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Análise Econômica de Projetos</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
-                    <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right">
+                    <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right border border-transparent dark:border-slate-800 transition-colors">
                         {['single', 'production', 'opex', 'brent', 'tax', 'compare', 'cashflow_table', 'references'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeTab === tab ? 'bg-white shadow-sm text-blue-700 ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                                className={`flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeTab === tab ? 'bg-white dark:bg-slate-800 shadow-sm text-blue-700 dark:text-blue-400 ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}
                             >
                                 {tab === 'single' && <LayoutTemplate size={16} />}
                                 {tab === 'production' && <Settings size={16} />}
@@ -267,13 +271,22 @@ export default function App() {
                             </button>
                         ))}
                     </div>
-                    <button
-                        onClick={toggleFullScreen}
-                        className="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors shrink-0"
-                        title="Tela Inteira"
-                    >
-                        {isFullScreen || isCssFullScreen ? <Minimize size={18} /> : <Maximize size={18} />}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={toggleTheme}
+                            className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors shrink-0"
+                            title={theme === 'dark' ? "Modo Claro" : "Modo Escuro"}
+                        >
+                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                        </button>
+                        <button
+                            onClick={toggleFullScreen}
+                            className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors shrink-0"
+                            title="Tela Inteira"
+                        >
+                            {isFullScreen || isCssFullScreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -303,25 +316,25 @@ export default function App() {
 
 
                             {/* Chart */}
-                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-[500px] hover:shadow-md transition-shadow">
+                            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-[500px] hover:shadow-md transition-shadow">
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-sm font-bold text-slate-700">Fluxo de Caixa Livre e Acumulado</h3>
+                                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-100">Fluxo de Caixa Livre e Acumulado</h3>
                                     {projectA.platformOwnership === 'chartered' && (
-                                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium flex items-center gap-1">
+                                        <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded font-medium flex items-center gap-1">
                                             <Ship size={12} /> Plataforma Afretada (Custo Operacional)
                                         </span>
                                     )}
                                 </div>
                                 <ResponsiveContainer width="100%" height="90%">
                                     <ComposedChart data={resultsA.yearlyData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
                                         <XAxis
                                             dataKey="year"
-                                            tick={{ fontSize: 10, fill: '#64748b' }}
+                                            tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                                             tickMargin={10}
                                             axisLine={false}
                                             tickLine={false}
-                                            label={{ value: 'Anos', position: 'insideBottomRight', offset: -10, fontSize: 10, fill: '#64748b' }}
+                                            label={{ value: 'Anos', position: 'insideBottomRight', offset: -10, fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                                         />
                                         <YAxis
                                             yAxisId="left"
@@ -329,8 +342,8 @@ export default function App() {
                                             fontSize={10}
                                             axisLine={false}
                                             tickLine={false}
-                                            tick={{ fill: '#64748b' }}
-                                            label={{ value: 'FCL (USD)', angle: -90, position: 'insideLeft', fontSize: 10, fill: '#64748b', dy: 40 }}
+                                            tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                            label={{ value: 'FCL (USD)', angle: -90, position: 'insideLeft', fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b', dy: 40 }}
                                         />
                                         <YAxis yAxisId="right" orientation="right" hide />
                                         <Tooltip content={<CustomTooltip />} />
@@ -338,9 +351,9 @@ export default function App() {
                                             verticalAlign="top"
                                             align="right"
                                             height={30}
-                                            wrapperStyle={{ top: -10, right: 0, fontSize: '11px' }}
+                                            wrapperStyle={{ top: -10, right: 0, fontSize: '11px', color: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                                         />
-                                        <ReferenceLine yAxisId="left" y={0} stroke="#cbd5e1" />
+                                        <ReferenceLine yAxisId="left" y={0} stroke={theme === 'dark' ? '#475569' : '#cbd5e1'} />
                                         <Bar yAxisId="left" dataKey="freeCashFlow" name="FCL Anual" fill="#3b82f6" barSize={30} radius={[4, 4, 0, 0]} />
                                         <Line yAxisId="right" type="monotone" dataKey="accumulatedCashFlow" name="Acumulado" stroke="#10b981" strokeWidth={3} dot={false} />
                                         <Line yAxisId="left" type="step" dataKey="taxes" name="Impostos" stroke="#9333ea" strokeWidth={2} dot={false} opacity={0.6} />
@@ -355,33 +368,34 @@ export default function App() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                                 {/* Box: Sensibilidade CAPEX */}
-                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-72 hover:shadow-md transition-shadow">
+                                {/* Box: Sensibilidade CAPEX */}
+                                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-72 hover:shadow-md transition-shadow">
                                     <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-sm font-bold text-slate-700">Sensibilidade da TIR - TMA e VPL/IA ao CAPEX</h3>
+                                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-100">Sensibilidade da TIR - TMA e VPL/IA ao CAPEX</h3>
                                     </div>
                                     <ResponsiveContainer width="100%" height="90%">
                                         <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                            <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
                                             <XAxis
                                                 type="number"
                                                 dataKey="spread"
                                                 name="Spread"
                                                 unit="%"
                                                 fontSize={10}
-                                                tick={{ fill: '#64748b' }}
+                                                tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                                                 axisLine={false}
                                                 tickLine={false}
-                                                label={{ value: 'Spread (TIR - TMA) [%]', position: 'insideBottom', offset: -10, fontSize: 10, fill: '#64748b' }}
+                                                label={{ value: 'Spread (TIR - TMA) [%]', position: 'insideBottom', offset: -10, fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                                             />
                                             <YAxis
                                                 type="number"
                                                 dataKey="vpl_ia"
                                                 name="VPL/IA"
                                                 fontSize={10}
-                                                tick={{ fill: '#64748b' }}
+                                                tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                                                 axisLine={false}
                                                 tickLine={false}
-                                                label={{ value: 'VPL / IA (x)', angle: -90, position: 'insideLeft', fontSize: 10, offset: 10, fill: '#64748b' }}
+                                                label={{ value: 'VPL / IA (x)', angle: -90, position: 'insideLeft', fontSize: 10, offset: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                                             />
                                             <Tooltip
                                                 cursor={{ strokeDasharray: '3 3' }}
@@ -389,15 +403,15 @@ export default function App() {
                                                     if (active && payload && payload.length) {
                                                         const data = payload[0].payload;
                                                         return (
-                                                            <div className="bg-white p-3 border border-slate-200 shadow-md rounded-lg outline-none">
-                                                                <p className="text-xs font-bold text-slate-700 mb-1">
-                                                                    Variação CAPEX: <span className={data.variation > 0 ? 'text-red-600' : data.variation < 0 ? 'text-emerald-600' : 'text-slate-700'}>
+                                                            <div className="bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700 shadow-md rounded-lg outline-none">
+                                                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
+                                                                    Variação CAPEX: <span className={data.variation > 0 ? 'text-red-600 dark:text-red-400' : data.variation < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}>
                                                                         {data.variation > 0 ? '+' : ''}{data.variation.toFixed(0)}%
                                                                     </span>
                                                                 </p>
                                                                 <div className="space-y-0.5">
-                                                                    <p className="text-xs text-slate-500">Spread (TIR - TMA): <span className="font-medium text-slate-700">{data.spread?.toFixed(1)}%</span></p>
-                                                                    <p className="text-xs text-slate-500">VPL / IA: <span className="font-medium text-slate-700">{data.vpl_ia?.toFixed(1)}x</span></p>
+                                                                    <p className="text-xs text-slate-500 dark:text-slate-400">Spread (TIR - TMA): <span className="font-medium text-slate-700 dark:text-slate-200">{data.spread?.toFixed(1)}%</span></p>
+                                                                    <p className="text-xs text-slate-500 dark:text-slate-400">VPL / IA: <span className="font-medium text-slate-700 dark:text-slate-200">{data.vpl_ia?.toFixed(1)}x</span></p>
                                                                 </div>
                                                             </div>
                                                         );
@@ -414,15 +428,15 @@ export default function App() {
                                     </ResponsiveContainer>
                                 </div>
 
-                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-72 hover:shadow-md transition-shadow">
-                                    <h3 className="text-sm font-bold text-slate-700 mb-2">Perfil VPL (Taxa de Desconto)</h3>
+                                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-72 hover:shadow-md transition-shadow">
+                                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-100 mb-2">Perfil VPL (Taxa de Desconto)</h3>
                                     <ResponsiveContainer width="100%" height="90%">
                                         <LineChart data={resultsA.npvProfile} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                            <XAxis dataKey="rate" fontSize={10} tickFormatter={(v) => `${v}%`} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                            <YAxis fontSize={10} tickFormatter={(v) => `$${v / 1000000000}B`} width={50} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                            <Tooltip formatter={(v) => formatCurrency(v)} labelFormatter={(v) => `Taxa: ${v}%`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                            <ReferenceLine y={0} stroke="#94a3b8" />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+                                            <XAxis dataKey="rate" fontSize={10} tickFormatter={(v) => `${v}%`} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                            <YAxis fontSize={10} tickFormatter={(v) => `$${v / 1000000000}B`} width={50} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                            <Tooltip formatter={(v) => formatCurrency(v)} labelFormatter={(v) => `Taxa: ${v}%`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }} />
+                                            <ReferenceLine y={0} stroke={theme === 'dark' ? '#94a3b8' : '#94a3b8'} />
                                             <Line type="monotone" dataKey="npv" stroke="#8b5cf6" strokeWidth={3} dot={false} />
                                         </LineChart>
                                     </ResponsiveContainer>
@@ -442,9 +456,9 @@ export default function App() {
 
                         {/* CHART */}
                         <div className="lg:col-span-7 space-y-6">
-                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-[500px]">
-                                <h3 className="text-lg font-bold text-slate-800 mb-2">Curva de Produção Estimada</h3>
-                                <p className="text-sm text-slate-500 mb-6">Perfil de produção anual em mil barris por dia (kbpd).</p>
+                            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-[500px]">
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Curva de Produção Estimada</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Perfil de produção anual em mil barris por dia (kbpd).</p>
 
                                 <ResponsiveContainer width="100%" height="85%">
                                     <AreaChart data={productionChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -454,10 +468,10 @@ export default function App() {
                                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
-                                        <XAxis dataKey="year" label={{ value: 'Ano', position: 'insideBottom', offset: -5, fill: '#64748b' }} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                        <YAxis label={{ value: 'Produção (kbpd)', angle: -90, position: 'insideLeft', fill: '#64748b' }} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <Tooltip labelFormatter={(l) => `Ano ${l}`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                        <XAxis dataKey="year" label={{ value: 'Ano', position: 'insideBottom', offset: -5, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                        <YAxis label={{ value: 'Produção (kbpd)', angle: -90, position: 'insideLeft', fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+                                        <Tooltip labelFormatter={(l) => `Ano ${l}`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }} />
                                         <Area type="monotone" dataKey="volume" stroke="#10b981" fillOpacity={1} fill="url(#colorProd)" strokeWidth={3} name="Volume (kbpd)" />
                                     </AreaChart>
                                 </ResponsiveContainer>
@@ -471,8 +485,8 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         {/* CONTROLS */}
                         <div className="lg:col-span-4 space-y-6">
-                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                                     <TrendingUp className="w-5 h-5 text-blue-600" /> Cenários de Preço Brent
                                 </h2>
 
@@ -489,19 +503,19 @@ export default function App() {
                                             <button
                                                 key={s}
                                                 onClick={() => handleChangeProjectA('brentStrategy', s)}
-                                                className={`w-full p-3 text-left rounded-lg border transition-all ${projectA.brentStrategy === s ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                                                className={`w-full p-3 text-left rounded-lg border transition-all ${projectA.brentStrategy === s ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-500 ring-1 ring-blue-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                                             >
-                                                <div className="font-bold text-sm text-slate-800 capitalize">{labels[s]}</div>
+                                                <div className="font-bold text-sm text-slate-800 dark:text-slate-100 capitalize">{labels[s]}</div>
                                             </button>
                                         );
                                     })}
 
                                     {projectA.brentStrategy === 'custom' && (
-                                        <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 space-y-3 animate-in fade-in slide-in-from-top-2">
-                                            <h4 className="text-xs font-bold uppercase text-purple-800 mb-2">Parâmetros da Curva</h4>
+                                        <div className="p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900 space-y-3 animate-in fade-in slide-in-from-top-2">
+                                            <h4 className="text-xs font-bold uppercase text-purple-800 dark:text-purple-200 mb-2">Parâmetros da Curva</h4>
 
                                             <div>
-                                                <label className="text-xs font-medium text-slate-600 flex justify-between">
+                                                <label className="text-xs font-medium text-slate-600 dark:text-slate-400 flex justify-between">
                                                     <span>Preço Inicial (Ano 0)</span>
                                                     <span className="font-bold">${projectA.brentPrice}</span>
                                                 </label>
@@ -509,7 +523,7 @@ export default function App() {
                                             </div>
 
                                             <div>
-                                                <label className="text-xs font-medium text-slate-600 flex justify-between">
+                                                <label className="text-xs font-medium text-slate-600 dark:text-slate-400 flex justify-between">
                                                     <span>Ano de Pico</span>
                                                     <span className="font-bold">Ano {projectA.brentPeakYear || 5}</span>
                                                 </label>
@@ -520,7 +534,7 @@ export default function App() {
                                             </div>
 
                                             <div>
-                                                <label className="text-xs font-medium text-slate-600 flex justify-between">
+                                                <label className="text-xs font-medium text-slate-600 dark:text-slate-400 flex justify-between">
                                                     <span>Valor no Pico ($)</span>
                                                     <span className="font-bold">${projectA.brentPeakValue || 90}</span>
                                                 </label>
@@ -531,7 +545,7 @@ export default function App() {
                                             </div>
 
                                             <div>
-                                                <label className="text-xs font-medium text-slate-600 flex justify-between">
+                                                <label className="text-xs font-medium text-slate-600 dark:text-slate-400 flex justify-between">
                                                     <span>Longo Prazo ($)</span>
                                                     <span className="font-bold">${projectA.brentLongTerm || 60}</span>
                                                 </label>
@@ -548,8 +562,8 @@ export default function App() {
 
                         {/* CHART */}
                         <div className="lg:col-span-8 space-y-6">
-                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-[500px]">
-                                <h3 className="text-lg font-bold text-slate-800 mb-2">Projeção do Preço Brent (Nominal)</h3>
+                            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-[500px]">
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Projeção do Preço Brent (Nominal)</h3>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <AreaChart data={brentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <defs>
@@ -558,10 +572,10 @@ export default function App() {
                                                 <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
-                                        <XAxis dataKey="year" label={{ value: 'Ano do Projeto', position: 'insideBottom', offset: -5, fill: '#64748b' }} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                        <YAxis domain={[0, 'auto']} label={{ value: 'USD/bbl', angle: -90, position: 'insideLeft', fill: '#64748b' }} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <Tooltip formatter={(value) => `$${value.toFixed(2)}`} labelFormatter={(l) => `Ano ${l}`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                        <XAxis dataKey="year" label={{ value: 'Ano do Projeto', position: 'insideBottom', offset: -5, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                        <YAxis domain={[0, 'auto']} label={{ value: 'USD/bbl', angle: -90, position: 'insideLeft', fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+                                        <Tooltip formatter={(value) => `$${value.toFixed(2)}`} labelFormatter={(l) => `Ano ${l}`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }} />
                                         <Area type="monotone" dataKey="price" stroke="#2563eb" fillOpacity={1} fill="url(#colorBrent)" strokeWidth={3} name="Preço Brent" />
                                     </AreaChart>
                                 </ResponsiveContainer>
@@ -590,7 +604,7 @@ export default function App() {
 
                 {/* Placeholder for other tabs if they were fully implemented or if user switches to them */}
                 {(activeTab === 'cashflow_table') && (
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                         <CashFlowTable data={resultsA.yearlyData} />
                     </div>
                 )}

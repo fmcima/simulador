@@ -27,6 +27,34 @@ const TaxParameters = ({ params, setParams }) => {
         }));
     };
 
+    const handleOwnershipChange = (newMode) => {
+        setParams(prev => {
+            if (prev.platformOwnership === newMode) return prev;
+
+            let newCapex = prev.totalCapex;
+            const platformShare = prev.capexSplit.platform / 100;
+
+            if (newMode === 'chartered') {
+                // Switching Owned -> Chartered
+                // Reduce Total Capex by removing Platform Share
+                newCapex = prev.totalCapex * (1 - platformShare);
+            } else {
+                // Switching Chartered -> Owned
+                // Restore Total Capex by adding back Platform Share
+                // (prev.totalCapex represents the 1-share part)
+                if (platformShare < 1) {
+                    newCapex = prev.totalCapex / (1 - platformShare);
+                }
+            }
+
+            return {
+                ...prev,
+                platformOwnership: newMode,
+                totalCapex: newCapex
+            };
+        });
+    };
+
     const applyTaxRegimeTemplate = (type) => {
         let updates = {};
         if (type === 'Marlim' || type === 'Roncador') updates = { taxRegime: 'concession', royaltiesRate: 10, specialParticipationRate: 35 };
@@ -58,30 +86,30 @@ const TaxParameters = ({ params, setParams }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-4 space-y-6">
                 {/* NOVO: CARD DE CONTRATAÇÃO & INCENTIVOS */}
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm animate-in fade-in">
-                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in">
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                         <Ship className="w-5 h-5 text-blue-600" /> Contratação & Incentivos
                     </h2>
 
                     <div className="space-y-6">
                         {/* Platform Ownership */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-2">Modelo de Contratação (Plataforma)</label>
-                            <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Modelo de Contratação (Plataforma)</label>
+                            <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
                                 <button
-                                    onClick={() => handleChange('platformOwnership', 'owned')}
-                                    className={`flex-1 py-2 px-3 text-xs font-bold rounded-md transition-all ${params.platformOwnership === 'owned' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    onClick={() => handleOwnershipChange('owned')}
+                                    className={`flex-1 py-2 px-3 text-xs font-bold rounded-md transition-all ${params.platformOwnership === 'owned' ? 'bg-white dark:bg-slate-900 text-blue-700 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                                 >
                                     Própria (CAPEX)
                                 </button>
                                 <button
-                                    onClick={() => handleChange('platformOwnership', 'chartered')}
-                                    className={`flex-1 py-2 px-3 text-xs font-bold rounded-md transition-all ${params.platformOwnership === 'chartered' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    onClick={() => handleOwnershipChange('chartered')}
+                                    className={`flex-1 py-2 px-3 text-xs font-bold rounded-md transition-all ${params.platformOwnership === 'chartered' ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                                 >
                                     Afretada (OPEX)
                                 </button>
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-2">
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2">
                                 {params.platformOwnership === 'owned'
                                     ? 'Investimento inicial (CAPEX) com depreciação e benefício fiscal.'
                                     : 'Sem investimento inicial. Custo diluído como taxa diária (OPEX).'}
@@ -90,35 +118,67 @@ const TaxParameters = ({ params, setParams }) => {
 
                         {/* Inputs Afretamento */}
                         {params.platformOwnership === 'chartered' && (
-                            <div className="p-3 bg-orange-50 rounded border border-orange-100 animate-in fade-in slide-in-from-top-1">
+                            <div className="p-3 bg-orange-50 dark:bg-orange-950/30 rounded border border-orange-100 dark:border-orange-900 animate-in fade-in slide-in-from-top-1">
                                 <div className="mb-3">
-                                    <label className="text-xs font-medium text-orange-800 block mb-1">Valor Presente do Afretamento</label>
-                                    <div className="flex items-center gap-2 bg-white rounded border border-orange-200 p-1">
-                                        <span className="text-xs font-bold text-orange-600 pl-1">$</span>
+                                    <label className="text-xs font-medium text-orange-800 dark:text-orange-200 block mb-1">Valor Presente do Afretamento (PV)</label>
+                                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 rounded border border-orange-200 dark:border-orange-900 p-1">
+                                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400 pl-1">$</span>
                                         <input
                                             type="number"
                                             step="0.1"
                                             min="0"
                                             value={params.charterPV / 1000000000}
                                             onChange={(e) => handleChange('charterPV', Number(e.target.value) * 1000000000)}
-                                            className="w-full text-sm p-1 outline-none text-orange-800 font-bold"
+                                            className="w-full text-sm p-1 outline-none text-orange-800 dark:text-orange-200 font-bold bg-transparent"
                                         />
-                                        <span className="text-xs font-medium text-orange-500 pr-2">Bi</span>
+                                        <span className="text-xs font-medium text-orange-500 dark:text-orange-400 pr-2">Bi</span>
                                     </div>
-                                    <div className="text-[10px] text-orange-500 mt-1 text-right">
+                                    <div className="text-[10px] text-orange-500 dark:text-orange-400 mt-1 text-right">
                                         Valor Total: {formatCurrency(params.charterPV)}
                                     </div>
                                 </div>
 
+                                {/* Charter Split */}
+                                <div className="mb-3">
+                                    <label className="text-xs font-medium text-orange-800 dark:text-orange-200 mb-1 block">Split Contratual (Afretamento vs Serviços)</label>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1">
+                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Afretamento (Isento)</span>
+                                            <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-2">
+                                                <input
+                                                    type="number"
+                                                    value={params.charterSplit?.charter || 85}
+                                                    onChange={(e) => {
+                                                        const val = Math.min(100, Math.max(0, Number(e.target.value)));
+                                                        setParams(prev => ({ ...prev, charterSplit: { charter: val, service: 100 - val } }));
+                                                    }}
+                                                    className="w-full py-1 text-xs font-bold outline-none text-orange-700 dark:text-orange-400 bg-transparent"
+                                                />
+                                                <span className="text-xs text-slate-400 dark:text-slate-500">%</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Serviços (Tributado)</span>
+                                            <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded px-2">
+                                                <span className="w-full py-1 text-xs font-bold text-slate-600 dark:text-slate-400 block">
+                                                    {params.charterSplit?.service || 15}
+                                                </span>
+                                                <span className="text-xs text-slate-400 dark:text-slate-500">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Service Tax Rate */}
                                 <div>
-                                    <label className="text-xs font-medium text-orange-800 block mb-1 flex justify-between">
-                                        <span>Split Contratual (Charter vs Service)</span>
-                                        <span>{params.charterSplitPercent}% / {100 - params.charterSplitPercent}%</span>
+                                    <label className="text-xs font-medium text-orange-800 dark:text-orange-200 flex justify-between">
+                                        <span>Impostos sobre Serviços (PIS/COFINS/ISS)</span>
+                                        <span className="font-bold">{params.serviceTaxRate || 14.25}%</span>
                                     </label>
                                     <input
-                                        type="range" min="0" max="100" step="5"
-                                        value={params.charterSplitPercent}
-                                        onChange={(e) => handleChange('charterSplitPercent', Number(e.target.value))}
+                                        type="range" min="0" max="30" step="0.25"
+                                        value={params.serviceTaxRate || 14.25}
+                                        onChange={(e) => handleChange('serviceTaxRate', Number(e.target.value))}
                                         className="w-full accent-orange-500"
                                     />
                                 </div>
@@ -126,8 +186,8 @@ const TaxParameters = ({ params, setParams }) => {
                         )}
 
                         {/* Repetro Slider - DETALHADO */}
-                        <div className="pt-2 border-t border-slate-100 space-y-3">
-                            <h4 className="text-xs font-bold uppercase text-slate-400">Repetro-Sped (% de Benefício)</h4>
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-3">
+                            <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">Repetro-Sped (% de Benefício)</h4>
 
                             {['platform', 'wells', 'subsea'].map(key => {
                                 const isDisabled = key === 'platform' && params.platformOwnership === 'chartered';
@@ -161,10 +221,10 @@ const TaxParameters = ({ params, setParams }) => {
                         </div>
 
                         {/* Exibição da Taxa Efetiva Global */}
-                        <div className="animate-in fade-in slide-in-from-top-2 mt-3 p-3 bg-slate-50 rounded border border-slate-200">
-                            <div className="text-[10px] text-slate-500 text-center">
+                        <div className="animate-in fade-in slide-in-from-top-2 mt-3 p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-800">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
                                 Considerando alíquota base padrão de <strong>{params.capexTaxRate}%</strong> sobre a parcela sem benefício.
-                                <div className="mt-1 font-mono text-slate-700 bg-white p-1 rounded border border-slate-100">
+                                <div className="mt-1 font-mono text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 p-1 rounded border border-slate-100 dark:border-slate-700">
                                     Taxa Efetiva Ponderada: <strong>{calculateEffectiveRate()}%</strong>
                                 </div>
                             </div>
@@ -172,26 +232,26 @@ const TaxParameters = ({ params, setParams }) => {
                     </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mt-6">
-                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mt-6">
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                         <Landmark className="w-5 h-5 text-blue-600" /> Configuração do Regime
                     </h2>
 
                     <div className="space-y-6">
                         {/* Seleção de Regime */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-2">Regime Tributário</label>
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Regime Tributário</label>
                             <div className="flex flex-col gap-2">
                                 {['concession', 'sharing', 'transfer_rights'].map(regime => (
                                     <button
                                         key={regime}
                                         onClick={() => handleChange('taxRegime', regime)}
-                                        className={`p-3 text-left rounded-lg border transition-all ${params.taxRegime === regime ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                                        className={`p-3 text-left rounded-lg border transition-all ${params.taxRegime === regime ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-500 ring-1 ring-blue-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:bg-slate-800'}`}
                                     >
-                                        <div className="font-bold text-sm text-slate-800">
+                                        <div className="font-bold text-sm text-slate-800 dark:text-slate-100">
                                             {regime === 'concession' ? 'Regime de Concessão' : regime === 'sharing' ? 'Regime de Partilha' : 'Cessão Onerosa'}
                                         </div>
-                                        <div className="text-[10px] text-slate-500">
+                                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
                                             {regime === 'concession' ? 'Royalties + Part. Especial + IR/CSLL' :
                                                 regime === 'sharing' ? 'Royalties + Custo em Óleo + Excedente União' :
                                                     'Royalties + IR/CSLL (Simples)'}
@@ -202,18 +262,18 @@ const TaxParameters = ({ params, setParams }) => {
                         </div>
 
                         {/* Inputs Específicos do Regime */}
-                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-4 animate-in fade-in">
-                            <h4 className="text-xs font-bold uppercase text-slate-500 border-b border-slate-200 pb-1 mb-2">Parâmetros do Regime</h4>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in">
+                            <h4 className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 pb-1 mb-2">Parâmetros do Regime</h4>
 
                             {/* Royalties - Comum a todos */}
                             <div>
-                                <label className="text-xs font-medium text-slate-600 mb-1 block">Alíquota de Royalties (%)</label>
+                                <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">Alíquota de Royalties (%)</label>
                                 <div className="flex gap-2">
                                     {[5, 10, 15].map(rate => (
                                         <button
                                             key={rate}
                                             onClick={() => handleChange('royaltiesRate', rate)}
-                                            className={`flex-1 py-1 text-xs font-bold rounded border ${params.royaltiesRate === rate ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'}`}
+                                            className={`flex-1 py-1 text-xs font-bold rounded border ${params.royaltiesRate === rate ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
                                         >
                                             {rate}%
                                         </button>
@@ -224,17 +284,17 @@ const TaxParameters = ({ params, setParams }) => {
                             {/* Inputs Exclusivos de Concessão */}
                             {params.taxRegime === 'concession' && (
                                 <div>
-                                    <label className="text-xs font-medium text-slate-600 mb-1 block flex justify-between">
+                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block flex justify-between">
                                         <span>Participação Especial (Média Efetiva)</span>
                                         <span className="font-bold">{params.specialParticipationRate}%</span>
                                     </label>
                                     <input type="range" min="0" max="40" value={params.specialParticipationRate} onChange={(e) => handleChange('specialParticipationRate', Number(e.target.value))} className="w-full accent-blue-600" />
 
                                     <div className="mt-3">
-                                        <label className="text-[10px] text-slate-400 block mb-1">Templates de Campo</label>
+                                        <label className="text-[10px] text-slate-400 dark:text-slate-500 block mb-1">Templates de Campo</label>
                                         <div className="flex flex-wrap gap-1">
                                             {['Marlim', 'Jubarte', 'Tupi', 'Roncador'].map(field => (
-                                                <button key={field} onClick={() => applyTaxRegimeTemplate(field)} className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] hover:bg-slate-100">{field}</button>
+                                                <button key={field} onClick={() => applyTaxRegimeTemplate(field)} className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-[10px] hover:bg-slate-100 dark:bg-slate-800">{field}</button>
                                             ))}
                                         </div>
                                     </div>
@@ -245,24 +305,24 @@ const TaxParameters = ({ params, setParams }) => {
                             {params.taxRegime === 'sharing' && (
                                 <>
                                     <div>
-                                        <label className="text-xs font-medium text-slate-600 mb-1 block flex justify-between">
+                                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block flex justify-between">
                                             <span>Custo em Óleo (Limite %)</span>
                                             <span className="font-bold">{params.costOilCap}%</span>
                                         </label>
                                         <input type="range" min="30" max="80" value={params.costOilCap} onChange={(e) => handleChange('costOilCap', Number(e.target.value))} className="w-full accent-emerald-600" />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-slate-600 mb-1 block flex justify-between">
+                                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block flex justify-between">
                                             <span>Excedente em Óleo (União %)</span>
                                             <span className="font-bold">{params.profitOilGovShare}%</span>
                                         </label>
                                         <input type="range" min="10" max="90" value={params.profitOilGovShare} onChange={(e) => handleChange('profitOilGovShare', Number(e.target.value))} className="w-full accent-purple-600" />
                                     </div>
                                     <div className="mt-3">
-                                        <label className="text-[10px] text-slate-400 block mb-1">Templates de Campo</label>
+                                        <label className="text-[10px] text-slate-400 dark:text-slate-500 block mb-1">Templates de Campo</label>
                                         <div className="flex flex-wrap gap-1">
                                             {['Mero', 'Buzios', 'Sepia', 'Itapu'].map(field => (
-                                                <button key={field} onClick={() => applyTaxRegimeTemplate(field)} className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] hover:bg-slate-100">{field}</button>
+                                                <button key={field} onClick={() => applyTaxRegimeTemplate(field)} className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-[10px] hover:bg-slate-100 dark:bg-slate-800">{field}</button>
                                             ))}
                                         </div>
                                     </div>
@@ -272,9 +332,9 @@ const TaxParameters = ({ params, setParams }) => {
 
                         {/* P&D */}
                         <div>
-                            <label className="text-sm font-medium text-slate-700 flex justify-between mb-2">
-                                <span className="flex items-center gap-2"><Activity size={16} className="text-slate-400" /> Investimento em P&D (% Receita)</span>
-                                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">{params.rdRate}%</span>
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                <span className="flex items-center gap-2"><Activity size={16} className="text-slate-400 dark:text-slate-500" /> Investimento em P&D (% Receita)</span>
+                                <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded">{params.rdRate}%</span>
                             </label>
                             <input
                                 type="range" min="0" max="2" step="0.1"
@@ -282,7 +342,7 @@ const TaxParameters = ({ params, setParams }) => {
                                 onChange={(e) => handleChange('rdRate', Number(e.target.value))}
                                 className="w-full accent-emerald-600"
                             />
-                            <p className="text-xs text-slate-500 mt-2">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                 Obrigação de 1% da Receita Bruta para campos de grande produção. Dedutível da base do IRPJ/CSLL.
                             </p>
                         </div>
@@ -292,21 +352,21 @@ const TaxParameters = ({ params, setParams }) => {
 
             <div className="lg:col-span-8 space-y-6">
                 {/* --- DEPRECIAÇÃO DETALHADA --- */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-in fade-in">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-orange-600" /> Distribuição do CAPEX e Depreciação
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-orange-600 dark:text-orange-400" /> Distribuição do CAPEX e Depreciação
                         </h3>
-                        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
                             <button
                                 onClick={() => handleChange('depreciationMode', 'simple')}
-                                className={`px-3 py-1 text-xs font-bold rounded ${params.depreciationMode === 'simple' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
+                                className={`px-3 py-1 text-xs font-bold rounded ${params.depreciationMode === 'simple' ? 'bg-white dark:bg-slate-900 shadow text-slate-800 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}
                             >
                                 Simples
                             </button>
                             <button
                                 onClick={() => handleChange('depreciationMode', 'detailed')}
-                                className={`px-3 py-1 text-xs font-bold rounded ${params.depreciationMode === 'detailed' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
+                                className={`px-3 py-1 text-xs font-bold rounded ${params.depreciationMode === 'detailed' ? 'bg-white dark:bg-slate-900 shadow text-slate-800 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}
                             >
                                 Detalhada
                             </button>
@@ -314,19 +374,19 @@ const TaxParameters = ({ params, setParams }) => {
                     </div>
 
                     {params.depreciationMode === 'simple' ? (
-                        <div className="p-4 bg-slate-50 rounded border border-slate-100">
-                            <label className="text-xs font-medium text-slate-600 block mb-1">Vida Útil Linear (Anos)</label>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
+                            <label className="text-xs font-medium text-slate-600 dark:text-slate-400 block mb-1">Vida Útil Linear (Anos)</label>
                             <div className="flex items-center gap-3">
                                 <input type="range" min="5" max="30" value={params.depreciationYears} onChange={(e) => handleChange('depreciationYears', Number(e.target.value))} className="w-full accent-blue-600" />
                                 <span className="font-bold text-sm w-8">{params.depreciationYears}</span>
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-2">O valor total do CAPEX será depreciado linearmente por este período.</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2">O valor total do CAPEX será depreciado linearmente por este período.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* CAPEX Split - Sliders */}
                             <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase text-slate-400 mb-2">Distribuição do Investimento (%)</h4>
+                                <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-2">Distribuição do Investimento (%)</h4>
 
                                 {['platform', 'wells', 'subsea'].map(key => {
                                     const isDisabled = key === 'platform' && params.platformOwnership === 'chartered';
@@ -340,7 +400,7 @@ const TaxParameters = ({ params, setParams }) => {
                                                         {isDisabled ? '0% (Afretada)' : `${params.capexSplit[key]}%`}
                                                     </span>
                                                     {!isDisabled && (
-                                                        <span className="text-xs text-slate-700 font-bold font-mono bg-slate-100 px-1 rounded">
+                                                        <span className="text-xs text-slate-700 dark:text-slate-200 font-bold font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">
                                                             ${((params.totalCapex * params.capexSplit[key]) / 100 / 1000000000).toFixed(1)}B
                                                         </span>
                                                     )}
@@ -356,7 +416,7 @@ const TaxParameters = ({ params, setParams }) => {
                                         </div>
                                     );
                                 })}
-                                <div className="text-[10px] text-right text-slate-400">
+                                <div className="text-[10px] text-right text-slate-400 dark:text-slate-500">
                                     Total: {
                                         (params.platformOwnership === 'chartered' ? 0 : params.capexSplit.platform) +
                                         params.capexSplit.wells +
@@ -367,7 +427,7 @@ const TaxParameters = ({ params, setParams }) => {
 
                             {/* Configuração de Método */}
                             <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase text-slate-400 mb-2">MÉTODO DE DEPRECIAÇÃO POR CATEGORIA</h4>
+                                <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-2">MÉTODO DE DEPRECIAÇÃO POR CATEGORIA</h4>
 
                                 {['platform', 'wells', 'subsea'].map(key => {
                                     const isDisabled = key === 'platform' && params.platformOwnership === 'chartered';
@@ -377,13 +437,13 @@ const TaxParameters = ({ params, setParams }) => {
                                     if (!params.depreciationConfig || !params.depreciationConfig[key]) return null;
 
                                     return (
-                                        <div key={key} className="p-3 bg-slate-50 rounded border border-slate-100">
+                                        <div key={key} className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-xs font-bold capitalize">{key === 'wells' ? 'Poços' : key === 'platform' ? 'Plataforma' : 'Subsea'}</span>
                                                 <select
                                                     value={params.depreciationConfig[key].method}
                                                     onChange={(e) => handleChangeDepreciationConfig(key, 'method', e.target.value)}
-                                                    className="text-[10px] p-1 rounded border border-slate-300 outline-none"
+                                                    className="text-[10px] p-1 rounded border border-slate-300 dark:border-slate-600 outline-none bg-white dark:bg-slate-800 dark:text-slate-200"
                                                 >
                                                     <option value="linear">Linear</option>
                                                     <option value="accelerated">Acelerada</option>
@@ -393,12 +453,12 @@ const TaxParameters = ({ params, setParams }) => {
 
                                             {params.depreciationConfig[key].method !== 'uop' && (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] text-slate-500 w-16">Anos:</span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 w-16">Anos:</span>
                                                     <input
                                                         type="number" min="1" max="30"
                                                         value={params.depreciationConfig[key].years}
                                                         onChange={(e) => handleChangeDepreciationConfig(key, 'years', Number(e.target.value))}
-                                                        className="w-12 p-1 text-[10px] text-right border border-slate-300 rounded"
+                                                        className="w-12 p-1 text-[10px] text-right border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200"
                                                     />
                                                 </div>
                                             )}

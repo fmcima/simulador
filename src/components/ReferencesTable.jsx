@@ -109,21 +109,21 @@ const ReferencesTable = () => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-lg">
                         <BookOpen size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800">Referências Legais e Premissas</h2>
-                        <p className="text-sm text-slate-500">Fontes de dados, legislações e práticas de mercado utilizadas nos cálculos.</p>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Referências Legais e Premissas</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Fontes de dados, legislações e práticas de mercado utilizadas nos cálculos.</p>
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200">
+                <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-xs border-b border-slate-200">
+                            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase text-xs border-b border-slate-200 dark:border-slate-800">
                                 <tr>
                                     <th className="p-4 whitespace-nowrap">Categoria</th>
                                     <th className="p-4 whitespace-nowrap">Regra / Conceito</th>
@@ -131,13 +131,13 @@ const ReferencesTable = () => {
                                     <th className="p-4 min-w-[300px]">Fonte de Referência / Base Legal</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {data.map((row, index) => (
-                                    <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="p-4 font-medium text-slate-700 whitespace-nowrap align-top">{row.category}</td>
-                                        <td className="p-4 font-bold text-slate-800 whitespace-nowrap align-top">{row.concept}</td>
-                                        <td className="p-4 text-slate-600 align-top">{row.implementation}</td>
-                                        <td className="p-4 text-slate-500 text-xs font-mono align-top leading-relaxed">{row.source}</td>
+                                    <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="p-4 font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap align-top">{row.category}</td>
+                                        <td className="p-4 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap align-top">{row.concept}</td>
+                                        <td className="p-4 text-slate-600 dark:text-slate-400 align-top">{row.implementation}</td>
+                                        <td className="p-4 text-slate-500 dark:text-slate-400 text-xs font-mono align-top leading-relaxed">{row.source}</td>
                                     </tr>
                                 ))}
                             </tbody>
