@@ -259,14 +259,14 @@ const ProductionParameters = ({ params, setParams }) => {
                         </div>
 
                         {/* FPSO COMPLEXITY & COST ESTIMATION */}
-                        <div className="mt-8 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                        <div className="mt-8 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 rounded-xl border border-blue-200 dark:border-slate-700">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="p-2 bg-blue-600 text-white rounded-lg">
                                     <Ship size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-blue-900">Custo Estimado do FPSO</h3>
-                                    <p className="text-xs text-blue-600">Estimativa de CAPEX do FPSO baseada nos parâmetros do reservatório (~45% do CAPEX total)</p>
+                                    <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100">Custo Estimado do FPSO</h3>
+                                    <p className="text-xs text-blue-600 dark:text-blue-300">Estimativa de CAPEX do FPSO baseada nos parâmetros do reservatório (~45% do CAPEX total)</p>
                                 </div>
                             </div>
 
@@ -277,8 +277,8 @@ const ProductionParameters = ({ params, setParams }) => {
                                 const gorValue = params.gor || 150;
 
                                 // 1. BASE COST: FPSO-only cost is approximately $10-15k per bpd capacity
-                                // Using $12k/bpd as base (FPSO represents ~45% of total project CAPEX)
-                                const baseCostPerBpd = 12000; // US$/bpd (FPSO only)
+                                // Using $16k/bpd as base (FPSO represents ~45% of total project CAPEX)
+                                const baseCostPerBpd = 16000; // US$/bpd (FPSO only)
                                 const baseCost = capacity * 1000 * baseCostPerBpd; // Total FPSO base cost
 
                                 // 2. API ADJUSTMENT: Heavy oil requires more processing
@@ -327,10 +327,10 @@ const ProductionParameters = ({ params, setParams }) => {
                                 return (
                                     <div className="space-y-4">
                                         {/* ESTIMATED COST */}
-                                        <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm">
+                                        <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm border border-slate-100 dark:border-slate-800">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">CAPEX Estimado do FPSO:</span>
-                                                <span className="text-2xl font-bold text-blue-700">
+                                                <span className="text-2xl font-bold text-blue-700 dark:text-blue-400">
                                                     ${(estimatedFpsoCost / 1000000000).toFixed(2)}B
                                                 </span>
                                             </div>
@@ -341,10 +341,10 @@ const ProductionParameters = ({ params, setParams }) => {
 
                                         {/* RATIONALE BREAKDOWN */}
                                         <div className="space-y-3">
-                                            <h4 className="text-xs font-bold uppercase text-blue-800 tracking-wider">Racional da Estimativa</h4>
+                                            <h4 className="text-xs font-bold uppercase text-blue-800 dark:text-blue-300 tracking-wider">Racional da Estimativa</h4>
 
                                             {/* Base Cost */}
-                                            <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg">
+                                            <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800">
                                                 <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center text-xs font-bold">1</div>
                                                 <div className="flex-1">
                                                     <div className="flex justify-between">
@@ -352,7 +352,7 @@ const ProductionParameters = ({ params, setParams }) => {
                                                         <span className="text-sm font-bold text-slate-800 dark:text-slate-100">${(baseCost / 1000000000).toFixed(2)}B</span>
                                                     </div>
                                                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                                                        {capacity}k bpd × $12.000/bpd = custo base FPSO (~45% do projeto total)
+                                                        {capacity}k bpd × $16.000/bpd = custo base FPSO (~45% do projeto total)
                                                     </p>
                                                 </div>
                                             </div>
