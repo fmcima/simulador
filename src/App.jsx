@@ -372,6 +372,9 @@ export default function App() {
                                 <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-72 hover:shadow-md transition-shadow">
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-100">Sensibilidade da TIR - TMA e VPL/IA ao CAPEX</h3>
+                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700" title="Correlação Linear de Pearson">
+                                            r = {resultsA.sensitivityCorrelation?.toFixed(4)}
+                                        </span>
                                     </div>
                                     <ResponsiveContainer width="100%" height="90%">
                                         <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
@@ -441,6 +444,78 @@ export default function App() {
                                         </LineChart>
                                     </ResponsiveContainer>
                                 </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-96 hover:shadow-md transition-shadow">
+                                <div className="mb-4">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-100">Correlação entre o Prêmio de Rentabilidade (TIR - TMA) e a Eficiência do Investimento (VPL / IA)</h3>
+                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700" title="Correlação Linear de Pearson">
+                                            r = {resultsA.mcCorrelation?.toFixed(4)}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                        Simulação baseada em 50 iterações com variações aleatórias em: CAPEX Total, Concentração de CAPEX, Ano de Pico, Curva de Produção (Ramp-up, Plateau, Declínio), Pico de Produção, Margem Operacional e Custos Fixos/Variáveis.
+                                    </p>
+                                </div>
+                                <ResponsiveContainer width="100%" height="85%">
+                                    <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+                                        <XAxis
+                                            type="number"
+                                            dataKey="spread"
+                                            name="Spread"
+                                            unit="%"
+                                            fontSize={10}
+                                            tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            label={{ value: 'Spread (TIR - TMA) [%]', position: 'insideBottom', offset: -10, fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                        />
+                                        <YAxis
+                                            type="number"
+                                            dataKey="vpl_ia"
+                                            name="VPL/IA"
+                                            fontSize={10}
+                                            tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            label={{ value: 'VPL / IA (x)', angle: -90, position: 'insideLeft', fontSize: 10, offset: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                        />
+                                        <Tooltip
+                                            cursor={{ strokeDasharray: '3 3' }}
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    const data = payload[0].payload;
+                                                    // Ignora ponto da linha
+                                                    if (data.id === undefined) return null;
+
+                                                    return (
+                                                        <div className="bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700 shadow-md rounded-lg outline-none">
+                                                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Cenário #{data.id}</p>
+                                                            <div className="space-y-0.5">
+                                                                <p className="text-xs text-slate-500 dark:text-slate-400">Spread: <span className="font-medium text-slate-700 dark:text-slate-200">{data.spread?.toFixed(2)}%</span></p>
+                                                                <p className="text-xs text-slate-500 dark:text-slate-400">VPL / IA: <span className="font-medium text-slate-700 dark:text-slate-200">{data.vpl_ia?.toFixed(2)}x</span></p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                        <Scatter name="Cenários" data={resultsA.monteCarloData} fill="#10b981" fillOpacity={0.6} line={false} />
+
+                                        {resultsA.trendLine && resultsA.trendLine.length > 0 && (
+                                            <Scatter
+                                                name="Tendência"
+                                                data={resultsA.trendLine}
+                                                line={{ stroke: '#f59e0b', strokeWidth: 2, strokeDasharray: '5 5' }}
+                                                shape={false}
+                                                legendType="none"
+                                            />
+                                        )}
+                                    </ScatterChart>
+                                </ResponsiveContainer>
                             </div>
                         </div>
                     </div>
