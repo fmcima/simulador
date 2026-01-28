@@ -60,7 +60,7 @@ export const useProjectCalculations = (params) => {
 
         // 4. Simulação Monte Carlo (Multivariada)
         const monteCarloData = [];
-        const mcIterations = 50;
+        const mcIterations = 2000;
 
         for (let i = 0; i < mcIterations; i++) {
             // Função auxiliar para variação aleatória (+/- range%)

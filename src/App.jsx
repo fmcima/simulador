@@ -436,8 +436,24 @@ export default function App() {
                                     <ResponsiveContainer width="100%" height="90%">
                                         <LineChart data={resultsA.npvProfile} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
-                                            <XAxis dataKey="rate" fontSize={10} tickFormatter={(v) => `${v}%`} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
-                                            <YAxis fontSize={10} tickFormatter={(v) => `$${v / 1000000000}B`} width={50} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                            <XAxis
+                                                dataKey="rate"
+                                                fontSize={10}
+                                                tickFormatter={(v) => `${v}%`}
+                                                tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                label={{ value: 'Taxa de Desconto (%)', position: 'insideBottom', offset: -5, fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                            />
+                                            <YAxis
+                                                fontSize={10}
+                                                tickFormatter={(v) => `$${v / 1000000000}B`}
+                                                width={50}
+                                                tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                label={{ value: 'VPL (USD)', angle: -90, position: 'insideLeft', fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                                            />
                                             <Tooltip formatter={(v) => formatCurrency(v)} labelFormatter={(v) => `Taxa: ${v}%`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }} />
                                             <ReferenceLine y={0} stroke={theme === 'dark' ? '#94a3b8' : '#94a3b8'} />
                                             <Line type="monotone" dataKey="npv" stroke="#8b5cf6" strokeWidth={3} dot={false} />
@@ -455,7 +471,7 @@ export default function App() {
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                        Simulação baseada em 50 iterações com variações aleatórias em: CAPEX Total, Concentração de CAPEX, Ano de Pico, Curva de Produção (Ramp-up, Plateau, Declínio), Pico de Produção, Margem Operacional e Custos Fixos/Variáveis.
+                                        Simulação baseada em 2000 iterações com variações aleatórias em: CAPEX Total, Concentração de CAPEX, Ano de Pico, Curva de Produção (Ramp-up, Plateau, Declínio), Pico de Produção, Margem Operacional e Custos Fixos/Variáveis.
                                     </p>
                                 </div>
                                 <ResponsiveContainer width="100%" height="85%">
@@ -503,7 +519,7 @@ export default function App() {
                                                 return null;
                                             }}
                                         />
-                                        <Scatter name="Cenários" data={resultsA.monteCarloData} fill="#10b981" fillOpacity={0.6} line={false} />
+                                        <Scatter name="Cenários" data={resultsA.monteCarloData} fill="#10b981" fillOpacity={0.15} line={false} />
 
                                         {resultsA.trendLine && resultsA.trendLine.length > 0 && (
                                             <Scatter
