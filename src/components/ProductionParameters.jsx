@@ -130,6 +130,24 @@ const ProductionParameters = ({ params, setParams }) => {
                                 <div className="text-xs text-slate-500 dark:text-slate-400">Vida longa, dec. 6%</div>
                             </button>
                         </div>
+
+                        <div className="mt-4 p-3 bg-white/50 dark:bg-slate-900/50 rounded-lg border border-emerald-100 dark:border-emerald-900/50 text-xs text-slate-600 dark:text-slate-400 space-y-2">
+                            <p><span className="font-bold text-emerald-700 dark:text-emerald-500">Nota Metodológica:</span></p>
+                            <ul className="list-disc pl-4 space-y-1">
+                                <li>
+                                    <strong className="text-slate-700 dark:text-slate-300">Pré-Sal:</strong> Baseado em projetos da Bacia de Santos (ex: Tupi, Búzios). Caracteriza-se por alta produtividade por poço, ramp-up rápido e platô sustentado por reinjeção de gás/água.
+                                </li>
+                                <li>
+                                    <strong className="text-slate-700 dark:text-slate-300">Pós-Sal:</strong> Baseado em campos maduros ou convencionais da Bacia de Campos. Menor vazão inicial e declínio mais acentuado (depleção natural ou waterflood menos eficiente).
+                                </li>
+                                <li>
+                                    <strong className="text-slate-700 dark:text-slate-300">Onshore:</strong> Baseado em bacias maduras (Recôncavo, Potiguar). Projetos de vida longa, baixo custo de abandono e curvas de produção estáveis (declínio exponencial suave).
+                                </li>
+                            </ul>
+                            <p className="pt-2 text-[10px] text-slate-400 dark:text-slate-500 italic">
+                                Fontes de Referência: Dados públicos da ANP (Boletins de Produção), Relatórios de Reservas (DeGolyer and MacNaughton) e literatura técnica de Engenharia de Petróleo (bacias sedimentares brasileiras).
+                            </p>
+                        </div>
                     </div>
                 )}
 
