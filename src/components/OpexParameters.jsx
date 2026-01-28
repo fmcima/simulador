@@ -138,10 +138,29 @@ const OpexParameters = ({ params, setParams }) => {
                                 Provisão anual média para intervenções pesadas em poços e reparos submarinos.
                             </p>
                         </div>
+
+
+                        <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-2">
+                            <p><span className="font-bold text-slate-700 dark:text-slate-200">Premissas e Referências de Mercado:</span></p>
+                            <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400">
+                                <li>
+                                    <strong>OPEX Fixo:</strong> Predominante em projetos offshore (~80-90% do total). Inclui aluguel de sonda/FPSO (se afretado), logística (barcos, helicópteros), pessoal embarcado e manutenção de rotina. Modelo segue estimativa baseada em capacidade instalada.
+                                </li>
+                                <li>
+                                    <strong>OPEX Variável:</strong> Custos diretos de consumíveis (produtos químicos, energia, tratamento de água) proporcionais ao volume produzido. Tende a aumentar com o BSW (água) no fim da vida útil.
+                                </li>
+                                <li>
+                                    <strong>Workover:</strong> Provisão anualizada para grandes intervenções em poços (troca de BCS, estimulação) e reparos submarinos.
+                                </li>
+                            </ul>
+                            <p className="pt-1 text-[10px] text-slate-400 dark:text-slate-500 italic">
+                                Fontes: Planos Estratégicos Petrobras, benchmarks da Rystad Energy e relatórios técnicos da Wood Mackenzie.
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 
