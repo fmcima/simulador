@@ -6,7 +6,7 @@ import {
 import {
     Activity, LayoutTemplate, LineChart as ChartIcon, Landmark, Settings,
     Split, Table as TableIcon, Maximize, Minimize, Ship, TrendingUp, BookOpen, Wrench,
-    Moon, Sun
+    Moon, Sun, Anchor
 } from 'lucide-react';
 
 import { useTheme } from './hooks/useTheme';
@@ -19,6 +19,7 @@ import ProductionParameters from './components/ProductionParameters';
 import ComparisonView from './components/ComparisonView';
 import CashFlowTable from './components/CashFlowTable';
 import ReferencesTable from './components/ReferencesTable';
+import CapexMain from './components/Capex/CapexMain';
 import { useProjectCalculations } from './hooks/useProjectCalculations';
 import {
     formatCurrency, formatBillions, formatMillionsNoDecimals, calculatePeakFromReserves, getBrentCurve
@@ -99,6 +100,9 @@ export default function App() {
         charterPV: 2500000000, // Valor default para afretamento (se mudar para chartered)
         charterSplit: { charter: 85, service: 15 }, // Split do contrato de afretamento
         serviceTaxRate: 14.25, // Impostos indiretos (PIS/COFINS/ISS) sobre parcela de serviço
+
+        // --- Persistence for FPSO Module ---
+        fpsoParams: null, // Stores the detailed configuration object
     };
 
     const [projectA, setProjectA] = useState({ ...defaultParams });
@@ -168,6 +172,34 @@ export default function App() {
     const handleChangeProjectA = (field, value) => {
         setProjectA(prev => ({ ...prev, [field]: value }));
     };
+
+    const handleUpdateCapex = (fpsoCostMillions, detailedParams) => {
+        setProjectA(prev => {
+            // New Logic: FPSO determines the Total Project Value based on a fixed 45% share
+            // Target Split: FPSO (45%), Wells (35%), Subsea (20%)
+
+            const newFpsoCost = fpsoCostMillions * 1000000;
+
+            // Calculate Total CAPEX assuming FPSO is 45%
+            // Avoid division by zero
+            const newTotalCapex = newFpsoCost > 0 ? newFpsoCost / 0.45 : prev.totalCapex;
+
+            const newSplit = {
+                platform: 45,
+                wells: 35,
+                subsea: 20
+            };
+
+            return {
+                ...prev,
+                totalCapex: newTotalCapex,
+                capexSplit: newSplit,
+                fpsoParams: detailedParams
+            };
+        });
+    };
+
+
 
     const applyProductionProfile = (type) => {
         let updates = {};
@@ -253,7 +285,7 @@ export default function App() {
 
                 <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
                     <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right border border-transparent dark:border-slate-800 transition-colors">
-                        {['single', 'production', 'opex', 'brent', 'tax', 'compare', 'cashflow_table', 'references'].map(tab => (
+                        {['single', 'production', 'opex', 'capex', 'brent', 'tax', 'compare', 'cashflow_table', 'references'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -262,12 +294,13 @@ export default function App() {
                                 {tab === 'single' && <LayoutTemplate size={16} />}
                                 {tab === 'production' && <Settings size={16} />}
                                 {tab === 'opex' && <Wrench size={16} />}
+                                {tab === 'capex' && <Anchor size={16} />}
                                 {tab === 'brent' && <ChartIcon size={16} />}
                                 {tab === 'tax' && <Landmark size={16} />}
                                 {tab === 'compare' && <Split size={16} />}
                                 {tab === 'cashflow_table' && <TableIcon size={16} />}
                                 {tab === 'references' && <BookOpen size={16} />}
-                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'tax' ? 'Tributos' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Preços' : tab === 'cashflow_table' ? 'Tabela' : 'Referências'}</span>
+                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'capex' ? 'CAPEX' : tab === 'tax' ? 'Tributos' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Preços' : tab === 'cashflow_table' ? 'Tabela' : 'Referências'}</span>
                             </button>
                         ))}
                     </div>
@@ -471,7 +504,7 @@ export default function App() {
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                        Simulação baseada em 2000 iterações com variações aleatórias em: CAPEX Total, Concentração de CAPEX, Ano de Pico, Curva de Produção (Ramp-up, Plateau, Declínio), Pico de Produção, Margem Operacional e Custos Fixos/Variáveis.
+                                        Simulação baseada em 500 iterações com variações aleatórias em: CAPEX Total, Concentração de CAPEX, Ano de Pico, Curva de Produção (Ramp-up, Plateau, Declínio), Pico de Produção, Margem Operacional e Custos Fixos/Variáveis.
                                     </p>
                                 </div>
                                 <ResponsiveContainer width="100%" height="85%">
@@ -703,6 +736,15 @@ export default function App() {
                 {/* --- VIEW: OPEX --- */}
                 {activeTab === 'opex' && (
                     <OpexParameters params={projectA} setParams={setProjectA} />
+                )}
+
+                {/* --- VIEW: CAPEX --- */}
+                {activeTab === 'capex' && (
+                    <CapexMain
+                        currentParams={projectA.fpsoParams}
+                        peakProduction={projectA.peakProduction}
+                        onUpdate={handleUpdateCapex}
+                    />
                 )}
 
                 {/* --- VIEW: REFERENCES --- */}
