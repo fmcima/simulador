@@ -44,7 +44,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Manual (Bi $):</span>
                             <input
                                 type="number" step="0.1"
-                                value={params.totalCapex / 1000000000}
+                                value={(params.totalCapex / 1000000000).toFixed(1)}
                                 onChange={(e) => handleChange('totalCapex', Number(e.target.value) * 1000000000)}
                                 className="w-16 text-right text-xs font-mono font-bold text-slate-700 dark:text-slate-200 outline-none bg-transparent"
                             />

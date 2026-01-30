@@ -199,6 +199,33 @@ export default function App() {
         });
     };
 
+    const handleUpdateWells = (wellsCostMillions, detailedParams) => {
+        setProjectA(prev => {
+            // Strategy: Keep FPSO and Subsea ABSOLUTE costs constant, update Wells, sum for new Total
+            const currentTotal = prev.totalCapex;
+            const fpsoCost = currentTotal * (prev.capexSplit.platform / 100);
+            const subseaCost = currentTotal * (prev.capexSplit.subsea / 100);
+
+            const newWellsCost = wellsCostMillions * 1000000;
+            const newTotalCapex = fpsoCost + subseaCost + newWellsCost;
+
+            const safeTotal = newTotalCapex > 0 ? newTotalCapex : 1;
+
+            const newSplit = {
+                platform: (fpsoCost / safeTotal) * 100,
+                wells: (newWellsCost / safeTotal) * 100,
+                subsea: (subseaCost / safeTotal) * 100
+            };
+
+            return {
+                ...prev,
+                totalCapex: newTotalCapex,
+                capexSplit: newSplit,
+                wellsParams: detailedParams
+            };
+        });
+    };
+
 
 
     const applyProductionProfile = (type) => {
@@ -742,8 +769,10 @@ export default function App() {
                 {activeTab === 'capex' && (
                     <CapexMain
                         currentParams={projectA.fpsoParams}
+                        wellsParams={projectA.wellsParams}
                         peakProduction={projectA.peakProduction}
                         onUpdate={handleUpdateCapex}
+                        onUpdateWells={handleUpdateWells}
                     />
                 )}
 
