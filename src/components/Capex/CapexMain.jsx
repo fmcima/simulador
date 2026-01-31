@@ -3,7 +3,7 @@ import { Anchor, ArrowRight, Droplets, GitMerge } from 'lucide-react';
 import FpsoCapex from './FpsoCapex';
 import WellsCapex from './WellsCapex';
 
-export default function CapexMain({ currentParams, onUpdate, peakProduction, wellsParams, onUpdateWells }) {
+export default function CapexMain({ currentParams, onUpdate, peakProduction, wellsParams, onUpdateWells, projectParams, unitNpv }) {
     const [activeModule, setActiveModule] = useState('selection'); // 'selection', 'fpso', 'wells', 'subsea'
 
     const renderSelectionScreen = () => (
@@ -105,7 +105,9 @@ export default function CapexMain({ currentParams, onUpdate, peakProduction, wel
                 <WellsCapex
                     initialParams={wellsParams}
                     onUpdate={onUpdateWells}
-                    costs={currentParams} // Optionally pass other costs if needed for context
+                    costs={currentParams}
+                    projectParams={projectParams}
+                    unitNpv={unitNpv}
                 />
             )}
         </div>

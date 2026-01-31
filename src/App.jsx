@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
     BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
     ResponsiveContainer, ReferenceLine, ComposedChart, ScatterChart, Scatter, AreaChart, Area
@@ -59,6 +59,7 @@ export default function App() {
         rampUpDuration: 3,
         plateauDuration: 4,
         declineRate: 8,
+        baseDeclineRate: 8, // Persist manual setting base for optimizations
 
         // Produção Detalhada
         productionMode: 'simple', // 'simple' | 'detailed'
@@ -170,10 +171,17 @@ export default function App() {
     }, [resultsA]);
 
     const handleChangeProjectA = (field, value) => {
-        setProjectA(prev => ({ ...prev, [field]: value }));
+        setProjectA(prev => {
+            const updates = { [field]: value };
+            // If user manually changes decline rate, reset base (overwrites optimization)
+            if (field === 'declineRate') {
+                updates.baseDeclineRate = value;
+            }
+            return { ...prev, ...updates };
+        });
     };
 
-    const handleUpdateCapex = (fpsoCostMillions, detailedParams) => {
+    const handleUpdateCapex = useCallback((fpsoCostMillions, detailedParams) => {
         setProjectA(prev => {
             // New Logic: FPSO determines the Total Project Value based on a fixed 45% share
             // Target Split: FPSO (45%), Wells (35%), Subsea (20%)
@@ -197,9 +205,9 @@ export default function App() {
                 fpsoParams: detailedParams
             };
         });
-    };
+    }, []);
 
-    const handleUpdateWells = (wellsCostMillions, detailedParams) => {
+    const handleUpdateWells = useCallback((wellsCostMillions, detailedParams) => {
         setProjectA(prev => {
             // Strategy: Keep FPSO and Subsea ABSOLUTE costs constant, update Wells, sum for new Total
             const currentTotal = prev.totalCapex;
@@ -217,22 +225,35 @@ export default function App() {
                 subsea: (subseaCost / safeTotal) * 100
             };
 
+            // --- Smart Well Impact on Decline Rate ---
+            // Recalculate based on Base Decline Rate (prevents compounding)
+            const baseDecline = prev.baseDeclineRate || prev.declineRate;
+            let newDeclineRate = baseDecline;
+
+            if (detailedParams?.useSmartWell && detailedParams?.useFOH) {
+                const increase = detailedParams.fohRecoveryFactorIncrease || 5;
+                const factor = 1 + (increase / 100);
+                newDeclineRate = baseDecline / factor;
+            }
+
             return {
                 ...prev,
                 totalCapex: newTotalCapex,
                 capexSplit: newSplit,
-                wellsParams: detailedParams
+                wellsParams: detailedParams,
+                declineRate: newDeclineRate, // Sync slider
+                baseDeclineRate: baseDecline // Ensure base is persisted
             };
         });
-    };
+    }, []);
 
 
 
     const applyProductionProfile = (type) => {
         let updates = {};
-        if (type === 'pre-salt') updates = { rampUpDuration: 3, plateauDuration: 4, declineRate: 8 };
-        else if (type === 'post-salt') updates = { rampUpDuration: 4, plateauDuration: 2, declineRate: 12 };
-        else if (type === 'onshore') updates = { rampUpDuration: 1, plateauDuration: 6, declineRate: 6 };
+        if (type === 'pre-salt') updates = { rampUpDuration: 3, plateauDuration: 4, declineRate: 8, baseDeclineRate: 8 };
+        else if (type === 'post-salt') updates = { rampUpDuration: 4, plateauDuration: 2, declineRate: 12, baseDeclineRate: 12 };
+        else if (type === 'onshore') updates = { rampUpDuration: 1, plateauDuration: 6, declineRate: 6, baseDeclineRate: 6 };
 
         setProjectA(prev => {
             const next = { ...prev, ...updates };
@@ -771,6 +792,8 @@ export default function App() {
                         currentParams={projectA.fpsoParams}
                         wellsParams={projectA.wellsParams}
                         peakProduction={projectA.peakProduction}
+                        projectParams={projectA} // Pass full params for volume calc
+                        unitNpv={(resultsA.metrics.vpl / (resultsA.yearlyData.reduce((acc, y) => acc + (y.productionVolume * 365), 0) / 1000 * 1000000)) || 5} // $/bbl (default 5 to avoid NaN)
                         onUpdate={handleUpdateCapex}
                         onUpdateWells={handleUpdateWells}
                     />

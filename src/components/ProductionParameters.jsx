@@ -152,6 +152,78 @@ const ProductionParameters = ({ params, setParams }) => {
                 )}
 
                 {/* COMMON PARAMS: PRODUCTION CURVE */}
+                {/* KPI CARD: TOTAL RECOVERABLE VOLUME */}
+                <div className="mb-6">
+                    {(() => {
+                        const calculateRecoverableVolume = () => {
+                            const peak = params.peakProduction || 100;
+                            const rampUp = params.rampUpDuration || 2;
+                            const plateau = params.plateauDuration || 4;
+                            const decline = params.declineRate || 10;
+                            const duration = 30; // Standard duration for volume estimation
+
+                            // Liquid Constraint Params
+                            const maxLiquids = params.maxLiquids || 200000;
+                            const useLiquidConstraint = mode === 'detailed';
+
+                            let totalVolume = 0;
+                            for (let t = 1; t <= duration; t++) {
+                                let productionVolume = 0;
+
+                                // 1. Unconstrained Curve
+                                // Decline Adjustment (Smart Well FOH)
+                                // Decline Adjustment is now handled in project state (App.jsx)
+                                let effectiveDeclineRate = decline;
+
+                                if (t <= rampUp) {
+                                    productionVolume = peak * (t / rampUp);
+                                } else if (t <= rampUp + plateau) {
+                                    productionVolume = peak;
+                                } else {
+                                    const yearsPostPlateau = t - (rampUp + plateau);
+                                    productionVolume = peak * Math.pow(1 - decline / 100, yearsPostPlateau);
+                                }
+
+                                // 2. Apply Liquid Constraint (if detailed mode)
+                                if (useLiquidConstraint && t > rampUp + plateau) {
+                                    const yearsInDecline = t - (rampUp + plateau);
+                                    // Water cut increases 5% per year after plateau, starting at 10%, max 80%
+                                    const waterCut = Math.min(0.80, 0.10 + yearsInDecline * 0.05);
+
+                                    // Max Oil = Max Liquids * (1 - Water Cut)
+                                    const maxOilFromLiquids = (maxLiquids / 1000) * (1 - waterCut); // kbpd
+
+                                    productionVolume = Math.min(productionVolume, maxOilFromLiquids);
+                                }
+
+                                totalVolume += productionVolume * 0.365; // k bpd * 365 = MMbbl
+                            }
+                            return totalVolume;
+                        };
+
+                        const recoverableVolume = calculateRecoverableVolume();
+
+                        return (
+                            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-md relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                                <div className="relative z-10 flex justify-between items-center">
+                                    <div>
+                                        <p className="text-emerald-50 font-medium text-xs uppercase tracking-wider mb-1">Volume Total Recuperável (30 anos)</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <h3 className="text-3xl font-bold">{recoverableVolume.toFixed(0)}</h3>
+                                            <span className="text-lg text-emerald-100 font-medium">MMbbl</span>
+                                        </div>
+                                        <p className="text-xs text-emerald-100/80 mt-1">Estimativa baseada na curva de produção configurada.</p>
+                                    </div>
+                                    <div className="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
+                                        <Droplets size={28} className="text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
@@ -180,7 +252,7 @@ const ProductionParameters = ({ params, setParams }) => {
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
                             <span>Taxa de Declínio Anual (%)</span>
-                            <span className="font-bold text-emerald-700 dark:text-emerald-400">{params.declineRate}%</span>
+                            <span className="font-bold text-emerald-700 dark:text-emerald-400">{Number(params.declineRate).toFixed(1)}%</span>
                         </label>
                         <input
                             type="range" min="1" max="25" step="1"

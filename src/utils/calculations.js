@@ -300,13 +300,17 @@ export const generateProjectData = (params) => {
         const netOilPrice = yearlyBrent * (1 - brentSpread / 100);
 
         if (productionYear > 0 && !isDecomYear) {
+            // Decline Rate is now pre-adjusted in the project state (via App.jsx) if Smart Well is active.
+            // This ensures the sliders and calculation match.
+            let effectiveDeclineRate = declineRate;
+
             if (productionYear <= rampUpDuration) {
                 productionVolume = peakProduction * (productionYear / rampUpDuration);
             } else if (productionYear <= rampUpDuration + plateauDuration) {
                 productionVolume = peakProduction;
             } else {
                 const yearsPostPlateau = productionYear - (rampUpDuration + plateauDuration);
-                productionVolume = peakProduction * Math.pow(1 - declineRate / 100, yearsPostPlateau);
+                productionVolume = peakProduction * Math.pow(1 - effectiveDeclineRate / 100, yearsPostPlateau);
             }
 
             // Aplicar restrição de capacidade de líquidos (BSW/Gargalo)
