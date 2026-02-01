@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Box, DollarSign, Pickaxe, Timer, Activity, TrendingDown, Anchor, Wrench, Cpu, Check, RotateCw, Info, TrendingUp } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
+import { Box, DollarSign, Pickaxe, Timer, Activity, TrendingDown, Anchor, Wrench, Cpu, Check, RotateCw, Info, TrendingUp, Play, Loader2 } from 'lucide-react';
+import { generateProjectData } from '../../utils/calculations';
 
 export default function WellsCapex({ costs, onUpdate, initialParams, projectParams, unitNpv }) {
     // Mode: 'simple' (Total Value) or 'detailed' (Number of Wells)
@@ -45,6 +46,168 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     const [fohReductionDays, setFohReductionDays] = useState(initialParams?.fohReductionDays || 16);
     const [fohHardwareCostIncrease, setFohHardwareCostIncrease] = useState(initialParams?.fohHardwareCostIncrease || 20); // %
     const [fohRecoveryFactorIncrease, setFohRecoveryFactorIncrease] = useState(initialParams?.fohRecoveryFactorIncrease || 5); // %
+
+    // --- Monte Carlo Simulation State ---
+    const [isSimulating, setIsSimulating] = useState(false);
+    const [monteCarloResults, setMonteCarloResults] = useState(null);
+
+    // --- Monte Carlo Distribution Helpers ---
+    const triangularRandom = (min, mode, max) => {
+        const u = Math.random();
+        const fc = (mode - min) / (max - min);
+        if (u < fc) {
+            return min + Math.sqrt(u * (max - min) * (mode - min));
+        } else {
+            return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+        }
+    };
+
+    const normalRandom = (mean, stdDev) => {
+        // Box-Muller transform
+        const u1 = Math.random();
+        const u2 = Math.random();
+        const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+        return z0 * stdDev + mean;
+    };
+
+    // --- Monte Carlo Run Function ---
+    const runMonteCarlo = async () => {
+        setIsSimulating(true);
+        setMonteCarloResults(null);
+
+        // Use setTimeout to allow UI to update before heavy computation
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const iterations = 2000;
+
+        // Base parameters from projectParams (these will be overridden per configuration)
+        const baseParams = { ...projectParams };
+
+        // Get the base CAPEX from the Wells Capex component
+        const baseWellsCapex = (costs?.totalMM || 2400) * 1000000;
+
+        // Configuration Definitions with their parameter distributions
+        const configs = {
+            'Convencional': {
+                capexMult: () => 1.0,
+                rigMult: () => 1.0,
+                waitDays: () => triangularRandom(90, 120, 180),
+                declineRate: () => normalRandom(12, 2), // % value
+                hyperbolicFactor: () => triangularRandom(0.1, 0.3, 0.4),
+                breakthroughYears: () => triangularRandom(3, 5, 6),
+                waterGrowthK: () => triangularRandom(0.8, 1.2, 1.5)
+            },
+            'Inteligente Hidráulica': {
+                capexMult: () => triangularRandom(1.05, 1.10, 1.20),
+                rigMult: () => 1.0,
+                waitDays: () => 0,
+                declineRate: () => normalRandom(9, 1.5), // % value
+                hyperbolicFactor: () => triangularRandom(0.3, 0.5, 0.6),
+                breakthroughYears: () => triangularRandom(5, 7, 9),
+                waterGrowthK: () => triangularRandom(0.5, 0.7, 0.9)
+            },
+            'Inteligente Elétrica': {
+                capexMult: () => triangularRandom(1.01, 1.15, 1.25),
+                rigMult: () => 1.2,
+                waitDays: () => 0,
+                declineRate: () => normalRandom(6, 1), // % value
+                hyperbolicFactor: () => triangularRandom(0.6, 0.7, 0.9),
+                breakthroughYears: () => triangularRandom(7, 9, 12),
+                waterGrowthK: () => triangularRandom(0.3, 0.4, 0.6)
+            }
+        };
+
+        const results = {};
+
+        for (const [configName, samplers] of Object.entries(configs)) {
+            const npvs = [];
+
+            for (let i = 0; i < iterations; i++) {
+                // Sample parameters for this iteration
+                const capexMult = samplers.capexMult();
+                const rigMult = samplers.rigMult();
+                const declineRate = Math.max(1, samplers.declineRate()); // Ensure positive %
+                const hyperbolicFactor = Math.max(0, Math.min(1, samplers.hyperbolicFactor()));
+                const breakthroughYears = samplers.breakthroughYears();
+                const waterGrowthK = samplers.waterGrowthK();
+
+                // Calculate adjusted CAPEX - apply multiplier delta to the TOTAL project capex
+                // capexMult affects only wells portion, so we calculate the delta
+                const wellsCapexDelta = baseWellsCapex * (capexMult * rigMult - 1);
+                const adjustedTotalCapex = (projectParams?.totalCapex || 5400000000) + wellsCapexDelta;
+
+                // Build iteration params - override the varied parameters
+                const iterParams = {
+                    ...baseParams,
+                    totalCapex: adjustedTotalCapex,
+                    declineRate: declineRate,
+                    hyperbolicFactor: hyperbolicFactor,
+                    bswBreakthrough: breakthroughYears,
+                    bswGrowthRate: waterGrowthK
+                };
+
+                // Call the actual project calculation
+                try {
+                    const result = generateProjectData(iterParams);
+                    if (result && result.metrics && typeof result.metrics.vpl === 'number' && isFinite(result.metrics.vpl)) {
+                        npvs.push(result.metrics.vpl / 1000000); // Convert to MM
+                    }
+                } catch (e) {
+                    // Skip failed iterations
+                    console.warn('Monte Carlo iteration failed:', e);
+                }
+            }
+
+            // Calculate statistics only if we have valid results
+            if (npvs.length > 0) {
+                npvs.sort((a, b) => a - b);
+                const mean = npvs.reduce((a, b) => a + b, 0) / npvs.length;
+                const p10Index = Math.floor(0.10 * npvs.length);
+                const p50Index = Math.floor(0.50 * npvs.length);
+                const p90Index = Math.floor(0.90 * npvs.length);
+
+                // Generate histogram data (20 bins)
+                const minVal = npvs[0];
+                const maxVal = npvs[npvs.length - 1];
+                const binCount = 20;
+                const binWidth = (maxVal - minVal) / binCount;
+                const histogram = [];
+
+                for (let b = 0; b < binCount; b++) {
+                    const binStart = minVal + b * binWidth;
+                    const binEnd = binStart + binWidth;
+                    const count = npvs.filter(v => v >= binStart && v < binEnd).length;
+                    histogram.push({
+                        bin: (binStart / 1000).toFixed(2), // Convert to Billions
+                        value: binStart,
+                        frequency: count,
+                        probability: (count / npvs.length * 100).toFixed(1)
+                    });
+                }
+
+                results[configName] = {
+                    mean: mean,
+                    p10: npvs[p10Index],
+                    p50: npvs[p50Index],
+                    p90: npvs[p90Index],
+                    count: npvs.length,
+                    histogram: histogram
+                };
+            } else {
+                results[configName] = {
+                    mean: 0,
+                    p10: 0,
+                    p50: 0,
+                    p90: 0,
+                    count: 0,
+                    histogram: []
+                };
+            }
+        }
+
+        setMonteCarloResults(results);
+        setIsSimulating(false);
+    };
 
     // --- EFFECT: Update Defaults based on Type & Complexity ---
     useEffect(() => {
@@ -1082,6 +1245,365 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                             </table>
                         </div>
                     </div>
+
+                    {/* PROBABILISTIC ANALYSIS SECTION (MONTE CARLO) */}
+                    {mode === 'detailed' && (
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-indigo-200 dark:border-indigo-900/30 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-50 dark:bg-indigo-900/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+                            <div className="relative z-10 mb-6">
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                    <Activity className="text-indigo-500 w-5 h-5" /> Análise Probabilística
+                                </h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Parâmetros de entrada para Simulação de Monte Carlo (Comparativo de VPL)
+                                </p>
+                            </div>
+
+                            {/* Monte Carlo Simulation Button and Results */}
+                            <div className="relative z-10 mb-6">
+                                <button
+                                    onClick={runMonteCarlo}
+                                    disabled={isSimulating}
+                                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSimulating ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Rodando Simulação...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Play className="w-4 h-4" />
+                                            Rodar Simulação (2000 iterações)
+                                        </>
+                                    )}
+                                </button>
+
+                                {monteCarloResults && (
+                                    <>
+                                        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {Object.entries(monteCarloResults).map(([category, data]) => (
+                                                <div key={category} className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                    <h5 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase mb-2">{category}</h5>
+                                                    <div className="grid grid-cols-3 gap-2 text-[10px]">
+                                                        <div>
+                                                            <p className="text-slate-400">P10</p>
+                                                            <p className="font-bold text-red-600 dark:text-red-400">$ {(data.p10 / 1000).toFixed(2)} B</p>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <p className="text-slate-400">VPL Médio</p>
+                                                            <p className="font-bold text-slate-700 dark:text-slate-300">$ {(data.mean / 1000).toFixed(2)} B</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-slate-400">P90</p>
+                                                            <p className="font-bold text-emerald-600 dark:text-emerald-400">$ {(data.p90 / 1000).toFixed(2)} B</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="mt-6 bg-white dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                                            <h5 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase mb-4">
+                                                Distribuição de Probabilidade do VPL
+                                            </h5>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {/* Convencional Distribution */}
+                                                {monteCarloResults['Convencional']?.histogram && (
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+                                                        <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                                            <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                                                            Convencional
+                                                        </p>
+                                                        <div className="h-32">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <AreaChart data={monteCarloResults['Convencional'].histogram} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                                                    <defs>
+                                                                        <linearGradient id="colorConv" x1="0" y1="0" x2="0" y2="1">
+                                                                            <stop offset="5%" stopColor="#64748b" stopOpacity={0.8} />
+                                                                            <stop offset="95%" stopColor="#64748b" stopOpacity={0.1} />
+                                                                        </linearGradient>
+                                                                    </defs>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                                                                    <XAxis dataKey="bin" tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <YAxis tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <Tooltip
+                                                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '6px', fontSize: '9px' }}
+                                                                        formatter={(value) => [`${value} iterações`, 'Frequência']}
+                                                                        labelFormatter={(label) => `VPL: $${label}B`}
+                                                                    />
+                                                                    <Area type="monotone" dataKey="frequency" stroke="#64748b" strokeWidth={2} fillOpacity={1} fill="url(#colorConv)" />
+                                                                </AreaChart>
+                                                            </ResponsiveContainer>
+                                                        </div>
+                                                        <div className="grid grid-cols-3 gap-1 mt-2 text-center">
+                                                            <div className="bg-red-50 dark:bg-red-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-red-600 dark:text-red-400 font-medium">P10</p>
+                                                                <p className="text-[9px] font-bold text-red-700 dark:text-red-300">${(monteCarloResults['Convencional'].p10 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                            <div className="bg-amber-50 dark:bg-amber-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-amber-600 dark:text-amber-400 font-medium">P50</p>
+                                                                <p className="text-[9px] font-bold text-amber-700 dark:text-amber-300">${(monteCarloResults['Convencional'].p50 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-emerald-600 dark:text-emerald-400 font-medium">P90</p>
+                                                                <p className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300">${(monteCarloResults['Convencional'].p90 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Inteligente Hidráulica Distribution */}
+                                                {monteCarloResults['Inteligente Hidráulica']?.histogram && (
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+                                                        <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                            Inteligente Hidráulica
+                                                        </p>
+                                                        <div className="h-32">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <AreaChart data={monteCarloResults['Inteligente Hidráulica'].histogram} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                                                    <defs>
+                                                                        <linearGradient id="colorHid" x1="0" y1="0" x2="0" y2="1">
+                                                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
+                                                                        </linearGradient>
+                                                                    </defs>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                                                                    <XAxis dataKey="bin" tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <YAxis tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <Tooltip
+                                                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '6px', fontSize: '9px' }}
+                                                                        formatter={(value) => [`${value} iterações`, 'Frequência']}
+                                                                        labelFormatter={(label) => `VPL: $${label}B`}
+                                                                    />
+                                                                    <Area type="monotone" dataKey="frequency" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorHid)" />
+                                                                </AreaChart>
+                                                            </ResponsiveContainer>
+                                                        </div>
+                                                        <div className="grid grid-cols-3 gap-1 mt-2 text-center">
+                                                            <div className="bg-red-50 dark:bg-red-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-red-600 dark:text-red-400 font-medium">P10</p>
+                                                                <p className="text-[9px] font-bold text-red-700 dark:text-red-300">${(monteCarloResults['Inteligente Hidráulica'].p10 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                            <div className="bg-amber-50 dark:bg-amber-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-amber-600 dark:text-amber-400 font-medium">P50</p>
+                                                                <p className="text-[9px] font-bold text-amber-700 dark:text-amber-300">${(monteCarloResults['Inteligente Hidráulica'].p50 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-emerald-600 dark:text-emerald-400 font-medium">P90</p>
+                                                                <p className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300">${(monteCarloResults['Inteligente Hidráulica'].p90 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Inteligente Elétrica Distribution */}
+                                                {monteCarloResults['Inteligente Elétrica']?.histogram && (
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+                                                        <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                            Inteligente Elétrica
+                                                        </p>
+                                                        <div className="h-32">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <AreaChart data={monteCarloResults['Inteligente Elétrica'].histogram} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                                                    <defs>
+                                                                        <linearGradient id="colorEle" x1="0" y1="0" x2="0" y2="1">
+                                                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                                                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+                                                                        </linearGradient>
+                                                                    </defs>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                                                                    <XAxis dataKey="bin" tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <YAxis tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <Tooltip
+                                                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '6px', fontSize: '9px' }}
+                                                                        formatter={(value) => [`${value} iterações`, 'Frequência']}
+                                                                        labelFormatter={(label) => `VPL: $${label}B`}
+                                                                    />
+                                                                    <Area type="monotone" dataKey="frequency" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorEle)" />
+                                                                </AreaChart>
+                                                            </ResponsiveContainer>
+                                                        </div>
+                                                        <div className="grid grid-cols-3 gap-1 mt-2 text-center">
+                                                            <div className="bg-red-50 dark:bg-red-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-red-600 dark:text-red-400 font-medium">P10</p>
+                                                                <p className="text-[9px] font-bold text-red-700 dark:text-red-300">${(monteCarloResults['Inteligente Elétrica'].p10 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                            <div className="bg-amber-50 dark:bg-amber-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-amber-600 dark:text-amber-400 font-medium">P50</p>
+                                                                <p className="text-[9px] font-bold text-amber-700 dark:text-amber-300">${(monteCarloResults['Inteligente Elétrica'].p50 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded px-1 py-0.5">
+                                                                <p className="text-[8px] text-emerald-600 dark:text-emerald-400 font-medium">P90</p>
+                                                                <p className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300">${(monteCarloResults['Inteligente Elétrica'].p90 / 1000).toFixed(2)}B</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-[9px] text-slate-400 mt-3 text-center">
+                                                Histograma baseado em 2000 iterações por categoria | Eixo X: VPL em Bilhões ($B)
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* CATEGORY 1: CONVENTIONAL */}
+                                <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                    <div className="bg-slate-50 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                                            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">1. Convencional (Benchmark)</h4>
+                                        </div>
+                                        <span className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 text-slate-500">
+                                            Robusto & Barato
+                                        </span>
+                                    </div>
+                                    <div className="p-4 bg-white dark:bg-slate-900/50">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Capex Multiplier</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0 (Base)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Falha (Lambda)</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">0.15</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Tempo Espera (d)</p>
+                                                <p className="font-mono font-bold text-orange-600 dark:text-orange-400">Triang(90, 120, 180)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Declínio Global</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.12, 0.02)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Fator Hiperbólico</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.1, 0.3, 0.4)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Breakthrough (anos)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(3, 5, 6)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Cresc. Água (k)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.8, 1.2, 1.5)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CATEGORY 2: INTELLIGENT HYDRAULIC */}
+                                <div className="border border-blue-200 dark:border-blue-900/50 rounded-lg overflow-hidden">
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b border-blue-200 dark:border-blue-900/50 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                            <h4 className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">2. Inteligente Hidráulica</h4>
+                                        </div>
+                                        <span className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+                                            Controle Zonal
+                                        </span>
+                                    </div>
+                                    <div className="p-4 bg-white dark:bg-slate-900/50">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Capex Multiplier</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">Triang(1.05, 1.10, 1.20)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Falha (Lambda)</p>
+                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0.05</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Tempo Espera (d)</p>
+                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0 (Remoto)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Declínio Global</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.09, 0.015)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Fator Hiperbólico</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.3, 0.5, 0.6)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Breakthrough (anos)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(5, 7, 9)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Cresc. Água (k)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.5, 0.7, 0.9)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CATEGORY 3: INTELLIGENT ELECTRIC */}
+                                <div className="border border-purple-200 dark:border-purple-900/50 rounded-lg overflow-hidden">
+                                    <div className="bg-purple-50 dark:bg-purple-900/20 p-3 border-b border-purple-200 dark:border-purple-900/50 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                                            <h4 className="text-xs font-bold text-purple-800 dark:text-purple-300 uppercase tracking-wider">3. Inteligente Elétrica</h4>
+                                        </div>
+                                        <span className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-400">
+                                            Digital & Real-time
+                                        </span>
+                                    </div>
+                                    <div className="p-4 bg-white dark:bg-slate-900/50">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Capex Multiplier</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">Triang(1.01, 1.15, 1.25)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Falha (Lambda)</p>
+                                                <p className="font-mono font-bold text-purple-600 dark:text-purple-400">0.04</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
+                                                <p className="font-mono font-bold text-red-600 dark:text-red-400">1.2 (Sonda Espec.)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Tempo Espera (d)</p>
+                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0 (Remoto)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Declínio Global</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.06, 0.01)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Fator Hiperbólico</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.6, 0.7, 0.9)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Breakthrough (anos)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(7, 9, 12)</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-400 mb-0.5">Cresc. Água (k)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.3, 0.4, 0.6)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                    }
+
                 </div >
 
                 {/* DISCLAIMER FOOTER */}
@@ -1094,7 +1616,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                         </p>
                     </div>
                 </div >
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

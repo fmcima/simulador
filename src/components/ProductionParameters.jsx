@@ -235,7 +235,7 @@ const ProductionParameters = ({ params, setParams }) => {
                 <div className="mb-8 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                         <Activity size={16} className="text-emerald-600 dark:text-emerald-400" />
-                        Parametrização da Curva de Produção - Modelo de Arps Hiperbólico
+                        Parametrização da Curva de Produção
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -283,136 +283,144 @@ const ProductionParameters = ({ params, setParams }) => {
                             />
                             <p className="text-[10px] text-slate-400 mt-1">Velocidade de queda da produção após o platô. Maior % = queda mais rápida.</p>
                         </div>
-                        <div>
-                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
-                                <span>Fator Hiperbólico</span>
-                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{(params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5).toFixed(1)}</span>
-                            </label>
-                            <input
-                                type="range" min="0" max="1" step="0.1"
-                                value={params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5}
-                                onChange={(e) => handleChange('hyperbolicFactor', Number(e.target.value))}
-                                className="w-full accent-emerald-600"
-                            />
-                            <p className="text-[10px] text-slate-400 mt-1">Curvatura do declínio (b). b=0 (Exponencial), b=1 (Harmônico). Maior b = cauda mais longa.</p>
-                        </div>
+                        {mode === 'detailed' && (
+                            <>
+                                <div>
+                                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                        <span>Fator Hiperbólico</span>
+                                        <span className="font-bold text-emerald-700 dark:text-emerald-400">{(params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5).toFixed(1)}</span>
+                                    </label>
+                                    <input
+                                        type="range" min="0" max="1" step="0.1"
+                                        value={params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5}
+                                        onChange={(e) => handleChange('hyperbolicFactor', Number(e.target.value))}
+                                        className="w-full accent-emerald-600"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">Curvatura do declínio (b). b=0 (Exponencial), b=1 (Harmônico). Maior b = cauda mais longa.</p>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Presets de Tipo de Completação */}
-                    <div className="mb-4">
-                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Tipo de Completação (Impacto na Curva):</label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setParams(prev => ({
-                                        ...prev,
-                                        declineRate: 10,
-                                        hyperbolicFactor: 0.2,
-                                        bswBreakthrough: 5,
-                                        bswGrowthRate: 1.2
-                                    }));
-                                }}
-                                className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 10 && Math.abs((params.hyperbolicFactor || 0.5) - 0.2) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
-                            >
-                                <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Convencional</div>
-                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                    Declínio: <span className="font-mono text-emerald-600">10%</span> | b: <span className="font-mono text-emerald-600">0.2</span>
-                                </div>
+                    {mode === 'detailed' && (
+                        <div className="mb-4">
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Tipo de Completação (Impacto na Curva):</label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setParams(prev => ({
+                                            ...prev,
+                                            declineRate: 10,
+                                            hyperbolicFactor: 0.2,
+                                            bswBreakthrough: 5,
+                                            bswGrowthRate: 1.2
+                                        }));
+                                    }}
+                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 10 && Math.abs((params.hyperbolicFactor || 0.5) - 0.2) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                                >
+                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Convencional</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        Declínio: <span className="font-mono text-emerald-600">10%</span> | b: <span className="font-mono text-emerald-600">0.2</span>
+                                    </div>
 
-                                {/* Tooltip */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Completação padrão sem controle de fluxo zonal. Resulta em irrupção precoce de água e declínio acelerado.
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                                </div>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setParams(prev => ({
-                                        ...prev,
-                                        declineRate: 8,
-                                        hyperbolicFactor: 0.5,
-                                        bswBreakthrough: 7,
-                                        bswGrowthRate: 0.7
-                                    }));
-                                }}
-                                className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 8 && Math.abs((params.hyperbolicFactor || 0.5) - 0.5) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
-                            >
-                                <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Hidráulica</div>
-                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                    Declínio: <span className="font-mono text-emerald-600">8%</span> | b: <span className="font-mono text-emerald-600">0.5</span>
-                                </div>
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Completação padrão sem controle de fluxo zonal. Resulta em irrupção precoce de água e declínio acelerado.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setParams(prev => ({
+                                            ...prev,
+                                            declineRate: 8,
+                                            hyperbolicFactor: 0.5,
+                                            bswBreakthrough: 7,
+                                            bswGrowthRate: 0.7
+                                        }));
+                                    }}
+                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 8 && Math.abs((params.hyperbolicFactor || 0.5) - 0.5) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                                >
+                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Hidráulica</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        Declínio: <span className="font-mono text-emerald-600">8%</span> | b: <span className="font-mono text-emerald-600">0.5</span>
+                                    </div>
 
-                                {/* Tooltip */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Válvulas hidráulicas (ICV) permitem fechar zonas com água, estendendo o platô e suavizando o declínio.
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                                </div>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setParams(prev => ({
-                                        ...prev,
-                                        declineRate: 7,
-                                        hyperbolicFactor: 0.8,
-                                        bswBreakthrough: 9,
-                                        bswGrowthRate: 0.4
-                                    }));
-                                }}
-                                className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 7 && Math.abs((params.hyperbolicFactor || 0.5) - 0.8) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
-                            >
-                                <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Elétrica</div>
-                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                    Declínio: <span className="font-mono text-emerald-600">7%</span> | b: <span className="font-mono text-emerald-600">0.8</span>
-                                </div>
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Válvulas hidráulicas (ICV) permitem fechar zonas com água, estendendo o platô e suavizando o declínio.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setParams(prev => ({
+                                            ...prev,
+                                            declineRate: 7,
+                                            hyperbolicFactor: 0.8,
+                                            bswBreakthrough: 9,
+                                            bswGrowthRate: 0.4
+                                        }));
+                                    }}
+                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 7 && Math.abs((params.hyperbolicFactor || 0.5) - 0.8) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                                >
+                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Elétrica</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        Declínio: <span className="font-mono text-emerald-600">7%</span> | b: <span className="font-mono text-emerald-600">0.8</span>
+                                    </div>
 
-                                {/* Tooltip */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Controle elétrico em tempo real. Máxima eficiência na gestão do reservatório, minimizando água e declínio.
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                                </div>
-                            </button>
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Controle elétrico em tempo real. Máxima eficiência na gestão do reservatório, minimizando água e declínio.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                    </div>
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                <div className="mb-8 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
-                        <Beaker size={16} className="text-blue-600 dark:text-blue-400" />
-                        Modelo Matemático de BSW (Função Logística)
-                    </h3>
+                {mode === 'detailed' && (
+                    <div className="mb-8 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                            <Beaker size={16} className="text-blue-600 dark:text-blue-400" />
+                            Modelo Matemático de BSW (Função Logística)
+                        </h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
-                                <span>Tempo de Breakthrough (t_bt)</span>
-                                <span className="font-bold text-blue-700 dark:text-blue-400">Ano {params.bswBreakthrough || 5}</span>
-                            </label>
-                            <input
-                                type="range" min="2" max="15" step="0.5"
-                                value={params.bswBreakthrough || 5}
-                                onChange={(e) => handleChange('bswBreakthrough', Number(e.target.value))}
-                                className="w-full accent-blue-600"
-                            />
-                            <p className="text-[10px] text-slate-400 mt-1">Ano em que a produção de água acelera (Ponto de Inflexão).</p>
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
-                                <span>Velocidade de Crescimento (k)</span>
-                                <span className="font-bold text-blue-700 dark:text-blue-400">{(params.bswGrowthRate || 1.2).toFixed(2)}</span>
-                            </label>
-                            <input
-                                type="range" min="0.1" max="2.0" step="0.1"
-                                value={params.bswGrowthRate || 1.2}
-                                onChange={(e) => handleChange('bswGrowthRate', Number(e.target.value))}
-                                className="w-full accent-blue-600"
-                            />
-                            <p className="text-[10px] text-slate-400 mt-1">Quão rápido o poço "afoga". Valores maiores = subida vertical.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                    <span>Tempo de Breakthrough (t_bt)</span>
+                                    <span className="font-bold text-blue-700 dark:text-blue-400">Ano {params.bswBreakthrough || 5}</span>
+                                </label>
+                                <input
+                                    type="range" min="2" max="15" step="0.5"
+                                    value={params.bswBreakthrough || 5}
+                                    onChange={(e) => handleChange('bswBreakthrough', Number(e.target.value))}
+                                    className="w-full accent-blue-600"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Ano em que a produção de água acelera (Ponto de Inflexão).</p>
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                    <span>Velocidade de Crescimento (k)</span>
+                                    <span className="font-bold text-blue-700 dark:text-blue-400">{(params.bswGrowthRate || 1.2).toFixed(2)}</span>
+                                </label>
+                                <input
+                                    type="range" min="0.1" max="2.0" step="0.1"
+                                    value={params.bswGrowthRate || 1.2}
+                                    onChange={(e) => handleChange('bswGrowthRate', Number(e.target.value))}
+                                    className="w-full accent-blue-600"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Quão rápido o poço "afoga". Valores maiores = subida vertical.</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* DETAILED MODE: RESERVOIR & FLUID PARAMS */}
                 {mode === 'detailed' && (

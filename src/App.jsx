@@ -123,11 +123,6 @@ export default function App() {
             wells: { method: 'uop', years: 5 },
             subsea: { method: 'accelerated', years: 2 }
         },
-        // Novos Parâmetros de Contratação
-        platformOwnership: 'owned', // Default é própria
-        charterPV: 2500000000, // Valor default para afretamento (se mudar para chartered)
-        charterSplit: { charter: 85, service: 15 }, // Split do contrato de afretamento
-        serviceTaxRate: 14.25, // Impostos indiretos (PIS/COFINS/ISS) sobre parcela de serviço
 
         // --- Persistence for FPSO Module ---
         fpsoParams: null, // Stores the detailed configuration object
