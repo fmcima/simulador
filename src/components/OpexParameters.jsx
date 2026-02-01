@@ -281,7 +281,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                             {/* Tesp Input */}
                                             <div>
                                                 <div className="flex justify-between mb-1">
-                                                    <label className="text-[10px] font-medium text-slate-500">Tempo Espera (Tesp)</label>
+                                                    <label className="text-[10px] font-medium text-slate-500">Tempo de Espera</label>
                                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{params.workoverTesp || 90} dias</span>
                                                 </div>
                                                 <input
@@ -294,7 +294,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
 
                                             {/* Qwell Display */}
                                             <div>
-                                                <label className="text-[10px] font-medium text-slate-500 block mb-1">Produtividade do Poço (Qpoço)</label>
+                                                <label className="text-[10px] font-medium text-slate-500 block mb-1">Produtividade do Poço</label>
                                                 <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-600 dark:text-slate-400">
                                                     {(() => {
                                                         const peak = params.peakProduction || 150; // kbpd
@@ -310,7 +310,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex justify-between text-xs text-slate-500">
-                                                    <span>Pprod por Poço:</span>
+                                                    <span>Perda de Produção por Poço:</span>
                                                     <span className="font-mono text-red-600 dark:text-red-400">
                                                         {(() => {
                                                             const lambda = params.workoverLambda || 0.15;
@@ -328,7 +328,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                 </div>
                                                 <div className="flex justify-between items-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-900/30">
                                                     <span className="text-xs font-bold text-red-800 dark:text-red-300">
-                                                        Total Pprod ({params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8)} Poços Prod)
+                                                        Perda de Produção Total ({params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8)} Poços Prod)
                                                     </span>
                                                     <span className="text-sm font-bold text-red-700 dark:text-red-400">
                                                         {(() => {
