@@ -314,8 +314,8 @@ const ProductionParameters = ({ params, setParams }) => {
                                             ...prev,
                                             declineRate: 10,
                                             hyperbolicFactor: 0.2,
-                                            bswBreakthrough: 5,
-                                            bswGrowthRate: 1.2
+                                            bswBreakthrough: 6,
+                                            bswGrowthRate: 0.9
                                         }));
                                     }}
                                     className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 10 && Math.abs((params.hyperbolicFactor || 0.5) - 0.2) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
@@ -362,7 +362,7 @@ const ProductionParameters = ({ params, setParams }) => {
                                             ...prev,
                                             declineRate: 7,
                                             hyperbolicFactor: 0.8,
-                                            bswBreakthrough: 9,
+                                            bswBreakthrough: 8,
                                             bswGrowthRate: 0.4
                                         }));
                                     }}

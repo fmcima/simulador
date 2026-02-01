@@ -8,6 +8,30 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
         setParams(prev => ({ ...prev, [field]: value }));
     };
 
+    // Auto-calculate total workover cost when dependencies change (e.g. well count)
+    React.useEffect(() => {
+        const numWells = params.wellsParams?.numWells || 16;
+        const lambda = params.workoverLambda || 0.15;
+        const mob = params.workoverMobCost || 8;
+        const dur = params.workoverDuration || 20;
+        const rate = params.workoverDailyRate || 800;
+
+        const costPerEvent = mob + (dur * rate / 1000);
+        const calculatedTotal = numWells * lambda * costPerEvent * 1000000;
+
+        // Update if the current stored cost differs significantly from calculation
+        if (Math.abs((params.workoverCost || 0) - calculatedTotal) > 100) {
+            setParams(prev => ({ ...prev, workoverCost: calculatedTotal }));
+        }
+    }, [
+        params.wellsParams?.numWells,
+        params.workoverLambda,
+        params.workoverMobCost,
+        params.workoverDuration,
+        params.workoverDailyRate,
+        setParams
+    ]);
+
     // Calculate typical OPEX values based on unit capacity (peakProduction)
     const capacity = params.peakProduction || 150; // kbpd
     const typicalOpexFixed = Math.round(capacity * 0.6 * 1000000); // ~$0.6M per kbpd/year
@@ -18,8 +42,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
         setParams(prev => ({
             ...prev,
             opexFixed: typicalOpexFixed,
-            opexVariable: typicalOpexVariable,
-            workoverCost: typicalWorkover
+            opexVariable: typicalOpexVariable
         }));
     };
 

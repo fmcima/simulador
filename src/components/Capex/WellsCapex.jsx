@@ -89,13 +89,13 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
         // Configuration Definitions with their parameter distributions
         const configs = {
             'Convencional': {
-                capexMult: () => 1.0,
+                capexMult: () => 0.8,
                 rigMult: () => 1.0,
                 waitDays: () => triangularRandom(90, 120, 180),
-                declineRate: () => normalRandom(12, 2), // % value
+                declineRate: () => normalRandom(10, 2), // % value
                 hyperbolicFactor: () => triangularRandom(0.1, 0.3, 0.4),
-                breakthroughYears: () => triangularRandom(3, 5, 6),
-                waterGrowthK: () => triangularRandom(0.8, 1.2, 1.5)
+                breakthroughYears: () => triangularRandom(5, 6, 7),
+                waterGrowthK: () => triangularRandom(0.6, 0.8, 1.1)
             },
             'Inteligente Hidráulica': {
                 capexMult: () => triangularRandom(1.05, 1.10, 1.20),
@@ -103,17 +103,17 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                 waitDays: () => 0,
                 declineRate: () => normalRandom(9, 1.5), // % value
                 hyperbolicFactor: () => triangularRandom(0.3, 0.5, 0.6),
-                breakthroughYears: () => triangularRandom(5, 7, 9),
+                breakthroughYears: () => triangularRandom(6, 7, 8),
                 waterGrowthK: () => triangularRandom(0.5, 0.7, 0.9)
             },
             'Inteligente Elétrica': {
-                capexMult: () => triangularRandom(1.01, 1.15, 1.25),
+                capexMult: () => triangularRandom(1.1, 1.25, 1.35),
                 rigMult: () => 1.2,
                 waitDays: () => 0,
-                declineRate: () => normalRandom(6, 1), // % value
-                hyperbolicFactor: () => triangularRandom(0.6, 0.7, 0.9),
-                breakthroughYears: () => triangularRandom(7, 9, 12),
-                waterGrowthK: () => triangularRandom(0.3, 0.4, 0.6)
+                declineRate: () => normalRandom(7, 1), // % value
+                hyperbolicFactor: () => triangularRandom(0.5, 0.6, 0.8),
+                breakthroughYears: () => triangularRandom(8, 9, 10),
+                waterGrowthK: () => triangularRandom(0.5, 0.6, 0.7)
             }
         };
 
@@ -571,7 +571,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
                                                     : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
                                             >
-                                                Pós-Sal (Águas Profundas)
+                                                Pós-Sal
                                             </button>
                                             <button
                                                 onClick={() => setWellType('pre')}
@@ -579,7 +579,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
                                                     : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
                                             >
-                                                Pré-Sal (Ultraprofundas)
+                                                Pré-Sal
                                             </button>
                                         </div>
                                     </div>
@@ -1290,7 +1290,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                     ) : (
                                         <>
                                             <Play className="w-4 h-4" />
-                                            Rodar Simulação (2000 iterações)
+                                            Rodar Simulação Monte Carlo
                                         </>
                                     )}
                                 </button>
@@ -1478,8 +1478,8 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
 
                             <div className="space-y-6">
                                 {/* CATEGORY 1: CONVENTIONAL */}
-                                <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                                    <div className="bg-slate-50 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                <div className="border border-slate-200 dark:border-slate-700 rounded-lg">
+                                    <div className="bg-slate-50 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center rounded-t-lg">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-slate-400"></div>
                                             <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">1. Convencional (Benchmark)</h4>
@@ -1488,47 +1488,96 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                             Robusto & Barato
                                         </span>
                                     </div>
-                                    <div className="p-4 bg-white dark:bg-slate-900/50">
+                                    <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Capex Multiplier</p>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0 (Base)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Capex Multiplier</p>
+                                                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">É a configuração mais simples possível. Não exige feedthroughs na cabeça do poço, não exige descida de cabos planos (flat packs) e o tempo de sonda para completação é o menor de todos.</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">Relatórios de Desempenho de Sondas (Rushmore Reviews). A completação convencional é, em média, 20-30% mais rápida de instalar que uma inteligente, economizando dias de sonda.</p>
+                                                    <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">0.8</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Falha (Lambda)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Falha (Lambda)</p>
+                                                <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-red-400">Racional (Crítico):</p>
+                                                    <p className="mb-2 leading-relaxed">Se uma zona começa a produzir água excessiva, a completação convencional falha em conter isso. A única solução é uma Intervenção Pesada (Heavy Workover).</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">ISO 14224. Classifica a "inabilidade de isolar zonas" como uma falha funcional crítica do poço.</p>
+                                                    <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
                                                 <p className="font-mono font-bold text-slate-700 dark:text-slate-300">0.15</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
                                                 <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Tempo Espera (d)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Tempo Espera (d)</p>
+                                                <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-red-400">Racional (Crítico):</p>
+                                                    <p className="mb-2 leading-relaxed">Como depende de sonda (recurso escasso), o poço fica meses na fila de espera (lead_time), gerando perda massiva de produção (NPT).</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">ISO 14224. Classifica a "inabilidade de isolar zonas" como uma falha funcional crítica do poço.</p>
+                                                    <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
                                                 <p className="font-mono font-bold text-orange-600 dark:text-orange-400">Triang(90, 120, 180)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Declínio Global</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.12, 0.02)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Declínio Global</p>
+                                                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">Sem controle zonal, aplica-se a física da Permeabilidade Relativa: a água tende a dominar o fluxo rapidamente. Para evitar desarme do FPSO, o operador restringe o choke.</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">Arps (1945) e Fetkovich (1980). Curvas típicas de depleção natural ou injeção sem controle.</p>
+                                                    <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.10, 0.02)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Fator Hiperbólico</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Fator Hiperbólico</p>
+                                                <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">Sem controle zonal, aplica-se a física da Permeabilidade Relativa. Sem gestão ativa, o declínio é abrupto com cauda curta.</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">Arps (1945). Parâmetro b baixo (próximo de 0 ou 0.1) indica baixa recuperação secundária.</p>
+                                                    <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
                                                 <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.1, 0.3, 0.4)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Breakthrough (anos)</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(3, 5, 6)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Breakthrough (anos)</p>
+                                                <div className="absolute bottom-full left-0 md:left-auto md:right-0 mb-2 w-72 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-red-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">O Pré-Sal possui zonas de alta permeabilidade (channeling). Na completação convencional, a água atinge o poço e o BSW salta para 50-80% rapidamente.</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">SPE Papers "Water Coning and Channeling". Poços sem controle sofrem breakthrough muito antes do previsto.</p>
+                                                    <div className="absolute top-full left-4 md:right-4 md:left-auto border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(5, 6, 7)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Cresc. Água (k)</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.8, 1.2, 1.5)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Cresc. Água (k)</p>
+                                                <div className="absolute bottom-full right-0 mb-2 w-72 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-red-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">Reflete a velocidade de "afogamento". Sem ICVs restringindo água, o crescimento do BSW segue uma logística agressiva (k alto).</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">Dados de campo de Búz/Tupi (poços não inteligentes).</p>
+                                                    <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.6, 0.8, 1.1)</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* CATEGORY 2: INTELLIGENT HYDRAULIC */}
-                                <div className="border border-blue-200 dark:border-blue-900/50 rounded-lg overflow-hidden">
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b border-blue-200 dark:border-blue-900/50 flex justify-between items-center">
+                                <div className="border border-blue-200 dark:border-blue-900/50 rounded-lg">
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b border-blue-200 dark:border-blue-900/50 flex justify-between items-center rounded-t-lg">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                                             <h4 className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">2. Inteligente Hidráulica</h4>
@@ -1537,14 +1586,28 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                             Controle Zonal
                                         </span>
                                     </div>
-                                    <div className="p-4 bg-white dark:bg-slate-900/50">
+                                    <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Capex Multiplier</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Capex Multiplier</p>
+                                                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">O custo adicional refere-se principalmente ao hardware (Válvulas ICV, Packers, Mandris) e às linhas de controle hidráulico (Flat Packs) que correm até a superfície. O valor é menor que a elétrica pois a tecnologia de controle de superfície é mais simples.</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">PSAC (Petroleum Services Association of Canada) Well Cost Study (ajustado para Offshore) e dados históricos de contratação de SLB/Halliburton para pacotes de completação inferior.</p>
+                                                    <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
                                                 <p className="font-mono font-bold text-slate-700 dark:text-slate-300">Triang(1.05, 1.10, 1.20)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Falha (Lambda)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Falha (Lambda)</p>
+                                                <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">A tecnologia é madura (&gt;20 anos). Falhas hidráulicas geralmente permitem operação degradada (ex: válvula trava aberta), não exigindo sonda imediata. A maioria dos ajustes é feita da sala de controle, por isso o lead_time é zero na maioria dos casos.</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">OREDA Handbook (Vol 1 - Subsea & Downhole Equipment). A taxa de falha de sistemas hidráulicos passivos é historicamente baixa em comparação a sistemas eletrônicos.</p>
+                                                    <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
                                                 <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0.05</p>
                                             </div>
                                             <div>
@@ -1559,13 +1622,20 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                 <p className="text-slate-400 mb-0.5">Declínio Global</p>
                                                 <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.09, 0.015)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Fator Hiperbólico</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Fator Hiperbólico</p>
+                                                <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">O fator $b$ (hiperbólico) mede a capacidade de sustentar a produção. Com 3 a 4 zonas, o controle é "grosseiro". Quando a água entra, fecha-se uma grande seção, perdendo óleo associado. Isso limita a "cauda" de produção.</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">Fetkovich (1980) - A relação entre estratificação de reservatório e fator $b$. Menor controle de estratificação = menor $b$.</p>
+                                                    <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
                                                 <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.3, 0.5, 0.6)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Breakthrough (anos)</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(5, 7, 9)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(6, 7, 8)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Cresc. Água (k)</p>
@@ -1576,8 +1646,8 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                 </div>
 
                                 {/* CATEGORY 3: INTELLIGENT ELECTRIC */}
-                                <div className="border border-purple-200 dark:border-purple-900/50 rounded-lg overflow-hidden">
-                                    <div className="bg-purple-50 dark:bg-purple-900/20 p-3 border-b border-purple-200 dark:border-purple-900/50 flex justify-between items-center">
+                                <div className="border border-purple-200 dark:border-purple-900/50 rounded-lg">
+                                    <div className="bg-purple-50 dark:bg-purple-900/20 p-3 border-b border-purple-200 dark:border-purple-900/50 flex justify-between items-center rounded-t-lg">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                                             <h4 className="text-xs font-bold text-purple-800 dark:text-purple-300 uppercase tracking-wider">3. Inteligente Elétrica</h4>
@@ -1586,14 +1656,21 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                             Digital & Real-time
                                         </span>
                                     </div>
-                                    <div className="p-4 bg-white dark:bg-slate-900/50">
+                                    <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Capex Multiplier</p>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">Triang(1.01, 1.15, 1.25)</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">Triang(1.1, 1.25, 1.35)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Falha (Lambda)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Falha (Lambda)</p>
+                                                <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">Embora mecanicamente simples (um cabo elétrico vs. vários tubos hidráulicos), a eletrônica de fundo sofre com a temperatura (&gt;150°C no pré-sal). Existe a "Curva da Banheira": risco alto de falha no 1º ano (instalação/comissionamento) e depois estabilidade.</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">AWES (Advanced Well Equipment Standards) e Papers da OTC (Offshore Technology Conference) sobre "High-Temperature Electronics Survival".</p>
+                                                    <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
                                                 <p className="font-mono font-bold text-purple-600 dark:text-purple-400">0.04</p>
                                             </div>
                                             <div>
@@ -1606,19 +1683,33 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Declínio Global</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.06, 0.01)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.07, 0.01)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Fator Hiperbólico</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.6, 0.7, 0.9)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Fator Hiperbólico</p>
+                                                <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">A "Máxima Granularidade" (&gt;8 zonas) permite o "Water Shaving". O operador fecha apenas a fratura específica que produz água. Isso achata a curva de crescimento do BSW ($k$ baixo) e estende a vida produtiva ($b$ alto).</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">Dikken (1990) sobre Pressure Drop in Horizontal Wells e Al-Khelaiwi (SPE 2013) sobre o impacto de Interval Control Valves (ICV) na varredura de óleo.</p>
+                                                    <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.5, 0.6, 0.8)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Breakthrough (anos)</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(7, 9, 12)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(8, 9, 10)</p>
                                             </div>
-                                            <div>
-                                                <p className="text-slate-400 mb-0.5">Cresc. Água (k)</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.3, 0.4, 0.6)</p>
+                                            <div className="group relative">
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Cresc. Água (k)</p>
+                                                <div className="absolute bottom-full right-0 mb-2 w-72 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
+                                                    <p className="font-bold mb-1 text-emerald-400">Racional:</p>
+                                                    <p className="mb-2 leading-relaxed">A "Máxima Granularidade" (&gt;8 zonas) permite o "Water Shaving". O operador fecha apenas a fratura específica que produz água. Isso achata a curva de crescimento do BSW ($k$ baixo) e estende a vida produtiva ($b$ alto).</p>
+                                                    <p className="font-bold mb-1 text-blue-400">Referência:</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">Dikken (1990) sobre Pressure Drop in Horizontal Wells e Al-Khelaiwi (SPE 2013) sobre o impacto de Interval Control Valves (ICV) na varredura de óleo.</p>
+                                                    <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
+                                                </div>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.5, 0.6, 0.7)</p>
                                             </div>
                                         </div>
                                     </div>
