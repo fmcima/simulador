@@ -69,17 +69,25 @@ export default function App() {
         brentPeakValue: 90,
         brentPeakYear: 5,
 
-        peakProduction: 165,
+        peakProduction: 180,
         rampUpDuration: 3,
         plateauDuration: 4,
         declineRate: 8,
+        hyperbolicFactor: 0.5, // Fator Hiperbólico (b)
         baseDeclineRate: 8, // Persist manual setting base for optimizations
 
         // Produção Detalhada
         productionMode: 'simple', // 'simple' | 'detailed'
         oilAPI: 28, // Grau API típico offshore
         gor: 150, // Razão Gás-Óleo m³/m³
-        maxLiquids: 200000, // Capacidade de líquidos bpd
+        maxLiquids: 252000, // Capacidade de líquidos bpd (1.4 * 180k)
+
+        // Parâmetros BSW (Função Logística) - Defaults Inteligente Hidráulica
+        bswMax: 95, // Corte de água máximo (%)
+        bswBreakthrough: 7, // Ano do breakthrough (t_bt) - Inteligente Hidráulica
+        bswGrowthRate: 0.7, // Velocidade de crescimento (k) - Inteligente Hidráulica
+
+
 
         // OPEX
         opexMargin: 20,
@@ -141,6 +149,27 @@ export default function App() {
     const resultsA = useProjectCalculations(projectA);
     const resultsB = useProjectCalculations(projectB);
 
+    // ERROR BOUNDARY DISPLAY
+    if (resultsA.error) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-slate-900 text-white p-10">
+                <div className="max-w-2xl bg-red-900/50 border border-red-500 p-8 rounded-xl">
+                    <h1 className="text-3xl font-bold mb-4 text-red-200">Critical Calculation Error</h1>
+                    <pre className="whitespace-pre-wrap bg-black/50 p-4 rounded text-red-100 font-mono text-sm overflow-auto max-h-[60vh]">
+                        {resultsA.error}
+                        {'\n\nCall Stack (check console for full details).'}
+                    </pre>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-6 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors"
+                    >
+                        Reload Simulator
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     const toggleFullScreen = async () => {
         // Check if we are currently in native fullscreen
         const isNativeFullScreen = !!document.fullscreenElement;
@@ -186,7 +215,13 @@ export default function App() {
     const productionChartData = useMemo(() => {
         return resultsA.yearlyData
             .filter(d => !d.isDecomYear && d.productionVolume > 0)
-            .map(d => ({ year: d.year, volume: d.productionVolume }));
+            .map(d => ({
+                year: d.year,
+                volume: d.productionVolume,
+                waterVolume: d.waterVolume || 0,
+                liquidVolume: d.liquidVolume || 0,
+                bsw: d.bsw || 0
+            }));
     }, [resultsA]);
 
     const handleChangeProjectA = (field, value) => {
@@ -668,6 +703,7 @@ export default function App() {
                         {/* CONTROLS - Using new ProductionParameters component */}
                         <div className="lg:col-span-5">
                             <ProductionParameters params={projectA} setParams={setProjectA} />
+                            {/* <div className="p-4 bg-red-100 text-red-800">Production Parameters Disabled</div> */}
                         </div>
 
                         {/* CHART */}
@@ -692,6 +728,47 @@ export default function App() {
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
+
+                            {/* LIQUIDS CHART (Detailed Mode Only) */}
+                            {projectA.productionMode === 'detailed' && (
+                                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-[500px] animate-in fade-in slide-in-from-bottom-4">
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Perfil de Produção de Líquidos (Óleo + Água)</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Visualização do corte de água (BSW) e gargalo de processamento.</p>
+
+                                    <ResponsiveContainer width="100%" height="85%">
+                                        <AreaChart data={productionChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorOil" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+                                                </linearGradient>
+                                                <linearGradient id="colorWater" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
+                                                </linearGradient>
+                                            </defs>
+                                            <XAxis dataKey="year" label={{ value: 'Ano', position: 'insideBottom', offset: -5, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                            <YAxis label={{ value: 'Vazão (kbpd)', angle: -90, position: 'insideLeft', fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} axisLine={false} tickLine={false} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+                                            <Tooltip
+                                                labelFormatter={(l) => `Ano ${l}`}
+                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: theme === 'dark' ? '#1e293b' : '#fff', color: theme === 'dark' ? '#e2e8f0' : '#1e293b' }}
+                                                formatter={(value, name, props) => {
+                                                    if (name === 'BSW') return [`${(value * 100).toFixed(1)}%`, name];
+                                                    return [`${Number(value).toFixed(0)} kbpd`, name];
+                                                }}
+                                            />
+                                            <Legend verticalAlign="top" height={36} />
+                                            <ReferenceLine y={projectA.maxLiquids / 1000} label={{ value: 'Capacidade (Líq)', fill: theme === 'dark' ? '#ef4444' : '#ef4444', fontSize: 10, position: 'insideTopRight' }} stroke="#ef4444" strokeDasharray="3 3" />
+
+                                            <Area type="monotone" dataKey="waterVolume" stackId="1" stroke="#3b82f6" fill="url(#colorWater)" name="Água Produzida" />
+                                            <Area type="monotone" dataKey="volume" stackId="1" stroke="#10b981" fill="url(#colorOil)" name="Óleo Produzido" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+
+
                         </div>
                     </div>
                 )}

@@ -116,7 +116,7 @@ export const generateProjectData = (params) => {
         capexDuration,
         capexPeakRelative, capexConcentration,
         peakProduction, brentSpread,
-        rampUpDuration, plateauDuration, declineRate, opexMargin,
+        rampUpDuration, plateauDuration, declineRate, hyperbolicFactor = 0.5, opexMargin,
 
         // OPEX Detalhado
         opexMode = 'simple',
@@ -264,6 +264,9 @@ export const generateProjectData = (params) => {
         let isDecomYear = (year === projectDuration + 1);
         let productionVolume = 0;
         let productionMMbbl = 0;
+        let waterVolume = 0;
+        let liquidVolume = 0;
+        let currentBSW = 0;
 
         let royalties = 0;
         let specialParticipation = 0;
@@ -310,18 +313,70 @@ export const generateProjectData = (params) => {
                 productionVolume = peakProduction;
             } else {
                 const yearsPostPlateau = productionYear - (rampUpDuration + plateauDuration);
-                productionVolume = peakProduction * Math.pow(1 - effectiveDeclineRate / 100, yearsPostPlateau);
+                const Di = effectiveDeclineRate / 100;
+                const b = hyperbolicFactor;
+
+                // Arps Hyperbolic Decline Model
+                if (b === 0) {
+                    // Exponential Decline (Limit when b -> 0)
+                    productionVolume = peakProduction * Math.exp(-Di * yearsPostPlateau);
+                } else {
+                    // Hyperbolic Decline
+                    const denominator = Math.pow(1 + b * Di * yearsPostPlateau, 1 / b);
+                    productionVolume = peakProduction / denominator;
+                }
             }
 
+
+
             // Aplicar restrição de capacidade de líquidos (BSW/Gargalo)
-            // Quanto mais velho o campo, maior o water cut (simplificado)
-            if (productionMode === 'detailed' && productionYear > rampUpDuration + plateauDuration) {
-                const yearsInDecline = productionYear - (rampUpDuration + plateauDuration);
-                // Water cut aumenta ~5% por ano após platô, até máx 80%
-                const waterCut = Math.min(0.80, 0.10 + yearsInDecline * 0.05);
+            // Utilizando o Modelo de BSW: Função Logística Generalizada
+            if (productionMode === 'detailed') {
+                const timeSinceFirstOil = productionYear;
+                const BSW_max = (params.bswMax || 95) / 100;
+                const t_bt = params.bswBreakthrough || 5;
+                const k = params.bswGrowthRate || 1.2;
+
+                // Fórmula Logística: BSW(t) = BSW_max / (1 + Math.exp(-k * (t - t_inflection)))
+                // Ajuste: O usuário considera "Breakthrough" como o momento em que BSW atinge 15%.
+                // Derivação: 0.15 = BSW_max / (1 + exp(-k * (t_bt - t_inflection)))
+                // exp(-k * (t_bt - t_inflection)) = (BSW_max / 0.15) - 1
+                // -k * (t_bt - t_inflection) = ln((BSW_max / 0.15) - 1)
+                // t_inflection = t_bt + ln((BSW_max / 0.15) - 1) / k
+
+                const ratio = (BSW_max / 0.15) - 1;
+                const offset = ratio > 0 ? Math.log(ratio) / k : 0;
+                const t_inflection = t_bt + offset;
+
+                // t é o tempo desde o primeiro óleo (timeSinceFirstOil)
+                const waterCut = BSW_max / (1 + Math.exp(-k * (timeSinceFirstOil - t_inflection)));
+                currentBSW = isNaN(waterCut) ? 0 : waterCut;
+
                 // Máximo de óleo = capacidade de líquidos * (1 - water cut)
-                const maxOilFromLiquids = (maxLiquids / 1000) * (1 - waterCut); // kbpd
-                productionVolume = Math.min(productionVolume, maxOilFromLiquids);
+                const capacityLiquidsKbpd = maxLiquids / 1000;
+                const maxOilFromLiquids = capacityLiquidsKbpd * (1 - currentBSW);
+
+                // Se o gargalo de líquidos permitir menos óleo que o potencial do reservatório, cortamos a produção
+                // Oil = min(Reservoir, Capacity_Oil)
+                const potentialOil = productionVolume; // Arps result
+                productionVolume = Math.min(potentialOil, maxOilFromLiquids);
+                if (isNaN(productionVolume)) productionVolume = 0;
+
+                // Back-calculate Liquids
+                if (productionVolume >= maxOilFromLiquids) {
+                    liquidVolume = capacityLiquidsKbpd;
+                } else {
+                    liquidVolume = productionVolume / (1 - currentBSW);
+                }
+
+                waterVolume = liquidVolume - productionVolume;
+
+                if (isNaN(liquidVolume)) liquidVolume = 0;
+                if (isNaN(waterVolume)) waterVolume = 0;
+            } else {
+                liquidVolume = productionVolume;
+                if (isNaN(productionVolume)) productionVolume = 0;
+                if (isNaN(liquidVolume)) liquidVolume = 0;
             }
 
             productionMMbbl = (productionVolume * 1000 * 365) / 1000000;
@@ -504,7 +559,10 @@ export const generateProjectData = (params) => {
             accumulatedCashFlow: previousAccumulated + freeCashFlow,
             isDecomYear,
             brentPrice: yearlyBrent,
-            productionVolume
+            productionVolume,
+            waterVolume,
+            liquidVolume,
+            bsw: currentBSW
         });
 
         cashFlowsVector.push(freeCashFlow);

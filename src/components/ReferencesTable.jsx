@@ -104,6 +104,54 @@ const ReferencesTable = () => {
             concept: "Ajustes de Complexidade (API/GOR)",
             implementation: "Óleo pesado (<25º API) adiciona +15% ao custo do FPSO (aquecimento, separadores). GOR alto (>250 m³/m³) adiciona +20-30% (tratamento e reinjeção de gás).",
             source: "Estudos de Viabilidade de FPSOs (SBM Offshore, Modec, BW Offshore); Relatórios Técnicos de Engenharia de Processos."
+        },
+        {
+            category: "Confiabilidade",
+            concept: "OREDA Handbook (Offshore Reliability Data)",
+            implementation: "failure_rate_lambda (Taxas de falha de ICVs e Packers)",
+            source: "OREDA Joint Industry Project (Handbook 2015/2020)."
+        },
+        {
+            category: "Confiabilidade",
+            concept: "ISO 14224",
+            implementation: "Classificação de falhas críticas (requer sonda) vs. degradadas",
+            source: "ISO 14224: Petroleum and natural gas industries — Collection and exchange of reliability and maintenance data."
+        },
+        {
+            category: "Mercado & Custos",
+            concept: "S&P Global / Westwood / Fearnley",
+            implementation: "rig_daily_rate, mob_cost (Cenário de mercado aquecido 2025-27)",
+            source: "Relatórios de Mercado de Sondas e Embarcações Offshore (2024-2025)."
+        },
+        {
+            category: "Mercado & Custos",
+            concept: "Rystad Energy / Plano Petrobras",
+            implementation: "Benchmarks de OPEX e estratégia de contratação",
+            source: "Rystad Energy UCube; Planejamento Estratégico Petrobras 2024-2028."
+        },
+        {
+            category: "Reservatório",
+            concept: "Arps, J.J. (1945)",
+            implementation: "Algoritmo base da curva de declínio (nominal_decline, b_factor)",
+            source: "Arps, J.J. 'Analysis of Decline Curves', Trans. AIME (1945); Fetkovich, M.J. 'Decline Curve Analysis Using Type Curves' (1980)."
+        },
+        {
+            category: "Reservatório",
+            concept: "OTC Brazil / IPTC Papers",
+            implementation: "Comportamento de bsw_growth_rate e breakthrough_time em carbonatos",
+            source: "OTC-29837-MS (Mero Field Development); IPTC-19567-MS (Búzios Field Reservoir Characterization); SPE-174408-MS (Santos Basin Carbonates)."
+        },
+        {
+            category: "Produtividade",
+            concept: "Manuais Técnicos (SLB / Halliburton)",
+            implementation: "productivity_multiplier (Skin effect: Open Hole vs. Cased Hole)",
+            source: "Schlumberger 'Well Evaluation Conference' (WEC) Brazil; Halliburton 'RedBook' Cementing & Completion tables; SPE Production & Operations."
+        },
+        {
+            category: "Facilidades",
+            concept: "Dados Públicos ANP (Mero, Búzios)",
+            implementation: "fpso_liquid_limit_ratio (Correlação Líquido vs. Óleo ~1.35x)",
+            source: "Boletim da Produção de Petróleo e Gás Natural (BPPGN) - ANP; Dados dinâmicos do SGIP (Sistema de Gestão de Informações de Produção) - Painel Dinâmico."
         }
     ];
 

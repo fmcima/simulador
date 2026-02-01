@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { Settings, Droplets, ArrowUpRight, ArrowDownRight, Activity, Beaker, Ship, Check } from 'lucide-react';
+import React from 'react';
+import { Settings, Droplets, ArrowUpRight, ArrowDownRight, Activity, Beaker } from 'lucide-react';
 
 const ProductionParameters = ({ params, setParams }) => {
 
 
-    const [applied, setApplied] = useState(false);
     const mode = params.productionMode || 'simple';
 
     const handleChange = (field, value) => {
@@ -59,22 +58,19 @@ const ProductionParameters = ({ params, setParams }) => {
             setParams(prev => ({
                 ...prev,
                 oilAPI: 16,
-                gor: 50,
-                maxLiquids: 100000
+                gor: 50
             }));
         } else if (quality === 'medium') {
             setParams(prev => ({
                 ...prev,
                 oilAPI: 28,
-                gor: 150,
-                maxLiquids: 200000
+                gor: 150
             }));
         } else if (quality === 'high') {
             setParams(prev => ({
                 ...prev,
                 oilAPI: 40,
-                gor: 350,
-                maxLiquids: 350000
+                gor: 350
             }));
         }
     };
@@ -102,13 +98,13 @@ const ProductionParameters = ({ params, setParams }) => {
                         onClick={() => setMode('simple')}
                         className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${mode === 'simple' ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                     >
-                        Simplificado (Curva Típica)
+                        Simplificado
                     </button>
                     <button
                         onClick={() => setMode('detailed')}
                         className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${mode === 'detailed' ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                     >
-                        Detalhado (Reservatório & Fluidos)
+                        Detalhado
                     </button>
                 </div>
 
@@ -159,36 +155,48 @@ const ProductionParameters = ({ params, setParams }) => {
                             const peak = params.peakProduction || 100;
                             const rampUp = params.rampUpDuration || 2;
                             const plateau = params.plateauDuration || 4;
-                            const decline = params.declineRate || 10;
+                            const decline = (params.declineRate || 10) / 100; // Di
+                            const b = params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5; // b factor
                             const duration = 30; // Standard duration for volume estimation
 
                             // Liquid Constraint Params
                             const maxLiquids = params.maxLiquids || 200000;
-                            const useLiquidConstraint = mode === 'detailed';
+                            const useDetailedMode = mode === 'detailed';
 
                             let totalVolume = 0;
                             for (let t = 1; t <= duration; t++) {
                                 let productionVolume = 0;
-
-                                // 1. Unconstrained Curve
-                                // Decline Adjustment (Smart Well FOH)
-                                // Decline Adjustment is now handled in project state (App.jsx)
-                                let effectiveDeclineRate = decline;
 
                                 if (t <= rampUp) {
                                     productionVolume = peak * (t / rampUp);
                                 } else if (t <= rampUp + plateau) {
                                     productionVolume = peak;
                                 } else {
-                                    const yearsPostPlateau = t - (rampUp + plateau);
-                                    productionVolume = peak * Math.pow(1 - decline / 100, yearsPostPlateau);
+                                    const t_decline = t - (rampUp + plateau);
+
+                                    // Arps Hyperbolic Decline
+                                    // q(t) = qi / (1 + b * Di * t)^(1/b)
+                                    if (b === 0) {
+                                        // Exponential limit: q(t) = qi * e^(-Di * t)
+                                        productionVolume = peak * Math.exp(-decline * t_decline);
+                                    } else {
+                                        const denominator = Math.pow(1 + b * decline * t_decline, 1 / b);
+                                        productionVolume = peak / denominator;
+                                    }
                                 }
 
                                 // 2. Apply Liquid Constraint (if detailed mode)
-                                if (useLiquidConstraint && t > rampUp + plateau) {
-                                    const yearsInDecline = t - (rampUp + plateau);
-                                    // Water cut increases 5% per year after plateau, starting at 10%, max 80%
-                                    const waterCut = Math.min(0.80, 0.10 + yearsInDecline * 0.05);
+                                if (useDetailedMode) {
+                                    const BSW_max = (params.bswMax || 95) / 100;
+                                    const t_bt = params.bswBreakthrough || 5;
+                                    const k = params.bswGrowthRate || 1.2;
+
+                                    // Logistic Function: BSW(t) = BSW_max / (1 + e^(-k * (t - t_inflectionShift)))
+                                    // Mirroring logic: Breakthrough defined as 15% BSW.
+                                    const ratio = (BSW_max / 0.15) - 1;
+                                    const offset = ratio > 0 ? Math.log(ratio) / k : 0;
+                                    const t_inflection = t_bt + offset;
+                                    const waterCut = BSW_max / (1 + Math.exp(-k * (t - t_inflection)));
 
                                     // Max Oil = Max Liquids * (1 - Water Cut)
                                     const maxOilFromLiquids = (maxLiquids / 1000) * (1 - waterCut); // kbpd
@@ -213,7 +221,7 @@ const ProductionParameters = ({ params, setParams }) => {
                                             <h3 className="text-3xl font-bold">{recoverableVolume.toFixed(0)}</h3>
                                             <span className="text-lg text-emerald-100 font-medium">MMbbl</span>
                                         </div>
-                                        <p className="text-xs text-emerald-100/80 mt-1">Estimativa baseada na curva de produção configurada.</p>
+                                        <p className="text-xs text-emerald-100/80 mt-1">Estimativa baseada na curva de Arps (b={(params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5).toFixed(1)}).</p>
                                     </div>
                                     <div className="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
                                         <Droplets size={28} className="text-white" />
@@ -224,42 +232,185 @@ const ProductionParameters = ({ params, setParams }) => {
                     })()}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <div>
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
-                            <span>Produção Pico (mil bpd)</span>
-                            <span className="font-bold text-emerald-700 dark:text-emerald-400">{params.peakProduction}k</span>
-                        </label>
-                        <input
-                            type="range" min="10" max="300" step="5"
-                            value={params.peakProduction}
-                            onChange={(e) => handleChange('peakProduction', Number(e.target.value))}
-                            className="w-full accent-emerald-600"
-                        />
+                <div className="mb-8 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                        <Activity size={16} className="text-emerald-600 dark:text-emerald-400" />
+                        Parametrização da Curva de Produção - Modelo de Arps Hiperbólico
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                <span>Produção Pico</span>
+                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{params.peakProduction}k bpd</span>
+                            </label>
+                            <input
+                                type="range" min="10" max="300" step="5"
+                                value={params.peakProduction}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setParams(prev => ({
+                                        ...prev,
+                                        peakProduction: val,
+                                        maxLiquids: val * 1.4 * 1000 // A BSW Máx (Capacidade Líquidos) ajustada automaticamente = 1.4x Pico
+                                    }));
+                                }}
+                                className="w-full accent-emerald-600"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                <span>Duração do Platô</span>
+                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{params.plateauDuration} anos</span>
+                            </label>
+                            <input
+                                type="range" min="0" max="10" step="1"
+                                value={params.plateauDuration}
+                                onChange={(e) => handleChange('plateauDuration', Number(e.target.value))}
+                                className="w-full accent-emerald-600"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                <span>Taxa de Declínio Nominal</span>
+                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{Number(params.declineRate).toFixed(1)}% a.a.</span>
+                            </label>
+                            <input
+                                type="range" min="1" max="25" step="0.5"
+                                value={params.declineRate}
+                                onChange={(e) => handleChange('declineRate', Number(e.target.value))}
+                                className="w-full accent-emerald-600"
+                            />
+                            <p className="text-[10px] text-slate-400 mt-1">Velocidade de queda da produção após o platô. Maior % = queda mais rápida.</p>
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                <span>Fator Hiperbólico</span>
+                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{(params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5).toFixed(1)}</span>
+                            </label>
+                            <input
+                                type="range" min="0" max="1" step="0.1"
+                                value={params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5}
+                                onChange={(e) => handleChange('hyperbolicFactor', Number(e.target.value))}
+                                className="w-full accent-emerald-600"
+                            />
+                            <p className="text-[10px] text-slate-400 mt-1">Curvatura do declínio (b). b=0 (Exponencial), b=1 (Harmônico). Maior b = cauda mais longa.</p>
+                        </div>
                     </div>
-                    <div>
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
-                            <span>Duração do Platô (anos)</span>
-                            <span className="font-bold text-emerald-700 dark:text-emerald-400">{params.plateauDuration}</span>
-                        </label>
-                        <input
-                            type="range" min="0" max="10" step="1"
-                            value={params.plateauDuration}
-                            onChange={(e) => handleChange('plateauDuration', Number(e.target.value))}
-                            className="w-full accent-emerald-600"
-                        />
+
+                    {/* Presets de Tipo de Completação */}
+                    <div className="mb-4">
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Tipo de Completação (Impacto na Curva):</label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setParams(prev => ({
+                                        ...prev,
+                                        declineRate: 10,
+                                        hyperbolicFactor: 0.2,
+                                        bswBreakthrough: 5,
+                                        bswGrowthRate: 1.2
+                                    }));
+                                }}
+                                className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 10 && Math.abs((params.hyperbolicFactor || 0.5) - 0.2) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                            >
+                                <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Convencional</div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                    Declínio: <span className="font-mono text-emerald-600">10%</span> | b: <span className="font-mono text-emerald-600">0.2</span>
+                                </div>
+
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                    Completação padrão sem controle de fluxo zonal. Resulta em irrupção precoce de água e declínio acelerado.
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setParams(prev => ({
+                                        ...prev,
+                                        declineRate: 8,
+                                        hyperbolicFactor: 0.5,
+                                        bswBreakthrough: 7,
+                                        bswGrowthRate: 0.7
+                                    }));
+                                }}
+                                className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 8 && Math.abs((params.hyperbolicFactor || 0.5) - 0.5) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                            >
+                                <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Hidráulica</div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                    Declínio: <span className="font-mono text-emerald-600">8%</span> | b: <span className="font-mono text-emerald-600">0.5</span>
+                                </div>
+
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                    Válvulas hidráulicas (ICV) permitem fechar zonas com água, estendendo o platô e suavizando o declínio.
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setParams(prev => ({
+                                        ...prev,
+                                        declineRate: 7,
+                                        hyperbolicFactor: 0.8,
+                                        bswBreakthrough: 9,
+                                        bswGrowthRate: 0.4
+                                    }));
+                                }}
+                                className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 7 && Math.abs((params.hyperbolicFactor || 0.5) - 0.8) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                            >
+                                <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Elétrica</div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                    Declínio: <span className="font-mono text-emerald-600">7%</span> | b: <span className="font-mono text-emerald-600">0.8</span>
+                                </div>
+
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                    Controle elétrico em tempo real. Máxima eficiência na gestão do reservatório, minimizando água e declínio.
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                </div>
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
-                            <span>Taxa de Declínio Anual (%)</span>
-                            <span className="font-bold text-emerald-700 dark:text-emerald-400">{Number(params.declineRate).toFixed(1)}%</span>
-                        </label>
-                        <input
-                            type="range" min="1" max="25" step="1"
-                            value={params.declineRate}
-                            onChange={(e) => handleChange('declineRate', Number(e.target.value))}
-                            className="w-full accent-emerald-600"
-                        />
+                </div>
+
+                <div className="mb-8 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                        <Beaker size={16} className="text-blue-600 dark:text-blue-400" />
+                        Modelo Matemático de BSW (Função Logística)
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                <span>Tempo de Breakthrough (t_bt)</span>
+                                <span className="font-bold text-blue-700 dark:text-blue-400">Ano {params.bswBreakthrough || 5}</span>
+                            </label>
+                            <input
+                                type="range" min="2" max="15" step="0.5"
+                                value={params.bswBreakthrough || 5}
+                                onChange={(e) => handleChange('bswBreakthrough', Number(e.target.value))}
+                                className="w-full accent-blue-600"
+                            />
+                            <p className="text-[10px] text-slate-400 mt-1">Ano em que a produção de água acelera (Ponto de Inflexão).</p>
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                <span>Velocidade de Crescimento (k)</span>
+                                <span className="font-bold text-blue-700 dark:text-blue-400">{(params.bswGrowthRate || 1.2).toFixed(2)}</span>
+                            </label>
+                            <input
+                                type="range" min="0.1" max="2.0" step="0.1"
+                                value={params.bswGrowthRate || 1.2}
+                                onChange={(e) => handleChange('bswGrowthRate', Number(e.target.value))}
+                                className="w-full accent-blue-600"
+                            />
+                            <p className="text-[10px] text-slate-400 mt-1">Quão rápido o poço "afoga". Valores maiores = subida vertical.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -348,178 +499,7 @@ const ProductionParameters = ({ params, setParams }) => {
                             </div>
                         </div>
 
-                        {/* FPSO COMPLEXITY & COST ESTIMATION */}
-                        <div className="mt-8 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 rounded-xl border border-blue-200 dark:border-slate-700">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="p-2 bg-blue-600 text-white rounded-lg">
-                                    <Ship size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100">Custo Estimado do FPSO</h3>
-                                    <p className="text-xs text-blue-600 dark:text-blue-300">Estimativa de CAPEX do FPSO baseada nos parâmetros do reservatório (~45% do CAPEX total)</p>
-                                </div>
-                            </div>
 
-                            {(() => {
-                                // FPSO COST ESTIMATION LOGIC
-                                const capacity = params.peakProduction || 150; // kbpd
-                                const api = params.oilAPI || 28;
-                                const gorValue = params.gor || 150;
-
-                                // 1. BASE COST: FPSO-only cost is approximately $10-15k per bpd capacity
-                                // Using $16k/bpd as base (FPSO represents ~45% of total project CAPEX)
-                                const baseCostPerBpd = 16000; // US$/bpd (FPSO only)
-                                const baseCost = capacity * 1000 * baseCostPerBpd; // Total FPSO base cost
-
-                                // 2. API ADJUSTMENT: Heavy oil requires more processing
-                                // API > 35 (light): -10% (less processing)
-                                // API 25-35 (medium): 0%
-                                // API < 25 (heavy): +15% (more heating, processing)
-                                let apiAdjustment = 0;
-                                let apiRationale = '';
-                                if (api > 35) {
-                                    apiAdjustment = -0.10;
-                                    apiRationale = 'Óleo leve (> 35º API) - menos módulos de processamento necessários';
-                                } else if (api < 25) {
-                                    apiAdjustment = 0.15;
-                                    apiRationale = 'Óleo pesado (< 25º API) - requer aquecimento e mais processamento';
-                                } else {
-                                    apiAdjustment = 0;
-                                    apiRationale = 'Óleo médio (25-35º API) - processamento padrão';
-                                }
-
-                                // 3. GOR ADJUSTMENT: High GOR requires gas handling equipment
-                                // GOR < 100: 0% (low gas)
-                                // GOR 100-250: +10% (moderate gas handling)
-                                // GOR 250-400: +20% (significant gas facilities)
-                                // GOR > 400: +30% (major gas infrastructure)
-                                let gorAdjustment = 0;
-                                let gorRationale = '';
-                                if (gorValue < 100) {
-                                    gorAdjustment = 0;
-                                    gorRationale = 'Baixo GOR (< 100 m³/m³) - equipamentos mínimos de gás';
-                                } else if (gorValue < 250) {
-                                    gorAdjustment = 0.10;
-                                    gorRationale = 'GOR moderado (100-250 m³/m³) - separação e tratamento básico';
-                                } else if (gorValue < 400) {
-                                    gorAdjustment = 0.20;
-                                    gorRationale = 'Alto GOR (250-400 m³/m³) - instalações significativas de gás';
-                                } else {
-                                    gorAdjustment = 0.30;
-                                    gorRationale = 'GOR muito alto (> 400 m³/m³) - infraestrutura completa de gás/reinjeção';
-                                }
-
-                                // TOTAL CALCULATION
-                                const totalAdjustment = 1 + apiAdjustment + gorAdjustment;
-                                const estimatedFpsoCost = baseCost * totalAdjustment;
-                                const costPerBpdFinal = estimatedFpsoCost / (capacity * 1000);
-
-                                return (
-                                    <div className="space-y-4">
-                                        {/* ESTIMATED COST */}
-                                        <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm border border-slate-100 dark:border-slate-800">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">CAPEX Estimado do FPSO:</span>
-                                                <span className="text-2xl font-bold text-blue-700 dark:text-blue-400">
-                                                    ${(estimatedFpsoCost / 1000000000).toFixed(2)}B
-                                                </span>
-                                            </div>
-                                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 text-right">
-                                                ${costPerBpdFinal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} por bpd de capacidade
-                                            </div>
-                                        </div>
-
-                                        {/* RATIONALE BREAKDOWN */}
-                                        <div className="space-y-3">
-                                            <h4 className="text-xs font-bold uppercase text-blue-800 dark:text-blue-300 tracking-wider">Racional da Estimativa</h4>
-
-                                            {/* Base Cost */}
-                                            <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800">
-                                                <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center text-xs font-bold">1</div>
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Custo Base (Capacidade)</span>
-                                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-100">${(baseCost / 1000000000).toFixed(2)}B</span>
-                                                    </div>
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                                                        {capacity}k bpd × $16.000/bpd = custo base FPSO (~45% do projeto total)
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* API Adjustment */}
-                                            <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg">
-                                                <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center text-xs font-bold">2</div>
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Ajuste por Qualidade do Óleo</span>
-                                                        <span className={`text-sm font-bold ${apiAdjustment > 0 ? 'text-red-600' : apiAdjustment < 0 ? 'text-green-600' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                            {apiAdjustment > 0 ? '+' : ''}{(apiAdjustment * 100).toFixed(0)}%
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                                                        API {api}º: {apiRationale}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* GOR Adjustment */}
-                                            <div className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg">
-                                                <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full flex items-center justify-center text-xs font-bold">3</div>
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Ajuste por Razão Gás-Óleo</span>
-                                                        <span className={`text-sm font-bold ${gorAdjustment > 0 ? 'text-red-600' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                            {gorAdjustment > 0 ? '+' : ''}{(gorAdjustment * 100).toFixed(0)}%
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                                                        GOR {gorValue} m³/m³: {gorRationale}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-
-                                        <button
-                                            onClick={() => {
-                                                // FPSO = 45% do total, então: Total = FPSO / 0.45
-                                                const totalProjectCapex = Math.round(estimatedFpsoCost / 0.45);
-                                                setParams(prev => ({
-                                                    ...prev,
-                                                    totalCapex: totalProjectCapex,
-                                                    capexSplit: {
-                                                        platform: 45, // FPSO
-                                                        wells: 35,    // Poços
-                                                        subsea: 20    // Subsea
-                                                    }
-                                                }));
-
-                                                // Visual feedback
-                                                setApplied(true);
-                                                setTimeout(() => setApplied(false), 2000);
-                                            }}
-                                            disabled={applied}
-                                            className={`w-full py-3 rounded-lg text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 ${applied
-                                                ? 'bg-emerald-500 dark:bg-emerald-950/30 text-white cursor-default scale-[1.02]'
-                                                : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-[1.01]'
-                                                }`}
-                                        >
-                                            {applied ? (
-                                                <>
-                                                    <Check size={18} /> Aplicado com Sucesso!
-                                                </>
-                                            ) : (
-                                                'Aplicar Estimativa ao CAPEX do Projeto'
-                                            )}
-                                        </button>
-                                        <p className="text-[10px] text-center text-blue-600">
-                                            Calcula CAPEX total (~${(estimatedFpsoCost / 0.45 / 1000000000).toFixed(2)}B) e define split: FPSO 45% | Poços 35% | Subsea 20%
-                                        </p>
-                                    </div>
-                                );
-                            })()}
-                        </div>
                     </div>
                 )}
             </div>
