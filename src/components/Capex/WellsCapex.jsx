@@ -118,6 +118,11 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
         };
 
         const results = {};
+        const allCategoryData = {}; // Store raw npvs for second pass
+
+        // FIRST PASS: Collect all NPV values to determine global range
+        let globalMin = Infinity;
+        let globalMax = -Infinity;
 
         for (const [configName, samplers] of Object.entries(configs)) {
             const npvs = [];
@@ -158,23 +163,33 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                 }
             }
 
-            // Calculate statistics only if we have valid results
+            // Store for second pass
             if (npvs.length > 0) {
                 npvs.sort((a, b) => a - b);
+                allCategoryData[configName] = npvs;
+                // Update global range
+                globalMin = Math.min(globalMin, npvs[0]);
+                globalMax = Math.max(globalMax, npvs[npvs.length - 1]);
+            } else {
+                allCategoryData[configName] = [];
+            }
+        }
+
+        // SECOND PASS: Generate histograms with unified bins
+        const binCount = 20;
+        const binWidth = globalMax > globalMin ? (globalMax - globalMin) / binCount : 1;
+
+        for (const [configName, npvs] of Object.entries(allCategoryData)) {
+            if (npvs.length > 0) {
                 const mean = npvs.reduce((a, b) => a + b, 0) / npvs.length;
                 const p10Index = Math.floor(0.10 * npvs.length);
                 const p50Index = Math.floor(0.50 * npvs.length);
                 const p90Index = Math.floor(0.90 * npvs.length);
 
-                // Generate histogram data (20 bins)
-                const minVal = npvs[0];
-                const maxVal = npvs[npvs.length - 1];
-                const binCount = 20;
-                const binWidth = (maxVal - minVal) / binCount;
+                // Generate histogram with global bins
                 const histogram = [];
-
                 for (let b = 0; b < binCount; b++) {
-                    const binStart = minVal + b * binWidth;
+                    const binStart = globalMin + b * binWidth;
                     const binEnd = binStart + binWidth;
                     const count = npvs.filter(v => v >= binStart && v < binEnd).length;
                     histogram.push({
