@@ -10,7 +10,9 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     const [simpleTotal, setSimpleTotal] = useState(initialParams?.simpleTotal || 2400); // $ MM
 
     // Detailed Mode State
-    const [numWells, setNumWells] = useState(initialParams?.numWells || 15); // 1 to 25
+    const [numProducers, setNumProducers] = useState(initialParams?.numProducers || 8);
+    const [numInjectors, setNumInjectors] = useState(initialParams?.numInjectors || 8);
+    const numWells = numProducers + numInjectors;
 
     // Duration & Complexity
     const [wellType, setWellType] = useState(initialParams?.wellType || 'pre'); // 'post' | 'pre'
@@ -190,6 +192,8 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
         mode,
         simpleTotal,
         numWells,
+        numProducers,
+        numInjectors,
         calculatedCostPerWell,
         wellType,
         complexity,
@@ -322,24 +326,57 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                             </h3>
 
                             <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
-                                {/* Number of Wells */}
-                                <div>
-                                    <div className="flex justify-between mb-1">
-                                        <label className="text-xs font-semibold text-slate-500 uppercase">Quantidade de Poços</label>
+                                {/* Number of Wells (Split) */}
+                                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
+                                    <div className="flex justify-between mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Quantidade de Poços</label>
                                         <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{numWells} poços</span>
                                     </div>
-                                    <input
-                                        type="range"
-                                        min="1"
-                                        max="25"
-                                        step="1"
-                                        value={numWells}
-                                        onChange={(e) => setNumWells(Number(e.target.value))}
-                                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 dark:bg-slate-700"
-                                    />
-                                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                                        <span>1</span>
-                                        <span>25</span>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* PRODUCERS */}
+                                        <div>
+                                            <label className="text-[10px] font-medium text-slate-500 mb-1 block">Poços Produtores</label>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setNumProducers(Math.max(1, numProducers - 1))}
+                                                    className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-600 dark:text-slate-300 transition-colors font-bold"
+                                                >-</button>
+                                                <input
+                                                    type="number"
+                                                    min="1" max="50"
+                                                    value={numProducers}
+                                                    onChange={(e) => setNumProducers(Math.max(1, Number(e.target.value)))}
+                                                    className="w-full h-8 text-center text-sm font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                                                />
+                                                <button
+                                                    onClick={() => setNumProducers(numProducers + 1)}
+                                                    className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-600 dark:text-slate-300 transition-colors font-bold"
+                                                >+</button>
+                                            </div>
+                                        </div>
+
+                                        {/* INJECTORS */}
+                                        <div>
+                                            <label className="text-[10px] font-medium text-slate-500 mb-1 block">Poços Injetores</label>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setNumInjectors(Math.max(0, numInjectors - 1))}
+                                                    className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-500 text-slate-600 dark:text-slate-300 transition-colors font-bold"
+                                                >-</button>
+                                                <input
+                                                    type="number"
+                                                    min="0" max="50"
+                                                    value={numInjectors}
+                                                    onChange={(e) => setNumInjectors(Math.max(0, Number(e.target.value)))}
+                                                    className="w-full h-8 text-center text-sm font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                <button
+                                                    onClick={() => setNumInjectors(numInjectors + 1)}
+                                                    className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-500 text-slate-600 dark:text-slate-300 transition-colors font-bold"
+                                                >+</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

@@ -1,8 +1,8 @@
 import React from 'react';
-import { DollarSign, Percent, Wrench, Activity } from 'lucide-react';
+import { DollarSign, Percent, Wrench, Activity, Info, Droplet } from 'lucide-react';
 import { formatCurrency, formatMillionsNoDecimals } from '../utils/calculations';
 
-const OpexParameters = ({ params, setParams }) => {
+const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
 
     const handleChange = (field, value) => {
         setParams(prev => ({ ...prev, [field]: value }));
@@ -122,45 +122,259 @@ const OpexParameters = ({ params, setParams }) => {
                             </p>
                         </div>
 
-                        {/* WORKOVER */}
+                        {/* WORKOVER SECTION */}
                         <div>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
-                                <span className="flex items-center gap-2"><Wrench size={16} className="text-slate-400 dark:text-slate-500" /> Provisão para Workover (Anual)</span>
-                                <span className="font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/30 px-2 py-1 rounded">{formatMillionsNoDecimals(params.workoverCost)}/ano</span>
-                            </label>
-                            <input
-                                type="range" min="0" max="100000000" step="5000000"
-                                value={params.workoverCost}
-                                onChange={(e) => handleChange('workoverCost', Number(e.target.value))}
-                                className="w-full accent-purple-600"
-                            />
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                                Provisão anual média para intervenções pesadas em poços e reparos submarinos.
-                            </p>
-                        </div>
+                            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                <Wrench size={16} className="text-purple-500" /> Parâmetros de Workover
+                            </h3>
+
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                {/* 1. Well Context */}
+                                <div className="grid grid-cols-3 gap-4 mb-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase">Poços Totais</label>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{params.wellsParams?.numWells || 16}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase">Tipo</label>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                            {params.wellsParams?.wellType === 'post' ? 'Pós-Sal' : 'Pré-Sal'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase">Complexidade</label>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                            {params.wellsParams?.complexity === 'low' ? 'Baixa' : 'Alta'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* 2. Modify Button (Moved) */}
+                                <button
+                                    onClick={onNavigateToWells}
+                                    className="w-full mb-6 py-2 text-xs font-bold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors shadow-sm"
+                                >
+                                    Modificar configuração de poços (Ir para CAPEX)
+                                </button>
+
+                                {/* 3. Detailed Calculator */}
+                                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                                        Cálculo do Custo de Workover - Parâmetros médios já calculados em função do tipo e complexidade do poço
+                                    </h4>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Lambda */}
+                                        <div>
+                                            <div className="flex justify-between mb-1">
+                                                <label className="text-[10px] font-medium text-slate-500">Taxa de Falha (λ)</label>
+                                                <span className="text-xs font-bold text-purple-600">{params.workoverLambda || 0.15} eventos por ano</span>
+                                            </div>
+                                            <input
+                                                type="range" min="0.05" max="0.5" step="0.01"
+                                                value={params.workoverLambda || 0.15}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    const numWells = params.wellsParams?.numWells || 16;
+                                                    const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                                    const total = numWells * val * costPerEvent * 1000000;
+                                                    setParams(prev => ({ ...prev, workoverLambda: val, workoverCost: total }));
+                                                }}
+                                                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                            />
+                                        </div>
+
+                                        {/* Mob Cost */}
+                                        <div>
+                                            <div className="flex justify-between mb-1">
+                                                <label className="text-[10px] font-medium text-slate-500">Custo Mobilização</label>
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">$ {params.workoverMobCost || 8} MM</span>
+                                            </div>
+                                            <input
+                                                type="range" min="1" max="20" step="0.5"
+                                                value={params.workoverMobCost || 8}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    const numWells = params.wellsParams?.numWells || 16;
+                                                    const lambda = params.workoverLambda || 0.15;
+                                                    const costPerEvent = val + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                                    const total = numWells * lambda * costPerEvent * 1000000;
+                                                    setParams(prev => ({ ...prev, workoverMobCost: val, workoverCost: total }));
+                                                }}
+                                                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-500"
+                                            />
+                                        </div>
+
+                                        {/* Duration */}
+                                        <div>
+                                            <div className="flex justify-between mb-1">
+                                                <label className="text-[10px] font-medium text-slate-500">Duração Intervenção</label>
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{params.workoverDuration || 20} dias</span>
+                                            </div>
+                                            <input
+                                                type="range" min="5" max="60" step="1"
+                                                value={params.workoverDuration || 20}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    const numWells = params.wellsParams?.numWells || 16;
+                                                    const lambda = params.workoverLambda || 0.15;
+                                                    const mob = params.workoverMobCost || 8;
+                                                    const costPerEvent = mob + (val * (params.workoverDailyRate || 800) / 1000);
+                                                    const total = numWells * lambda * costPerEvent * 1000000;
+                                                    setParams(prev => ({ ...prev, workoverDuration: val, workoverCost: total }));
+                                                }}
+                                                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-500"
+                                            />
+                                        </div>
+
+                                        {/* Daily Rate */}
+                                        <div>
+                                            <div className="flex justify-between mb-1">
+                                                <label className="text-[10px] font-medium text-slate-500">Taxa Diária Recurso</label>
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">$ {params.workoverDailyRate || 800} k/dia</span>
+                                            </div>
+                                            <input
+                                                type="range" min="200" max="1500" step="50"
+                                                value={params.workoverDailyRate || 800}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    const numWells = params.wellsParams?.numWells || 16;
+                                                    const lambda = params.workoverLambda || 0.15;
+                                                    const mob = params.workoverMobCost || 8;
+                                                    const costPerEvent = mob + ((params.workoverDuration || 20) * val / 1000);
+                                                    const total = numWells * lambda * costPerEvent * 1000000;
+                                                    setParams(prev => ({ ...prev, workoverDailyRate: val, workoverCost: total }));
+                                                }}
+                                                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-500"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Calculated Result Display */}
+                                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex justify-between text-xs text-slate-500">
+                                                <span>Custo por Poço:</span>
+                                                <span className="font-mono">
+                                                    {((params.workoverLambda || 0.15) * ((params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000))).toFixed(1)} MM/ano
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-purple-50 dark:bg-purple-900/20 p-2 rounded-lg border border-purple-100 dark:border-purple-800/30">
+                                                <span className="text-xs font-bold text-purple-800 dark:text-purple-300">
+                                                    Total ({params.wellsParams?.numWells || 16} poços)
+                                                </span>
+                                                <span className="text-sm font-bold text-purple-700 dark:text-purple-400">
+                                                    {formatMillionsNoDecimals(params.workoverCost)}/ano
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Pprod Section (Loss of Production) */}
+                                    <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                                            <Droplet size={14} className="text-red-500" />
+                                            Perda de Produção (Pprod)
+                                        </h4>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                            {/* Tesp Input */}
+                                            <div>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="text-[10px] font-medium text-slate-500">Tempo Espera (Tesp)</label>
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{params.workoverTesp || 90} dias</span>
+                                                </div>
+                                                <input
+                                                    type="range" min="30" max="180" step="5"
+                                                    value={params.workoverTesp || 90}
+                                                    onChange={(e) => handleChange('workoverTesp', Number(e.target.value))}
+                                                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-red-500"
+                                                />
+                                            </div>
+
+                                            {/* Qwell Display */}
+                                            <div>
+                                                <label className="text-[10px] font-medium text-slate-500 block mb-1">Produtividade do Poço (Qpoço)</label>
+                                                <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-600 dark:text-slate-400">
+                                                    {(() => {
+                                                        const peak = params.peakProduction || 150; // kbpd
+                                                        const producers = params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8);
+                                                        const qWell = (peak * 1000) / producers;
+                                                        return Math.round(qWell).toLocaleString();
+                                                    })()} bpd
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Result Display */}
+                                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex justify-between text-xs text-slate-500">
+                                                    <span>Pprod por Poço:</span>
+                                                    <span className="font-mono text-red-600 dark:text-red-400">
+                                                        {(() => {
+                                                            const lambda = params.workoverLambda || 0.15;
+                                                            const dur = params.workoverDuration || 20;
+                                                            const tesp = params.workoverTesp || 90;
+
+                                                            const peak = params.peakProduction || 150;
+                                                            const producers = params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8);
+                                                            const qWell = (peak * 1000) / producers;
+
+                                                            const pProdBbl = lambda * (tesp + dur) * qWell;
+                                                            return Math.round(pProdBbl).toLocaleString() + ' bbl/ano';
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-900/30">
+                                                    <span className="text-xs font-bold text-red-800 dark:text-red-300">
+                                                        Total Pprod ({params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8)} Poços Prod)
+                                                    </span>
+                                                    <span className="text-sm font-bold text-red-700 dark:text-red-400">
+                                                        {(() => {
+                                                            const lambda = params.workoverLambda || 0.15;
+                                                            const dur = params.workoverDuration || 20;
+                                                            const tesp = params.workoverTesp || 90;
+
+                                                            const peak = params.peakProduction || 150;
+                                                            const producers = params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8);
+                                                            const qWell = (peak * 1000) / producers;
+
+                                                            const pProdBbl = lambda * (tesp + dur) * qWell;
+                                                            const totalMM = (pProdBbl * producers) / 1000000;
+                                                            return totalMM.toFixed(2) + ' MM bbl/ano';
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
 
-                        <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-2">
-                            <p><span className="font-bold text-slate-700 dark:text-slate-200">Premissas e Referências de Mercado:</span></p>
-                            <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400">
-                                <li>
-                                    <strong>OPEX Fixo:</strong> Predominante em projetos offshore (~80-90% do total). Inclui aluguel de sonda/FPSO (se afretado), logística (barcos, helicópteros), pessoal embarcado e manutenção de rotina. Modelo segue estimativa baseada em capacidade instalada.
-                                </li>
-                                <li>
-                                    <strong>OPEX Variável:</strong> Custos diretos de consumíveis (produtos químicos, energia, tratamento de água) proporcionais ao volume produzido. Tende a aumentar com o BSW (água) no fim da vida útil.
-                                </li>
-                                <li>
-                                    <strong>Workover:</strong> Provisão anualizada para grandes intervenções em poços (troca de BCS, estimulação) e reparos submarinos.
-                                </li>
-                            </ul>
-                            <p className="pt-1 text-[10px] text-slate-400 dark:text-slate-500 italic">
-                                Fontes: Planos Estratégicos Petrobras, benchmarks da Rystad Energy e relatórios técnicos da Wood Mackenzie.
-                            </p>
+                                <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-2">
+                                    <p><span className="font-bold text-slate-700 dark:text-slate-200">Premissas e Referências de Mercado:</span></p>
+                                    <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400">
+                                        <li>
+                                            <strong>OPEX Fixo:</strong> Predominante em projetos offshore (~80-90% do total). Inclui aluguel de sonda/FPSO (se afretado), logística (barcos, helicópteros), pessoal embarcado e manutenção de rotina. Modelo segue estimativa baseada em capacidade instalada.
+                                        </li>
+                                        <li>
+                                            <strong>OPEX Variável:</strong> Custos diretos de consumíveis (produtos químicos, energia, tratamento de água) proporcionais ao volume produzido. Tende a aumentar com o BSW (água) no fim da vida útil.
+                                        </li>
+                                        <li>
+                                            <strong>Workover:</strong> Provisão anualizada para grandes intervenções em poços (troca de BCS, estimulação) e reparos submarinos.
+                                        </li>
+                                    </ul>
+                                    <p className="pt-1 text-[10px] text-slate-400 dark:text-slate-500 italic">
+                                        Fontes: Planos Estratégicos Petrobras, benchmarks da Rystad Energy e relatórios técnicos da Wood Mackenzie.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 };
 

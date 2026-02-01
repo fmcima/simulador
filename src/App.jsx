@@ -35,6 +35,20 @@ export default function App() {
     const containerRef = useRef(null);
 
     // Estados dos Projetos
+    const [capexActiveModule, setCapexActiveModule] = useState('selection'); // Lifted state for navigation
+
+    const handleNavigateToWells = () => {
+        // Ensure Detailed Mode is ON
+        setProjectA(prev => ({
+            ...prev,
+            wellsParams: {
+                ...prev.wellsParams,
+                mode: 'detailed'
+            }
+        }));
+        setCapexActiveModule('wells');
+        setActiveTab('capex');
+    };
     const defaultParams = {
         totalCapex: 6000000000,
         capexDuration: 5,
@@ -72,7 +86,12 @@ export default function App() {
         opexMode: 'simple', // 'simple' | 'detailed'
         opexFixed: 100000000, // $100M/ano (típico para ~150kbpd)
         opexVariable: 4, // $4/bbl
-        workoverCost: 10000000, // $10M/ano
+        workoverCost: 57600000, // Calculated default for 16 wells
+        workoverLambda: 0.15,
+        workoverMobCost: 8,
+        workoverDuration: 20,
+        workoverTesp: 90,
+        workoverDailyRate: 800,
         costInflation: 2, // 2% a.a.
 
         totalReserves: 1000,
@@ -232,17 +251,42 @@ export default function App() {
 
             if (detailedParams?.useSmartWell && detailedParams?.useFOH) {
                 const increase = detailedParams.fohRecoveryFactorIncrease || 5;
-                const factor = 1 + (increase / 100);
-                newDeclineRate = baseDecline / factor;
+                const improvement = increase / 100; // Convert percentage to decimal
+                newDeclineRate = baseDecline * (1 - improvement);
             }
+
+            // --- Sync Workover Cost with Well Count & Type ---
+            const numCurrentWells = detailedParams?.numWells || 16;
+            const wType = detailedParams?.wellType || 'pre';
+            const wComp = detailedParams?.complexity || 'high';
+
+            let lambda = 0.15, mob = 8, dur = 20, rate = 800;
+
+            // Logic Matrix
+            if (wType === 'pre') {
+                if (wComp === 'high') { lambda = 0.15; mob = 20; dur = 60; rate = 800; }
+                else { lambda = 0.10; mob = 8; dur = 40; rate = 600; }
+            } else { // post
+                if (wComp === 'high') { lambda = 0.15; mob = 5; dur = 30; rate = 250; }
+                else { lambda = 0.10; mob = 3; dur = 20; rate = 100; }
+            }
+
+            const costPerEvent = mob + (dur * rate / 1000);
+            const newWorkoverCost = numCurrentWells * lambda * costPerEvent * 1000000;
 
             return {
                 ...prev,
                 totalCapex: newTotalCapex,
                 capexSplit: newSplit,
                 wellsParams: detailedParams,
-                declineRate: newDeclineRate, // Sync slider
-                baseDeclineRate: baseDecline // Ensure base is persisted
+                declineRate: parseFloat(newDeclineRate.toFixed(2)),
+                baseDeclineRate: baseDecline, // Ensure base is persisted
+                // Automatic Workover Updates
+                workoverCost: newWorkoverCost,
+                workoverLambda: lambda,
+                workoverMobCost: mob,
+                workoverDuration: dur,
+                workoverDailyRate: rate
             };
         });
     }, []);
@@ -783,7 +827,11 @@ export default function App() {
 
                 {/* --- VIEW: OPEX --- */}
                 {activeTab === 'opex' && (
-                    <OpexParameters params={projectA} setParams={setProjectA} />
+                    <OpexParameters
+                        params={projectA}
+                        setParams={setProjectA}
+                        onNavigateToWells={handleNavigateToWells}
+                    />
                 )}
 
                 {/* --- VIEW: CAPEX --- */}
@@ -796,6 +844,8 @@ export default function App() {
                         unitNpv={(resultsA.metrics.vpl / (resultsA.yearlyData.reduce((acc, y) => acc + (y.productionVolume * 365), 0) / 1000 * 1000000)) || 5} // $/bbl (default 5 to avoid NaN)
                         onUpdate={handleUpdateCapex}
                         onUpdateWells={handleUpdateWells}
+                        activeModule={capexActiveModule}
+                        setActiveModule={setCapexActiveModule}
                     />
                 )}
 
