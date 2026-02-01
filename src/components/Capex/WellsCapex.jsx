@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
 import { Box, DollarSign, Pickaxe, Timer, Activity, TrendingDown, Anchor, Wrench, Cpu, Check, RotateCw, Info, TrendingUp, Play, Loader2 } from 'lucide-react';
 import { generateProjectData } from '../../utils/calculations';
 
@@ -78,7 +78,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
         // Use setTimeout to allow UI to update before heavy computation
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        const iterations = 2000;
+        const iterations = 5000;
 
         // Base parameters from projectParams (these will be overridden per configuration)
         const baseParams = { ...projectParams };
@@ -1323,7 +1323,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                             <h5 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase mb-4">
                                                 Distribuição de Probabilidade do VPL
                                             </h5>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="space-y-4">
                                                 {/* Convencional Distribution */}
                                                 {monteCarloResults['Convencional']?.histogram && (
                                                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
@@ -1331,9 +1331,9 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                             <span className="w-2 h-2 rounded-full bg-slate-500"></span>
                                                             Convencional
                                                         </p>
-                                                        <div className="h-32">
+                                                        <div className="h-40">
                                                             <ResponsiveContainer width="100%" height="100%">
-                                                                <AreaChart data={monteCarloResults['Convencional'].histogram} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                                                <AreaChart data={monteCarloResults['Convencional'].histogram} margin={{ top: 15, right: 5, left: -20, bottom: 5 }}>
                                                                     <defs>
                                                                         <linearGradient id="colorConv" x1="0" y1="0" x2="0" y2="1">
                                                                             <stop offset="5%" stopColor="#64748b" stopOpacity={0.8} />
@@ -1341,13 +1341,16 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                                         </linearGradient>
                                                                     </defs>
                                                                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                                                                    <XAxis dataKey="bin" tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <XAxis dataKey="value" type="number" domain={['dataMin', 'dataMax']} tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={(v) => (v / 1000).toFixed(1)} />
                                                                     <YAxis tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
                                                                     <Tooltip
                                                                         contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '6px', fontSize: '9px' }}
                                                                         formatter={(value) => [`${value} iterações`, 'Frequência']}
-                                                                        labelFormatter={(label) => `VPL: $${label}B`}
+                                                                        labelFormatter={(label) => `VPL: $${(label / 1000).toFixed(2)}B`}
                                                                     />
+                                                                    <ReferenceLine x={monteCarloResults['Convencional'].p10} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P10', position: 'top', fontSize: 8, fill: '#ef4444' }} />
+                                                                    <ReferenceLine x={monteCarloResults['Convencional'].p50} stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P50', position: 'top', fontSize: 8, fill: '#f59e0b' }} />
+                                                                    <ReferenceLine x={monteCarloResults['Convencional'].p90} stroke="#10b981" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P90', position: 'top', fontSize: 8, fill: '#10b981' }} />
                                                                     <Area type="monotone" dataKey="frequency" stroke="#64748b" strokeWidth={2} fillOpacity={1} fill="url(#colorConv)" />
                                                                 </AreaChart>
                                                             </ResponsiveContainer>
@@ -1376,9 +1379,9 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                                                             Inteligente Hidráulica
                                                         </p>
-                                                        <div className="h-32">
+                                                        <div className="h-40">
                                                             <ResponsiveContainer width="100%" height="100%">
-                                                                <AreaChart data={monteCarloResults['Inteligente Hidráulica'].histogram} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                                                <AreaChart data={monteCarloResults['Inteligente Hidráulica'].histogram} margin={{ top: 15, right: 5, left: -20, bottom: 5 }}>
                                                                     <defs>
                                                                         <linearGradient id="colorHid" x1="0" y1="0" x2="0" y2="1">
                                                                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
@@ -1386,13 +1389,16 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                                         </linearGradient>
                                                                     </defs>
                                                                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                                                                    <XAxis dataKey="bin" tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <XAxis dataKey="value" type="number" domain={['dataMin', 'dataMax']} tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={(v) => (v / 1000).toFixed(1)} />
                                                                     <YAxis tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
                                                                     <Tooltip
                                                                         contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '6px', fontSize: '9px' }}
                                                                         formatter={(value) => [`${value} iterações`, 'Frequência']}
-                                                                        labelFormatter={(label) => `VPL: $${label}B`}
+                                                                        labelFormatter={(label) => `VPL: $${(label / 1000).toFixed(2)}B`}
                                                                     />
+                                                                    <ReferenceLine x={monteCarloResults['Inteligente Hidráulica'].p10} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P10', position: 'top', fontSize: 8, fill: '#ef4444' }} />
+                                                                    <ReferenceLine x={monteCarloResults['Inteligente Hidráulica'].p50} stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P50', position: 'top', fontSize: 8, fill: '#f59e0b' }} />
+                                                                    <ReferenceLine x={monteCarloResults['Inteligente Hidráulica'].p90} stroke="#10b981" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P90', position: 'top', fontSize: 8, fill: '#10b981' }} />
                                                                     <Area type="monotone" dataKey="frequency" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorHid)" />
                                                                 </AreaChart>
                                                             </ResponsiveContainer>
@@ -1421,9 +1427,9 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                                                             Inteligente Elétrica
                                                         </p>
-                                                        <div className="h-32">
+                                                        <div className="h-40">
                                                             <ResponsiveContainer width="100%" height="100%">
-                                                                <AreaChart data={monteCarloResults['Inteligente Elétrica'].histogram} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                                                <AreaChart data={monteCarloResults['Inteligente Elétrica'].histogram} margin={{ top: 15, right: 5, left: -20, bottom: 5 }}>
                                                                     <defs>
                                                                         <linearGradient id="colorEle" x1="0" y1="0" x2="0" y2="1">
                                                                             <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
@@ -1431,13 +1437,16 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                                         </linearGradient>
                                                                     </defs>
                                                                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                                                                    <XAxis dataKey="bin" tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                                                    <XAxis dataKey="value" type="number" domain={['dataMin', 'dataMax']} tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={(v) => (v / 1000).toFixed(1)} />
                                                                     <YAxis tick={{ fontSize: 8, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
                                                                     <Tooltip
                                                                         contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '6px', fontSize: '9px' }}
                                                                         formatter={(value) => [`${value} iterações`, 'Frequência']}
-                                                                        labelFormatter={(label) => `VPL: $${label}B`}
+                                                                        labelFormatter={(label) => `VPL: $${(label / 1000).toFixed(2)}B`}
                                                                     />
+                                                                    <ReferenceLine x={monteCarloResults['Inteligente Elétrica'].p10} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P10', position: 'top', fontSize: 8, fill: '#ef4444' }} />
+                                                                    <ReferenceLine x={monteCarloResults['Inteligente Elétrica'].p50} stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P50', position: 'top', fontSize: 8, fill: '#f59e0b' }} />
+                                                                    <ReferenceLine x={monteCarloResults['Inteligente Elétrica'].p90} stroke="#10b981" strokeWidth={1.5} strokeDasharray="2 3" label={{ value: 'P90', position: 'top', fontSize: 8, fill: '#10b981' }} />
                                                                     <Area type="monotone" dataKey="frequency" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorEle)" />
                                                                 </AreaChart>
                                                             </ResponsiveContainer>
