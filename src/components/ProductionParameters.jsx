@@ -192,8 +192,8 @@ const ProductionParameters = ({ params, setParams }) => {
                                     const k = params.bswGrowthRate || 1.2;
 
                                     // Logistic Function: BSW(t) = BSW_max / (1 + e^(-k * (t - t_inflectionShift)))
-                                    // Mirroring logic: Breakthrough defined as 15% BSW.
-                                    const ratio = (BSW_max / 0.15) - 1;
+                                    // Mirroring logic: Breakthrough defined as 2% BSW.
+                                    const ratio = (BSW_max / 0.02) - 1;
                                     const offset = ratio > 0 ? Math.log(ratio) / k : 0;
                                     const t_inflection = t_bt + offset;
                                     const waterCut = BSW_max / (1 + Math.exp(-k * (t - t_inflection)));
@@ -238,6 +238,197 @@ const ProductionParameters = ({ params, setParams }) => {
                         Parametrização da Curva de Produção
                     </h3>
 
+                    {/* NEW: Selector for Parameterization Basis */}
+                    <div className="flex gap-4 mb-6">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="paramBasis"
+                                value="field"
+                                checked={params.paramBasis === 'field'}
+                                onChange={() => handleChange('paramBasis', 'field')}
+                                className="accent-emerald-600"
+                            />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Tipo de Campo</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="paramBasis"
+                                value="completion"
+                                checked={params.paramBasis === 'completion' || !params.paramBasis}
+                                onChange={() => handleChange('paramBasis', 'completion')}
+                                className="accent-emerald-600"
+                            />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Tipo de Completação</span>
+                        </label>
+                    </div>
+
+                    {/* BUTTONS GROUP: Conditional Rendering */}
+                    <div className="mb-6">
+                        {/* Option A: Completion Type (Move from bottom) */}
+                        {(params.paramBasis === 'completion' || !params.paramBasis) && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setParams(prev => ({
+                                            ...prev,
+                                            declineRate: 10,
+                                            hyperbolicFactor: 0.2,
+                                            bswBreakthrough: 6,
+                                            bswGrowthRate: 0.9
+                                        }));
+                                    }}
+                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 10 && Math.abs((params.hyperbolicFactor || 0.5) - 0.2) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                                >
+                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Convencional</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        Declínio: <span className="font-mono text-emerald-600">10%</span> | b: <span className="font-mono text-emerald-600">0.2</span>
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Completação padrão sem controle de fluxo zonal. Resulta em irrupção precoce de água e declínio acelerado.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setParams(prev => ({
+                                            ...prev,
+                                            declineRate: 8,
+                                            hyperbolicFactor: 0.5,
+                                            bswBreakthrough: 7,
+                                            bswGrowthRate: 0.7
+                                        }));
+                                    }}
+                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 8 && Math.abs((params.hyperbolicFactor || 0.5) - 0.5) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                                >
+                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Hidráulica</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        Declínio: <span className="font-mono text-emerald-600">8%</span> | b: <span className="font-mono text-emerald-600">0.5</span>
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Válvulas hidráulicas (ICV) permitem fechar zonas com água, estendendo o platô e suavizando o declínio.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setParams(prev => ({
+                                            ...prev,
+                                            declineRate: 7,
+                                            hyperbolicFactor: 0.8,
+                                            bswBreakthrough: 6,
+                                            bswGrowthRate: 0.4
+                                        }));
+                                    }}
+                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 7 && Math.abs((params.hyperbolicFactor || 0.5) - 0.8) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                                >
+                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Elétrica</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        Declínio: <span className="font-mono text-emerald-600">7%</span> | b: <span className="font-mono text-emerald-600">0.8</span>
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Controle elétrico em tempo real. Máxima eficiência na gestão do reservatório, minimizando água e declínio.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                    </div>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Option B: Field Type (New) */}
+                        {params.paramBasis === 'field' && (
+                            <div className="space-y-4">
+                                {/* First Level: Field Type Selection */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChange('fieldType', 'pre_salt')}
+                                        className={`p-3 text-left rounded-lg border transition-all group relative ${params.fieldType === 'pre_salt' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                                    >
+                                        <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Pré-Sal</div>
+                                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                            Características de campo Pré-Sal
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChange('fieldType', 'post_salt')}
+                                        className={`p-3 text-left rounded-lg border transition-all group relative ${params.fieldType === 'post_salt' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                                    >
+                                        <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Pós-Sal</div>
+                                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                            Características de campo Pós-Sal
+                                        </div>
+                                    </button>
+                                </div>
+
+                                {/* Second Level: Specific Fields (Sub-options) */}
+                                {params.fieldType === 'pre_salt' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setParams(prev => ({
+                                                    ...prev,
+                                                    subField: 'tupi',
+                                                    peakProduction: 180,
+                                                    plateauDuration: 6,
+                                                    declineRate: 10,
+                                                    hyperbolicFactor: 0.5,
+                                                    bswBreakthrough: 7,
+                                                    bswGrowthRate: 0.4
+                                                }));
+                                            }}
+                                            className={`p-2 text-left rounded border transition-all ${params.subField === 'tupi' ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-500 ring-1 ring-emerald-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50/50'}`}
+                                        >
+                                            <div className="font-bold text-xs text-slate-700 dark:text-slate-200">Tupi</div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setParams(prev => ({
+                                                    ...prev,
+                                                    subField: 'mero',
+                                                    peakProduction: 180,
+                                                    plateauDuration: 4,
+                                                    declineRate: 15,
+                                                    hyperbolicFactor: 0.4,
+                                                    bswBreakthrough: 4,
+                                                    bswGrowthRate: 0.9
+                                                }));
+                                            }}
+                                            className={`p-2 text-left rounded border transition-all ${params.subField === 'mero' ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-500 ring-1 ring-emerald-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50/50'}`}
+                                        >
+                                            <div className="font-bold text-xs text-slate-700 dark:text-slate-200">Mero, Búzios</div>
+                                        </button>
+                                    </div>
+                                )}
+
+                                {params.fieldType === 'post_salt' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleChange('subField', 'jubarte')}
+                                            className={`p-2 text-left rounded border transition-all ${params.subField === 'jubarte' ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-500 ring-1 ring-emerald-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50/50'}`}
+                                        >
+                                            <div className="font-bold text-xs text-slate-700 dark:text-slate-200">Jubarte, Roncador</div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleChange('subField', 'marlim')}
+                                            className={`p-2 text-left rounded border transition-all ${params.subField === 'marlim' ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-500 ring-1 ring-emerald-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50/50'}`}
+                                        >
+                                            <div className="font-bold text-xs text-slate-700 dark:text-slate-200">Marlim Leste/Sul, Albacora</div>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
@@ -252,7 +443,7 @@ const ProductionParameters = ({ params, setParams }) => {
                                     setParams(prev => ({
                                         ...prev,
                                         peakProduction: val,
-                                        maxLiquids: val * 1.4 * 1000 // A BSW Máx (Capacidade Líquidos) ajustada automaticamente = 1.4x Pico
+                                        maxLiquids: val * 1.4 * 1000
                                     }));
                                 }}
                                 className="w-full accent-emerald-600"
@@ -283,103 +474,57 @@ const ProductionParameters = ({ params, setParams }) => {
                             />
                             <p className="text-[10px] text-slate-400 mt-1">Velocidade de queda da produção após o platô. Maior % = queda mais rápida.</p>
                         </div>
-                        {mode === 'detailed' && (
-                            <>
-                                <div>
-                                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
-                                        <span>Fator Hiperbólico</span>
-                                        <span className="font-bold text-emerald-700 dark:text-emerald-400">{(params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5).toFixed(1)}</span>
-                                    </label>
-                                    <input
-                                        type="range" min="0" max="1" step="0.1"
-                                        value={params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5}
-                                        onChange={(e) => handleChange('hyperbolicFactor', Number(e.target.value))}
-                                        className="w-full accent-emerald-600"
-                                    />
-                                    <p className="text-[10px] text-slate-400 mt-1">Curvatura do declínio (b). b=0 (Exponencial), b=1 (Harmônico). Maior b = cauda mais longa.</p>
-                                </div>
-                            </>
-                        )}
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between mb-2">
+                                <span>Fator Hiperbólico</span>
+                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{(params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5).toFixed(1)}</span>
+                            </label>
+                            <input
+                                type="range" min="0" max="1" step="0.1"
+                                value={params.hyperbolicFactor !== undefined ? params.hyperbolicFactor : 0.5}
+                                onChange={(e) => handleChange('hyperbolicFactor', Number(e.target.value))}
+                                className="w-full accent-emerald-600"
+                            />
+                            <p className="text-[10px] text-slate-400 mt-1">Curvatura do declínio (b). b=0 (Exponencial), b=1 (Harmônico). Maior b = cauda mais longa.</p>
+                        </div>
                     </div>
 
-                    {/* Presets de Tipo de Completação */}
-                    {mode === 'detailed' && (
-                        <div className="mb-4">
-                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Tipo de Completação (Impacto na Curva):</label>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setParams(prev => ({
-                                            ...prev,
-                                            declineRate: 10,
-                                            hyperbolicFactor: 0.2,
-                                            bswBreakthrough: 6,
-                                            bswGrowthRate: 0.9
-                                        }));
-                                    }}
-                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 10 && Math.abs((params.hyperbolicFactor || 0.5) - 0.2) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
-                                >
-                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Convencional</div>
-                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                        Declínio: <span className="font-mono text-emerald-600">10%</span> | b: <span className="font-mono text-emerald-600">0.2</span>
-                                    </div>
+                    {/* Explanatory Note for Tupi */}
+                    {params.paramBasis === 'field' && params.subField === 'tupi' && (
+                        <div className="mb-6 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800/30 text-xs text-slate-600 dark:text-slate-400 animate-in fade-in slide-in-from-top-2">
+                            <p className="font-bold text-blue-800 dark:text-blue-300 mb-2">Nota sobre Reservatórios Pré-Sal (Tipo Tupi):</p>
+                            <p className="leading-relaxed text-justify">
+                                "No Pré-Sal, a "física do fluxo" é dominada por duas realidades distintas: campos com varredura uniforme (estilo Tupi) e campos com canais de alta permeabilidade ou "Super-K" (estilo Mero/Búzios).
+                                O reservatório de Tupi é heterogêneo, mas a injeção de água/WAG funciona bem e a frente de água avança de forma relativamente uniforme ("piston-like displacement").<br /><br />
+                                <strong>Tempo de Breakthrough:</strong> 6 a 8 anos após o primeiro óleo.<br />
+                                <strong>Velocidade de Crescimento:</strong> Moderada. O BSW leva cerca de 4-5 anos para sair de 0% e atingir 50%.<br />
+                                <strong>Exemplo Real:</strong> Poços na crista de Tupi que começaram a produzir em 2010/2011 começaram a ver aumento significativo de água por volta de 2017/2018."
+                            </p>
+                        </div>
+                    )}
 
-                                    {/* Tooltip */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                        Completação padrão sem controle de fluxo zonal. Resulta em irrupção precoce de água e declínio acelerado.
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                                    </div>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setParams(prev => ({
-                                            ...prev,
-                                            declineRate: 8,
-                                            hyperbolicFactor: 0.5,
-                                            bswBreakthrough: 7,
-                                            bswGrowthRate: 0.7
-                                        }));
-                                    }}
-                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 8 && Math.abs((params.hyperbolicFactor || 0.5) - 0.5) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
-                                >
-                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Hidráulica</div>
-                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                        Declínio: <span className="font-mono text-emerald-600">8%</span> | b: <span className="font-mono text-emerald-600">0.5</span>
-                                    </div>
+                    {/* Explanatory Note for Mero/Búzios */}
+                    {params.paramBasis === 'field' && params.subField === 'mero' && (
+                        <div className="mb-6 p-4 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg border border-purple-100 dark:border-purple-800/30 text-xs text-slate-600 dark:text-slate-400 animate-in fade-in slide-in-from-top-2">
+                            <p className="font-bold text-purple-800 dark:text-purple-300 mb-2">Nota sobre Reservatórios Pré-Sal (Tipo Mero/Búzios):</p>
+                            <p className="leading-relaxed text-justify">
+                                "Para os campos de Mero (Área de Libra) e Búzios (Cessão Onerosa/Excedentes), estamos falando da "Joia da Coroa" do Pré-Sal. A física de reservatório aqui é mais agressiva que em Tupi.
+                                A principal diferença geológica é a presença frequente de Coquinas e Carbonatos com "Super-K" (zonas de permeabilidade extrema, muitas vezes vugulares ou fraturadas). Isso cria poços com produtividade inicial monstruosa (30k-40k barris/dia), mas com riscos acelerados de produção de água e gás.<br /><br />
+                                <strong>Tempo de Breakthrough:</strong> 2 a 4 anos (muito precoce).<br />
+                                <strong>Velocidade de Crescimento:</strong> Agressiva. O BSW pode pular de 0% para 60-70% em menos de 2 anos.<br />
+                                <strong>Exemplo Real:</strong> Testes de longa duração (TLD/EWT) e sistemas antecipados em Mero e Búzios indicaram conectividade hidráulica extremamente rápida entre injetores e produtores."
+                            </p>
+                        </div>
+                    )}
 
-                                    {/* Tooltip */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                        Válvulas hidráulicas (ICV) permitem fechar zonas com água, estendendo o platô e suavizando o declínio.
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                                    </div>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setParams(prev => ({
-                                            ...prev,
-                                            declineRate: 7,
-                                            hyperbolicFactor: 0.8,
-                                            bswBreakthrough: 8,
-                                            bswGrowthRate: 0.4
-                                        }));
-                                    }}
-                                    className={`p-3 text-left rounded-lg border transition-all group relative ${params.declineRate === 7 && Math.abs((params.hyperbolicFactor || 0.5) - 0.8) < 0.01 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
-                                >
-                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Inteligente Elétrica</div>
-                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                        Declínio: <span className="font-mono text-emerald-600">7%</span> | b: <span className="font-mono text-emerald-600">0.8</span>
-                                    </div>
-
-                                    {/* Tooltip */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                        Controle elétrico em tempo real. Máxima eficiência na gestão do reservatório, minimizando água e declínio.
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                                    </div>
-                                </button>
-                            </div>
+                    {/* Explanatory Note for Smart Electric Completion */}
+                    {(params.paramBasis === 'completion' || !params.paramBasis) && params.declineRate === 7 && Math.abs((params.hyperbolicFactor || 0.5) - 0.8) < 0.01 && (
+                        <div className="mb-6 p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-800/30 text-xs text-slate-600 dark:text-slate-400 animate-in fade-in slide-in-from-top-2">
+                            <p className="font-bold text-emerald-800 dark:text-emerald-300 mb-2">Nota sobre Tecnologia de Completação (Inteligente Elétrica):</p>
+                            <p className="leading-relaxed text-justify">
+                                A Completação Inteligente Elétrica (e-IC) altera fundamentalmente a física de produção percebida na superfície. Diferente da completação convencional (onde o poço produz "o que o reservatório manda"), a e-IC permite o gerenciamento ativo de zonas.
+                                A e-IC atua como um "filtro" que retarda o impacto negativo da água e maximiza a drenagem de zonas de menor permeabilidade.
+                            </p>
                         </div>
                     )}
                 </div>

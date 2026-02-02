@@ -338,13 +338,13 @@ export const generateProjectData = (params) => {
                 const k = params.bswGrowthRate || 1.2;
 
                 // Fórmula Logística: BSW(t) = BSW_max / (1 + Math.exp(-k * (t - t_inflection)))
-                // Ajuste: O usuário considera "Breakthrough" como o momento em que BSW atinge 15%.
-                // Derivação: 0.15 = BSW_max / (1 + exp(-k * (t_bt - t_inflection)))
-                // exp(-k * (t_bt - t_inflection)) = (BSW_max / 0.15) - 1
-                // -k * (t_bt - t_inflection) = ln((BSW_max / 0.15) - 1)
-                // t_inflection = t_bt + ln((BSW_max / 0.15) - 1) / k
+                // Ajuste: O usuário considera "Breakthrough" como o momento em que BSW atinge 2%.
+                // Derivação: 0.02 = BSW_max / (1 + exp(-k * (t_bt - t_inflection)))
+                // exp(-k * (t_bt - t_inflection)) = (BSW_max / 0.02) - 1
+                // -k * (t_bt - t_inflection) = ln((BSW_max / 0.02) - 1)
+                // t_inflection = t_bt + ln((BSW_max / 0.02) - 1) / k
 
-                const ratio = (BSW_max / 0.15) - 1;
+                const ratio = (BSW_max / 0.02) - 1;
                 const offset = ratio > 0 ? Math.log(ratio) / k : 0;
                 const t_inflection = t_bt + offset;
 
