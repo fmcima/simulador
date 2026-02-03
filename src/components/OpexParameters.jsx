@@ -302,13 +302,13 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                             onClick={() => handleChange('opexMode', 'simple')}
                             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.opexMode === 'simple' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                         >
-                            Simplificado (% da Receita)
+                            Simples
                         </button>
                         <button
                             onClick={() => handleChange('opexMode', 'detailed')}
                             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.opexMode === 'detailed' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                         >
-                            Detalhado (Fixo + Variável)
+                            Detalhado
                         </button>
                     </div>
 

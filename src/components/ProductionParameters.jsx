@@ -114,7 +114,7 @@ const ProductionParameters = ({ params, setParams }) => {
                         onClick={() => setMode('simple')}
                         className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${mode === 'simple' ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                     >
-                        Simplificado
+                        Simples
                     </button>
                     <button
                         onClick={() => setMode('detailed')}
