@@ -423,6 +423,78 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                             Cálculo do Custo de Workover - Parâmetros médios já calculados em função do tipo e complexidade do poço
                                         </h4>
 
+                                        {/* Completion Technology Preset Selector */}
+                                        <div className="mb-6 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800/50">
+                                            <label className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide block mb-2">
+                                                🔧 Tecnologia de Completação
+                                            </label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const numWells = params.wellsParams?.numWells || 16;
+                                                        const lambda = 0.15;
+                                                        const tesp = 90;
+                                                        const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                                        const total = numWells * lambda * costPerEvent * 1000000;
+                                                        setParams(prev => ({
+                                                            ...prev,
+                                                            workoverLambda: lambda,
+                                                            workoverFailureProfile: 'wearout',
+                                                            workoverTesp: tesp,
+                                                            workoverCost: total
+                                                        }));
+                                                    }}
+                                                    className="flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 bg-white dark:bg-slate-900 hover:shadow-md hover:scale-105 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
+                                                >
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Convencional</span>
+                                                    <span className="text-[9px] text-slate-500">λ=0.15 • 90d</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        const numWells = params.wellsParams?.numWells || 16;
+                                                        const lambda = 0.05;
+                                                        const tesp = 5;
+                                                        const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                                        const total = numWells * lambda * costPerEvent * 1000000;
+                                                        setParams(prev => ({
+                                                            ...prev,
+                                                            workoverLambda: lambda,
+                                                            workoverFailureProfile: 'bathtub',
+                                                            workoverTesp: tesp,
+                                                            workoverCost: total
+                                                        }));
+                                                    }}
+                                                    className="flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 bg-white dark:bg-slate-900 hover:shadow-md hover:scale-105 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
+                                                >
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CI Hidráulica</span>
+                                                    <span className="text-[9px] text-slate-500">λ=0.05 • 5d</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        const numWells = params.wellsParams?.numWells || 16;
+                                                        const lambda = 0.04;
+                                                        const tesp = 5;
+                                                        const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                                        const total = numWells * lambda * costPerEvent * 1000000;
+                                                        setParams(prev => ({
+                                                            ...prev,
+                                                            workoverLambda: lambda,
+                                                            workoverFailureProfile: 'bathtub',
+                                                            workoverTesp: tesp,
+                                                            workoverCost: total
+                                                        }));
+                                                    }}
+                                                    className="flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 bg-white dark:bg-slate-900 hover:shadow-md hover:scale-105 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
+                                                >
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CI Elétrica</span>
+                                                    <span className="text-[9px] text-slate-500">λ=0.04 • 5d</span>
+                                                </button>
+                                            </div>
+                                            <p className="text-[9px] text-blue-600 dark:text-blue-400 mt-2 text-center">
+                                                Clique para aplicar valores típicos de cada tecnologia
+                                            </p>
+                                        </div>
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             {/* Lambda */}
                                             <div>
