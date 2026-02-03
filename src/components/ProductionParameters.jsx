@@ -368,6 +368,9 @@ const ProductionParameters = ({ params, setParams }) => {
                                                 setParams(prev => ({
                                                     ...prev,
                                                     fieldType: 'pre_salt',
+                                                    // Automating Reservoir Quality -> High
+                                                    oilAPI: 40,
+                                                    gor: 350,
                                                     // Automating Wells Capex configuration
                                                     wellsParams: {
                                                         ...prev.wellsParams,
@@ -396,6 +399,9 @@ const ProductionParameters = ({ params, setParams }) => {
                                                 setParams(prev => ({
                                                     ...prev,
                                                     fieldType: 'post_salt',
+                                                    // Automating Reservoir Quality -> Medium
+                                                    oilAPI: 28,
+                                                    gor: 150,
                                                     // Automating Total Capex (Estimate: ~$1.8Bi FPSO / 0.45 = $4.0Bi Total)
                                                     totalCapex: 4000000000,
                                                     capexSplit: { platform: 45, wells: 35, subsea: 20 },

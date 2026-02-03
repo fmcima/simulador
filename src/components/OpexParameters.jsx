@@ -210,6 +210,36 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                 />
                                             </div>
 
+                                            {/* Failure Profile */}
+                                            <div>
+                                                <label className="text-[10px] font-medium text-slate-500 block mb-2">Perfil de Falha</label>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleChange('workoverFailureProfile', 'wearout')}
+                                                        className={`flex-1 py-1.5 px-2 rounded text-[10px] font-medium transition-all ${(params.workoverFailureProfile || 'wearout') === 'wearout'
+                                                            ? 'bg-purple-600 text-white shadow-sm'
+                                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                            }`}
+                                                    >
+                                                        Desgaste
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleChange('workoverFailureProfile', 'bathtub')}
+                                                        className={`flex-1 py-1.5 px-2 rounded text-[10px] font-medium transition-all ${params.workoverFailureProfile === 'bathtub'
+                                                            ? 'bg-purple-600 text-white shadow-sm'
+                                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                            }`}
+                                                    >
+                                                        Banheira
+                                                    </button>
+                                                </div>
+                                                <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1">
+                                                    {(params.workoverFailureProfile || 'wearout') === 'wearout'
+                                                        ? 'Taxa aumenta com o envelhecimento dos poços'
+                                                        : 'Taxa alta no início, baixa no meio, alta no final'}
+                                                </p>
+                                            </div>
+
                                             {/* Mob Cost */}
                                             <div>
                                                 <div className="flex justify-between mb-1">
@@ -415,19 +445,49 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                         <ComposedChart data={React.useMemo(() => {
                             const data = generateProjectData(params).yearlyData;
 
-                            // Calculate Loss Factor based on Workover parameters
-                            // Only apply loss if in DETAILED OPEX mode
-                            let lossFactor = 0;
-                            if (params.opexMode === 'detailed') {
-                                const lambda = params.workoverLambda || 0.15;
-                                const wDuration = params.workoverDuration || 20;
-                                const tesp = params.workoverTesp || 90;
-                                const daysLostPerYear = lambda * (tesp + wDuration); // Days lost per well per year
-                                lossFactor = Math.min(1, Math.max(0, daysLostPerYear / 365));
-                            }
-
-                            return data.filter(d => d.revenue > 0 || d.opex < 0).map(d => {
+                            // Calculate time-dependent loss factor for each year
+                            // This must match the calculation in calculations.js
+                            return data.filter(d => d.revenue > 0 || d.opex < 0).map((d, index) => {
                                 const totalRevenue = d.revenue / 1000000;
+                                let lossFactor = 0;
+
+                                // Only calculate loss if in DETAILED OPEX mode
+                                if (params.opexMode === 'detailed' && params.workoverLambda && params.workoverTesp) {
+                                    const lambdaAvg = params.workoverLambda;
+                                    const waitDays = params.workoverTesp;
+                                    const wDuration = params.workoverDuration || 20;
+                                    const projectDuration = params.projectDuration || 30;
+                                    const failureProfile = params.workoverFailureProfile || 'wearout';
+
+                                    // Calculate year index (same as in calculations.js)
+                                    const year = d.year;
+                                    let lambda;
+
+                                    if (failureProfile === 'bathtub') {
+                                        // Bathtub curve: High at start, low in middle, high at end
+                                        const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                                        const centered = normalizedTime - 0.5;
+
+                                        const minLambda = lambdaAvg * 0.5;
+                                        const maxLambda = lambdaAvg * 2.0;
+                                        const a = (maxLambda - minLambda) * 4;
+                                        const b = minLambda;
+
+                                        lambda = a * centered * centered + b;
+                                        lambda = Math.max(0, Math.min(maxLambda, lambda));
+                                    } else {
+                                        // Wearout (default): Linear growth model
+                                        const growthFactor = 1.5;
+                                        const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                                        const multiplier = 1 + growthFactor * (normalizedTime - 0.5);
+                                        lambda = Math.max(0, lambdaAvg * multiplier);
+                                    }
+
+                                    // Loss factor for THIS specific year
+                                    const daysLostPerYear = lambda * waitDays;
+                                    lossFactor = Math.min(1, Math.max(0, daysLostPerYear / 365));
+                                }
+
                                 const lostRevenue = totalRevenue * lossFactor;
                                 const realizedRevenue = totalRevenue - lostRevenue;
 
@@ -435,7 +495,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                     year: d.year,
                                     realizedRevenue,
                                     lostRevenue,
-                                    totalRevenue, // Keep for reference if needed
+                                    totalRevenue,
                                     opex: Math.abs(d.opex) / 1000000
                                 };
                             });

@@ -18,6 +18,7 @@ import OpexParameters from './components/OpexParameters';
 import ProductionParameters from './components/ProductionParameters';
 import ComparisonView from './components/ComparisonView';
 import CashFlowTable from './components/CashFlowTable';
+import TornadoTest from './components/Test/TornadoTest';
 import ReferencesTable from './components/ReferencesTable';
 import CapexMain from './components/Capex/CapexMain';
 import DocumentationTab from './components/DocumentationTab';
@@ -416,7 +417,7 @@ export default function App() {
 
                 <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
                     <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right border border-transparent dark:border-slate-800 transition-colors">
-                        {['single', 'production', 'opex', 'capex', 'brent', 'tax', 'compare', 'cashflow_table', 'manual', 'references'].map(tab => (
+                        {['single', 'tornado_test', 'production', 'opex', 'capex', 'brent', 'tax', 'compare', 'cashflow_table', 'manual', 'references'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -432,7 +433,7 @@ export default function App() {
                                 {tab === 'cashflow_table' && <TableIcon size={16} />}
                                 {tab === 'manual' && <Book size={16} />}
                                 {tab === 'references' && <BookOpen size={16} />}
-                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'capex' ? 'CAPEX' : tab === 'tax' ? 'Tributos' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Preços' : tab === 'cashflow_table' ? 'Tabela' : tab === 'manual' ? 'Manual' : 'Referências'}</span>
+                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'capex' ? 'CAPEX' : tab === 'tax' ? 'Tributos' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Preços' : tab === 'cashflow_table' ? 'Tabela' : tab === 'manual' ? 'Manual' : tab === 'tornado_test' ? 'Teste' : 'Referências'}</span>
                             </button>
                         ))}
                     </div>
@@ -945,6 +946,11 @@ export default function App() {
                 {/* --- VIEW: REFERENCES --- */}
                 {activeTab === 'references' && (
                     <ReferencesTable />
+                )}
+
+                {/* --- VIEW: TORNADO TEST --- */}
+                {activeTab === 'tornado_test' && (
+                    <TornadoTest projectParams={projectA} />
                 )}
 
             </div>

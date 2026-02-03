@@ -17,6 +17,33 @@ export const formatMillionsNoDecimals = (value) => {
     return `$${inMillions.toFixed(0)}M`;
 };
 
+/**
+ * Calculate time-dependent failure rate (lambda) that increases with well age
+ * while maintaining the average rate equal to the input parameter.
+ * 
+ * @param {number} lambdaAvg - Average failure rate (e.g., 0.15 = 15% of wells fail per year)
+ * @param {number} year - Current year in project timeline (0-indexed)
+ * @param {number} projectDuration - Total project duration in years
+ * @param {number} growthFactor - How much the rate grows (0 = constant, 1 = moderate growth, 2 = high growth)
+ * @returns {number} Time-dependent failure rate for the given year
+ * 
+ * Uses linear growth model: λ(t) = λ_avg * (1 + k * (t/T - 0.5))
+ * This ensures the average over the project lifetime equals λ_avg while modeling aging effects.
+ */
+export const getTimeDependentLambda = (lambdaAvg, year, projectDuration, growthFactor = 1.5) => {
+    if (!lambdaAvg || lambdaAvg === 0) return 0;
+
+    // Normalize year to [0, 1] range
+    const normalizedTime = year / Math.max(projectDuration - 1, 1);
+
+    // Linear growth: starts at (1 - k/2) and ends at (1 + k/2)
+    // This ensures the average is exactly 1 when integrated over [0, 1]
+    const multiplier = 1 + growthFactor * (normalizedTime - 0.5);
+
+    // Ensure non-negative values
+    return Math.max(0, lambdaAvg * multiplier);
+};
+
 export const calculateNPV = (rate, cashFlows) => {
     return cashFlows.reduce((acc, val, t) => acc + val / Math.pow(1 + rate / 100, t), 0);
 };
@@ -333,9 +360,62 @@ export const generateProjectData = (params) => {
             // Utilizando o Modelo de BSW: Função Logística Generalizada
             if (productionMode === 'detailed') {
                 const timeSinceFirstOil = productionYear;
+                const minDecline = 5; // Minimum decline to prevent flat forever if curve is weird
+
+                // ... (Existing Arps Logic) ... 
+                // Note: The variable 'productionVolume' is calculated above using Arps (lines 310-328)
+
+                // --- NEW: Workover Downtime Efficiency Loss ---
+                // If workover parameters exist, calculate downtime loss.
+                // Uses time-dependent failure rate that increases with well age
+                // Supports both "wearout" and "bathtub" failure profiles
+                // Efficiency = 1 - (Lambda(t) * WaitDays / 365)
+                // WaitDays is the time production is STOPPED per failure event.
+                if (params.workoverLambda !== undefined && params.workoverLambda > 0 &&
+                    params.workoverTesp !== undefined && params.workoverTesp > 0) {
+                    const lambdaAvg = params.workoverLambda;
+                    const waitDays = params.workoverTesp; // "Tempo Espera"
+                    const projectDuration = params.projectDuration || 30;
+                    const failureProfile = params.workoverFailureProfile || 'wearout';
+
+                    let lambda;
+
+                    if (failureProfile === 'bathtub') {
+                        // Bathtub curve: High at start, low in middle, high at end
+                        // Uses quadratic function: λ(t) = a*(t/T - 0.5)^2 + b
+                        // Where 'a' controls depth and 'b' is the minimum
+                        const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                        const centered = normalizedTime - 0.5; // Center at 0.5
+
+                        // Set minimum to 50% of average, peaks at 2x average at ends
+                        const minLambda = lambdaAvg * 0.5;
+                        const maxLambda = lambdaAvg * 2.0;
+                        const a = (maxLambda - minLambda) * 4; // Coefficient for quadratic
+                        const b = minLambda;
+
+                        lambda = a * centered * centered + b;
+                        lambda = Math.max(0, Math.min(maxLambda, lambda));
+                    } else {
+                        // Wearout (default): Linear growth model
+                        // λ(t) = λ_avg * (1 + k * (t/T - 0.5))
+                        const growthFactor = 1.5;
+                        const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                        const multiplier = 1 + growthFactor * (normalizedTime - 0.5);
+                        lambda = Math.max(0, lambdaAvg * multiplier);
+                    }
+
+                    const downtimeDaysPerYear = lambda * waitDays;
+                    const efficiency = Math.max(0, 1 - (downtimeDaysPerYear / 365));
+
+                    productionVolume *= efficiency;
+                }
+
+                // t é o tempo desde o primeiro óleo (timeSinceFirstOil)
                 const BSW_max = (params.bswMax || 95) / 100;
                 const t_bt = params.bswBreakthrough || 5;
                 const k = params.bswGrowthRate || 1.2;
+
+                // ... (Rest of BSW Logic) ...
 
                 // Fórmula Logística: BSW(t) = BSW_max / (1 + Math.exp(-k * (t - t_inflection)))
                 // Ajuste: O usuário considera "Breakthrough" como o momento em que BSW atinge 2%.
@@ -348,7 +428,6 @@ export const generateProjectData = (params) => {
                 const offset = ratio > 0 ? Math.log(ratio) / k : 0;
                 const t_inflection = t_bt + offset;
 
-                // t é o tempo desde o primeiro óleo (timeSinceFirstOil)
                 const waterCut = BSW_max / (1 + Math.exp(-k * (timeSinceFirstOil - t_inflection)));
                 currentBSW = isNaN(waterCut) ? 0 : waterCut;
 
@@ -358,7 +437,7 @@ export const generateProjectData = (params) => {
 
                 // Se o gargalo de líquidos permitir menos óleo que o potencial do reservatório, cortamos a produção
                 // Oil = min(Reservoir, Capacity_Oil)
-                const potentialOil = productionVolume; // Arps result
+                const potentialOil = productionVolume; // Arps result (already reduced by efficiency)
                 productionVolume = Math.min(potentialOil, maxOilFromLiquids);
                 if (isNaN(productionVolume)) productionVolume = 0;
 
@@ -405,16 +484,41 @@ export const generateProjectData = (params) => {
 
                 // Recalculate Workover dynamically to support Monte Carlo variations (Lambda)
                 // If workoverLambda is provided in params, use it. Otherwise fallback to the static workoverCost.
+                // Uses time-dependent failure rate that increases with well age
                 let calculatedWorkover = workoverCost;
 
-                if (params.workoverLambda !== undefined) {
+                if (params.workoverLambda !== undefined && params.workoverLambda > 0) {
                     const numWells = params.wellsParams?.numWells || 16;
-                    const lambda = params.workoverLambda;
+                    const lambdaAvg = params.workoverLambda;
                     const mob = params.workoverMobCost || 8;
                     const dur = params.workoverDuration || 20;
                     const rate = params.workoverDailyRate || 800;
+                    const projectDuration = params.projectDuration || 30;
+                    const failureProfile = params.workoverFailureProfile || 'wearout';
 
-                    // Cost = NumWells * Lambda * (Mob + Dur * Rate)
+                    let lambda;
+
+                    if (failureProfile === 'bathtub') {
+                        // Bathtub curve: High at start, low in middle, high at end
+                        const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                        const centered = normalizedTime - 0.5;
+
+                        const minLambda = lambdaAvg * 0.5;
+                        const maxLambda = lambdaAvg * 2.0;
+                        const a = (maxLambda - minLambda) * 4;
+                        const b = minLambda;
+
+                        lambda = a * centered * centered + b;
+                        lambda = Math.max(0, Math.min(maxLambda, lambda));
+                    } else {
+                        // Wearout (default): Linear growth model
+                        const growthFactor = 1.5;
+                        const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                        const multiplier = 1 + growthFactor * (normalizedTime - 0.5);
+                        lambda = Math.max(0, lambdaAvg * multiplier);
+                    }
+
+                    // Cost = NumWells * Lambda(t) * (Mob + Dur * Rate)
                     const costPerEvent = mob + (dur * rate / 1000); // $ MM
                     calculatedWorkover = (numWells * lambda * costPerEvent * 1000000);
                 }

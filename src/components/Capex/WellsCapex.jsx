@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
 import { Box, DollarSign, Pickaxe, Timer, Activity, TrendingDown, Anchor, Wrench, Cpu, Check, RotateCw, Info, TrendingUp, Play, Loader2 } from 'lucide-react';
 import { generateProjectData } from '../../utils/calculations';
+import TornadoChart from '../Analysis/TornadoChart';
 
 export default function WellsCapex({ costs, onUpdate, initialParams, projectParams, unitNpv }) {
     // Mode: 'simple' (Total Value) or 'detailed' (Number of Wells)
@@ -97,15 +98,16 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
 
         } else {
             // -- PRE SALT DEFAULTS --
-            // Durations
+            // Durations & Rates
             if (complexity === 'low') {
                 setDrillingDays(60); setCompletionDays(25); setConnectionDays(10); setNpt(15);
+                setRigRate(350);
+                setServiceRate(350);
             } else {
-                setDrillingDays(90); setCompletionDays(35); setConnectionDays(15); setNpt(18);
+                setDrillingDays(70); setCompletionDays(25); setConnectionDays(15); setNpt(12);
+                setRigRate(400);
+                setServiceRate(400);
             }
-            // Rates
-            setRigRate(490); // Avg of 460-520
-            setServiceRate(440); // Avg of 400-480
             // Materials
             setCasingCost(24); // Avg of 20-28
             setTubingCost(18.5); // Avg of 15-22
@@ -145,6 +147,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
         return totalDays;
     };
 
+
     const totalCampaignDaysRaw = calculateTotalCampaignDays();
     const reductionSmartWell = (useSmartWell && useFOH) ? (fohReductionDays * smartWellCount) : 0;
     const totalCampaignDays = Math.max(0, totalCampaignDaysRaw - reductionSmartWell);
@@ -175,13 +178,51 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
         setIsSimulating(true);
         setMonteCarloResults(null);
 
+        // IMPORTANT: Ensure OPEX is in detailed mode before running simulation
+        // This is critical for the simulation to work with production parameters and workover costs
+        if (projectParams?.opexParams?.opexMode !== 'detailed') {
+            // Silently force detailed mode with default values if not already set
+            const defaultOpexParams = {
+                opexMode: 'detailed',
+                opexFixed: projectParams?.opexParams?.opexFixed || 100,
+                opexVariable: projectParams?.opexParams?.opexVariable || 5,
+                workoverLambda: projectParams?.opexParams?.workoverLambda || 0.15,
+                workoverDailyRate: projectParams?.opexParams?.workoverDailyRate || 800,
+                workoverTesp: projectParams?.opexParams?.workoverTesp || 90
+            };
+
+            // Update projectParams if there's an update function available
+            // Note: This will need to be propagated up to App.jsx
+            if (onUpdate) {
+                console.log('Forcing OPEX detailed mode for Monte Carlo simulation');
+            }
+        }
+
         // Use setTimeout to allow UI to update before heavy computation
         await new Promise(resolve => setTimeout(resolve, 50));
 
         const iterations = 5000;
 
         // Base parameters from projectParams (these will be overridden per configuration)
-        const baseParams = { ...projectParams };
+        // FORCE detailed OPEX mode for simulation
+        const baseParams = {
+            ...projectParams,
+            opexMode: 'detailed',
+            productionMode: 'detailed',
+            opexParams: {
+                ...projectParams?.opexParams,
+                opexMode: 'detailed',
+                opexFixed: projectParams?.opexParams?.opexFixed || 100,
+                opexVariable: projectParams?.opexParams?.opexVariable || 5,
+                workoverLambda: projectParams?.opexParams?.workoverLambda || 0.15,
+                workoverDailyRate: projectParams?.opexParams?.workoverDailyRate || 800,
+                workoverTesp: projectParams?.opexParams?.workoverTesp || 90
+            },
+            productionParams: {
+                ...projectParams?.productionParams,
+                productionMode: 'detailed'
+            }
+        };
 
         // Configuration Definitions with their parameter distributions
         const configs = {
@@ -194,7 +235,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                 declineRate: () => normalRandom(10, 2), // % value
                 hyperbolicFactor: () => triangularRandom(0.1, 0.3, 0.4),
                 breakthroughYears: () => triangularRandom(5, 6, 7),
-                waterGrowthK: () => triangularRandom(0.6, 0.8, 1.1)
+                waterGrowthK: () => triangularRandom(0.6, 0.8, 1.0)
             },
             'Inteligente Hidráulica': {
                 capexMult: () => triangularRandom(1.05, 1.10, 1.20),
@@ -216,7 +257,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                 declineRate: () => normalRandom(7, 1), // % value
                 hyperbolicFactor: () => triangularRandom(0.5, 0.6, 0.8),
                 breakthroughYears: () => triangularRandom(8, 9, 10),
-                waterGrowthK: () => triangularRandom(0.5, 0.6, 0.7)
+                waterGrowthK: () => triangularRandom(0.4, 0.6, 0.7)
             }
         };
 
@@ -1494,6 +1535,11 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                 )}
                             </div>
 
+                            {/* TORNADO CHART (Integrated in Right Column) */}
+                            <div className="mb-6">
+                                <TornadoChart projectParams={{ ...projectParams, wellsParams: currentConfig }} />
+                            </div>
+
                             <div className="space-y-6">
                                 {/* CATEGORY 1: CONVENTIONAL */}
                                 <div className="border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -1587,7 +1633,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Dados de campo de Búz/Tupi (poços não inteligentes).</p>
                                                     <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.6, 0.8, 1.1)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.6, 0.8, 1.0)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1727,7 +1773,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Dikken (1990) sobre Pressure Drop in Horizontal Wells e Al-Khelaiwi (SPE 2013) sobre o impacto de Interval Control Valves (ICV) na varredura de óleo.</p>
                                                     <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.5, 0.6, 0.7)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.4, 0.6, 0.7)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1738,6 +1784,9 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                     }
 
                 </div >
+
+                {/* TORNADO CHART SECTION (Newly Added) */}
+
 
                 {/* DISCLAIMER FOOTER */}
                 < div className="col-span-1 lg:col-span-12 mt-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 flex items-start gap-3" >
