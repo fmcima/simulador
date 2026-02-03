@@ -1,9 +1,10 @@
 import React from 'react';
-import { DollarSign, Percent, Wrench, Activity, Info, Droplet, BarChart2 } from 'lucide-react';
+import { DollarSign, Percent, Wrench, Activity, Info, Droplet, BarChart2, TrendingUp, Eye, EyeOff } from 'lucide-react';
 import { formatCurrency, formatMillionsNoDecimals, generateProjectData } from '../utils/calculations';
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
+    const [showFailureChart, setShowFailureChart] = React.useState(false);
 
     const handleChange = (field, value) => {
         setParams(prev => ({ ...prev, [field]: value }));
@@ -46,6 +47,144 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
             opexVariable: typicalOpexVariable
         }));
     };
+
+    // Calculate failure rate chart data (moved to component level to fix Hooks order)
+    const failureChartData = React.useMemo(() => {
+        if (params.opexMode !== 'detailed') return [];
+
+        try {
+            const projectDuration = params.projectDuration || 30;
+            const lambdaAvg = params.workoverLambda || 0.15;
+            const waitDays = params.workoverTesp || 90;
+            const failureProfile = params.workoverFailureProfile || 'wearout';
+
+            const projectData = generateProjectData(params);
+            if (!projectData || !projectData.yearlyData) {
+                return [];
+            }
+
+            const data = projectData.yearlyData;
+
+            return data.filter(d => d && d.revenue > 0).map(d => {
+                const year = d.year;
+                let lambda;
+
+                if (failureProfile === 'bathtub') {
+                    const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                    const centered = normalizedTime - 0.5;
+
+                    const minLambda = lambdaAvg * 0.5;
+                    const maxLambda = lambdaAvg * 2.0;
+                    const a = (maxLambda - minLambda) * 4;
+                    const b = minLambda;
+
+                    lambda = a * centered * centered + b;
+                    lambda = Math.max(0, Math.min(maxLambda, lambda));
+                } else {
+                    const growthFactor = 1.5;
+                    const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                    const multiplier = 1 + growthFactor * (normalizedTime - 0.5);
+                    lambda = Math.max(0, lambdaAvg * multiplier);
+                }
+
+                // Calculate production loss for this year
+                const daysLostPerYear = lambda * waitDays;
+                const efficiencyLoss = Math.min(1, Math.max(0, daysLostPerYear / 365));
+                const productionLossPct = efficiencyLoss * 100;
+
+                // Calculate absolute production loss in MM bbl
+                const brentPrice = params.brentPrice || 70;
+                const revenue = d.revenue || 0;
+                const productionMMbbl = revenue > 0 ? revenue / brentPrice / 1000000 : 0;
+                const productionLossMMbbl = productionMMbbl * efficiencyLoss;
+
+                return {
+                    year: d.year,
+                    lambda: lambda * 100, // Convert to percentage
+                    lambdaAvg: lambdaAvg * 100, // Reference line
+                    efficiencyLossPct: productionLossPct,
+                    productionLossMMbbl: productionLossMMbbl || 0
+                };
+            });
+        } catch (error) {
+            console.error('Error generating failure chart data:', error);
+            return [];
+        }
+    }, [params]);
+
+    // Calculate realistic production loss considering temporal interaction between
+    // failure profile and production profile
+    const productionLossStats = React.useMemo(() => {
+        if (params.opexMode !== 'detailed' || !params.workoverLambda || !params.workoverTesp) {
+            return { lossPerWell: 0, totalLoss: 0 };
+        }
+
+        try {
+            const projectDuration = params.projectDuration || 30;
+            const lambdaAvg = params.workoverLambda;
+            const waitDays = params.workoverTesp;
+            const failureProfile = params.workoverFailureProfile || 'wearout';
+            const numWells = params.wellsParams?.numWells || 16;
+            const brentPrice = params.brentPrice || 70;
+
+            const projectData = generateProjectData(params);
+            if (!projectData || !projectData.yearlyData) {
+                return { lossPerWell: 0, totalLoss: 0 };
+            }
+
+            let totalProductionLoss = 0; // in bbl
+
+            projectData.yearlyData.forEach(d => {
+                if (!d || d.revenue <= 0) return;
+
+                const year = d.year;
+                let lambda;
+
+                // Calculate time-dependent lambda for this year
+                if (failureProfile === 'bathtub') {
+                    const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                    const centered = normalizedTime - 0.5;
+
+                    const minLambda = lambdaAvg * 0.5;
+                    const maxLambda = lambdaAvg * 2.0;
+                    const a = (maxLambda - minLambda) * 4;
+                    const b = minLambda;
+
+                    lambda = a * centered * centered + b;
+                    lambda = Math.max(0, Math.min(maxLambda, lambda));
+                } else {
+                    const growthFactor = 1.5;
+                    const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                    const multiplier = 1 + growthFactor * (normalizedTime - 0.5);
+                    lambda = Math.max(0, lambdaAvg * multiplier);
+                }
+
+                // Calculate production loss for this specific year
+                const daysLostPerYear = lambda * waitDays;
+                const efficiencyLoss = Math.min(1, Math.max(0, daysLostPerYear / 365));
+
+                // Get actual production for this year (before loss)
+                const productionMMbbl = d.revenue / brentPrice / 1000000;
+                const productionBbl = productionMMbbl * 1000000;
+
+                // Add this year's loss to total
+                totalProductionLoss += productionBbl * efficiencyLoss;
+            });
+
+            // Calculate per-well annual average
+            const totalYears = projectData.yearlyData.filter(d => d && d.revenue > 0).length;
+            const lossPerWell = totalYears > 0 ? totalProductionLoss / numWells / totalYears : 0;
+            const totalLossPerYear = totalYears > 0 ? totalProductionLoss / totalYears : 0;
+
+            return {
+                lossPerWell, // bbl/year per well
+                totalLoss: totalLossPerYear / 1000000 // MM bbl/year total
+            };
+        } catch (error) {
+            console.error('Error calculating production loss:', error);
+            return { lossPerWell: 0, totalLoss: 0 };
+        }
+    }, [params]);
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -197,7 +336,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                     <span className="text-xs font-bold text-purple-600">{params.workoverLambda || 0.15} eventos por ano</span>
                                                 </div>
                                                 <input
-                                                    type="range" min="0.05" max="0.5" step="0.01"
+                                                    type="range" min="0.01" max="0.25" step="0.01"
                                                     value={params.workoverLambda || 0.15}
                                                     onChange={(e) => {
                                                         const val = Number(e.target.value);
@@ -368,38 +507,15 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                     <div className="flex justify-between text-xs text-slate-500">
                                                         <span>Perda de Produção por Poço:</span>
                                                         <span className="font-mono text-red-600 dark:text-red-400">
-                                                            {(() => {
-                                                                const lambda = params.workoverLambda || 0.15;
-                                                                const dur = params.workoverDuration || 20;
-                                                                const tesp = params.workoverTesp || 90;
-
-                                                                const peak = params.peakProduction || 150;
-                                                                const producers = params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8);
-                                                                const qWell = (peak * 1000) / producers;
-
-                                                                const pProdBbl = lambda * (tesp + dur) * qWell;
-                                                                return Math.round(pProdBbl).toLocaleString() + ' bbl/ano';
-                                                            })()}
+                                                            {Math.round(productionLossStats.lossPerWell).toLocaleString()} bbl/ano
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between items-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-900/30">
                                                         <span className="text-xs font-bold text-red-800 dark:text-red-300">
-                                                            Perda de Produção Total ({params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8)} Poços Prod)
+                                                            Perda de Produção Total ({params.wellsParams?.numWells || 16} Poços Prod)
                                                         </span>
                                                         <span className="text-sm font-bold text-red-700 dark:text-red-400">
-                                                            {(() => {
-                                                                const lambda = params.workoverLambda || 0.15;
-                                                                const dur = params.workoverDuration || 20;
-                                                                const tesp = params.workoverTesp || 90;
-
-                                                                const peak = params.peakProduction || 150;
-                                                                const producers = params.wellsParams?.producers || (params.wellsParams?.numWells ? Math.ceil(params.wellsParams.numWells / 2) : 8);
-                                                                const qWell = (peak * 1000) / producers;
-
-                                                                const pProdBbl = lambda * (tesp + dur) * qWell;
-                                                                const totalMM = (pProdBbl * producers) / 1000000;
-                                                                return totalMM.toFixed(2) + ' MM bbl/ano';
-                                                            })()}
+                                                            {productionLossStats.totalLoss.toFixed(2)} MM bbl/ano
                                                         </span>
                                                     </div>
                                                 </div>
@@ -564,6 +680,124 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
+
+                {/* FAILURE RATE EVOLUTION CHART - Collapsible */}
+                {params.opexMode === 'detailed' && (
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <TrendingUp size={20} className="text-orange-600 dark:text-orange-400" />
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                                    Evolução da Taxa de Falha e Perda de Produção
+                                </h3>
+                            </div>
+                            <button
+                                onClick={() => setShowFailureChart(!showFailureChart)}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors text-sm font-medium"
+                            >
+                                {showFailureChart ? (
+                                    <>
+                                        <EyeOff size={16} />
+                                        Ocultar Gráfico
+                                    </>
+                                ) : (
+                                    <>
+                                        <Eye size={16} />
+                                        Visualizar Gráfico
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        {showFailureChart && (
+                            <>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                                    Visualização da taxa de falha (λ) e perda de produção ao longo do tempo,
+                                    seguindo o perfil <strong>{(params.workoverFailureProfile || 'wearout') === 'wearout' ? 'Desgaste' : 'Banheira'}</strong>.
+                                </p>
+
+                                <div className="h-[400px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <ComposedChart data={failureChartData}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" opacity={0.3} />
+                                            <XAxis
+                                                dataKey="year"
+                                                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                label={{ value: 'Ano do Projeto', position: 'insideBottom', offset: -5, fill: '#94a3b8', fontSize: 11 }}
+                                            />
+                                            <YAxis
+                                                yAxisId="left"
+                                                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tickFormatter={(val) => `${val.toFixed(1)}%`}
+                                                label={{ value: 'Taxa de Falha (%)', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                                            />
+                                            <YAxis
+                                                yAxisId="right"
+                                                orientation="right"
+                                                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tickFormatter={(val) => `${val.toFixed(2)}`}
+                                                label={{ value: 'Perda de Produção (MM bbl)', angle: 90, position: 'insideRight', fill: '#94a3b8', fontSize: 11 }}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                formatter={(value, name) => {
+                                                    if (name === 'Taxa de Falha') return [`${value.toFixed(2)}%`, name];
+                                                    if (name === 'Taxa Média') return [`${value.toFixed(2)}%`, name];
+                                                    if (name === 'Perda % Eficiência') return [`${value.toFixed(2)}%`, name];
+                                                    if (name === 'Perda de Produção') return [`${value.toFixed(3)} MM bbl`, name];
+                                                    return [value, name];
+                                                }}
+                                                labelFormatter={(label) => `Ano ${label}`}
+                                            />
+                                            <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+
+                                            {/* Reference line for average lambda */}
+                                            <Line
+                                                yAxisId="left"
+                                                type="monotone"
+                                                dataKey="lambdaAvg"
+                                                name="Taxa Média"
+                                                stroke="#94a3b8"
+                                                strokeWidth={1}
+                                                strokeDasharray="5 5"
+                                                dot={false}
+                                            />
+
+                                            {/* Actual lambda over time */}
+                                            <Line
+                                                yAxisId="left"
+                                                type="monotone"
+                                                dataKey="lambda"
+                                                name="Taxa de Falha"
+                                                stroke="#f97316"
+                                                strokeWidth={3}
+                                                dot={false}
+                                            />
+
+                                            {/* Production loss area */}
+                                            <Area
+                                                yAxisId="right"
+                                                type="monotone"
+                                                dataKey="productionLossMMbbl"
+                                                name="Perda de Produção"
+                                                fill="#ef4444"
+                                                fillOpacity={0.3}
+                                                stroke="#ef4444"
+                                                strokeWidth={2}
+                                            />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
