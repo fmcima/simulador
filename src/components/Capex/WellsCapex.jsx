@@ -71,158 +71,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     };
 
     // --- Monte Carlo Run Function ---
-    const runMonteCarlo = async () => {
-        setIsSimulating(true);
-        setMonteCarloResults(null);
 
-        // Use setTimeout to allow UI to update before heavy computation
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        const iterations = 5000;
-
-        // Base parameters from projectParams (these will be overridden per configuration)
-        const baseParams = { ...projectParams };
-
-        // Get the base CAPEX from the Wells Capex component
-        const baseWellsCapex = (costs?.totalMM || 2400) * 1000000;
-
-        // Configuration Definitions with their parameter distributions
-        const configs = {
-            'Convencional': {
-                capexMult: () => 0.8,
-                rigMult: () => 1.0,
-                waitDays: () => triangularRandom(90, 120, 180),
-                declineRate: () => normalRandom(10, 2), // % value
-                hyperbolicFactor: () => triangularRandom(0.1, 0.3, 0.4),
-                breakthroughYears: () => triangularRandom(5, 6, 7),
-                waterGrowthK: () => triangularRandom(0.6, 0.8, 1.1)
-            },
-            'Inteligente Hidráulica': {
-                capexMult: () => triangularRandom(1.05, 1.10, 1.20),
-                rigMult: () => 1.0,
-                waitDays: () => 0,
-                declineRate: () => normalRandom(9, 1.5), // % value
-                hyperbolicFactor: () => triangularRandom(0.3, 0.5, 0.6),
-                breakthroughYears: () => triangularRandom(6, 7, 8),
-                waterGrowthK: () => triangularRandom(0.5, 0.7, 0.9)
-            },
-            'Inteligente Elétrica': {
-                capexMult: () => triangularRandom(1.1, 1.25, 1.35),
-                rigMult: () => 1.2,
-                waitDays: () => 0,
-                declineRate: () => normalRandom(7, 1), // % value
-                hyperbolicFactor: () => triangularRandom(0.5, 0.6, 0.8),
-                breakthroughYears: () => triangularRandom(8, 9, 10),
-                waterGrowthK: () => triangularRandom(0.5, 0.6, 0.7)
-            }
-        };
-
-        const results = {};
-        const allCategoryData = {}; // Store raw npvs for second pass
-
-        // FIRST PASS: Collect all NPV values to determine global range
-        let globalMin = Infinity;
-        let globalMax = -Infinity;
-
-        for (const [configName, samplers] of Object.entries(configs)) {
-            const npvs = [];
-
-            for (let i = 0; i < iterations; i++) {
-                // Sample parameters for this iteration
-                const capexMult = samplers.capexMult();
-                const rigMult = samplers.rigMult();
-                const declineRate = Math.max(1, samplers.declineRate()); // Ensure positive %
-                const hyperbolicFactor = Math.max(0, Math.min(1, samplers.hyperbolicFactor()));
-                const breakthroughYears = samplers.breakthroughYears();
-                const waterGrowthK = samplers.waterGrowthK();
-
-                // Calculate adjusted CAPEX - apply multiplier delta to the TOTAL project capex
-                // capexMult affects only wells portion, so we calculate the delta
-                const wellsCapexDelta = baseWellsCapex * (capexMult * rigMult - 1);
-                const adjustedTotalCapex = (projectParams?.totalCapex || 5400000000) + wellsCapexDelta;
-
-                // Build iteration params - override the varied parameters
-                const iterParams = {
-                    ...baseParams,
-                    totalCapex: adjustedTotalCapex,
-                    declineRate: declineRate,
-                    hyperbolicFactor: hyperbolicFactor,
-                    bswBreakthrough: breakthroughYears,
-                    bswGrowthRate: waterGrowthK
-                };
-
-                // Call the actual project calculation
-                try {
-                    const result = generateProjectData(iterParams);
-                    if (result && result.metrics && typeof result.metrics.vpl === 'number' && isFinite(result.metrics.vpl)) {
-                        npvs.push(result.metrics.vpl / 1000000); // Convert to MM
-                    }
-                } catch (e) {
-                    // Skip failed iterations
-                    console.warn('Monte Carlo iteration failed:', e);
-                }
-            }
-
-            // Store for second pass
-            if (npvs.length > 0) {
-                npvs.sort((a, b) => a - b);
-                allCategoryData[configName] = npvs;
-                // Update global range
-                globalMin = Math.min(globalMin, npvs[0]);
-                globalMax = Math.max(globalMax, npvs[npvs.length - 1]);
-            } else {
-                allCategoryData[configName] = [];
-            }
-        }
-
-        // SECOND PASS: Generate histograms with unified bins
-        const binCount = 20;
-        const binWidth = globalMax > globalMin ? (globalMax - globalMin) / binCount : 1;
-
-        for (const [configName, npvs] of Object.entries(allCategoryData)) {
-            if (npvs.length > 0) {
-                const mean = npvs.reduce((a, b) => a + b, 0) / npvs.length;
-                const p10Index = Math.floor(0.10 * npvs.length);
-                const p50Index = Math.floor(0.50 * npvs.length);
-                const p90Index = Math.floor(0.90 * npvs.length);
-
-                // Generate histogram with global bins
-                const histogram = [];
-                for (let b = 0; b < binCount; b++) {
-                    const binStart = globalMin + b * binWidth;
-                    const binEnd = binStart + binWidth;
-                    const count = npvs.filter(v => v >= binStart && v < binEnd).length;
-                    histogram.push({
-                        bin: (binStart / 1000).toFixed(2), // Convert to Billions
-                        value: binStart,
-                        frequency: count,
-                        probability: (count / npvs.length * 100).toFixed(1)
-                    });
-                }
-
-                results[configName] = {
-                    mean: mean,
-                    p10: npvs[p10Index],
-                    p50: npvs[p50Index],
-                    p90: npvs[p90Index],
-                    count: npvs.length,
-                    histogram: histogram
-                };
-            } else {
-                results[configName] = {
-                    mean: 0,
-                    p10: 0,
-                    p50: 0,
-                    p90: 0,
-                    count: 0,
-                    histogram: []
-                };
-            }
-        }
-
-        setMonteCarloResults(results);
-        setIsSimulating(false);
-    };
 
     // --- EFFECT: Update Defaults based on Type & Complexity ---
     useEffect(() => {
@@ -320,6 +169,175 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
 
     const calculatedCostPerWell = dailyCostPerWellAvg + materialsCostPerWell; // $ MM
     const currentTotal = mode === 'simple' ? simpleTotal : dailyCostTotal + materialsCostTotal;
+
+    // --- Monte Carlo Simulation Logic (Moved here to access calculated costs) ---
+    const runMonteCarlo = async () => {
+        setIsSimulating(true);
+        setMonteCarloResults(null);
+
+        // Use setTimeout to allow UI to update before heavy computation
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const iterations = 5000;
+
+        // Base parameters from projectParams (these will be overridden per configuration)
+        const baseParams = { ...projectParams };
+
+        // Configuration Definitions with their parameter distributions
+        const configs = {
+            'Convencional': {
+                capexMult: () => 1.0,
+                workoverLambda: () => 0.15,
+                lambdaProfile: 'wearout', // Increasing failure rate
+                rigMult: () => 1.0,
+                waitDays: () => triangularRandom(60, 90, 120),
+                declineRate: () => normalRandom(10, 2), // % value
+                hyperbolicFactor: () => triangularRandom(0.1, 0.3, 0.4),
+                breakthroughYears: () => triangularRandom(5, 6, 7),
+                waterGrowthK: () => triangularRandom(0.6, 0.8, 1.1)
+            },
+            'Inteligente Hidráulica': {
+                capexMult: () => triangularRandom(1.05, 1.10, 1.20),
+                workoverLambda: () => 0.05,
+                lambdaProfile: 'bathtub', // High early, low mid, high late
+                rigMult: () => 1.1, // Adjusted to 1.1 as requested
+                waitDays: () => 0,
+                declineRate: () => normalRandom(9, 1.5), // % value
+                hyperbolicFactor: () => triangularRandom(0.3, 0.5, 0.6),
+                breakthroughYears: () => triangularRandom(6, 7, 8),
+                waterGrowthK: () => triangularRandom(0.5, 0.7, 0.9)
+            },
+            'Inteligente Elétrica': {
+                capexMult: () => triangularRandom(1.1, 1.25, 1.35),
+                workoverLambda: () => 0.04,
+                lambdaProfile: 'bathtub', // High early, low mid, high late
+                rigMult: () => 1.2,
+                waitDays: () => 0,
+                declineRate: () => normalRandom(7, 1), // % value
+                hyperbolicFactor: () => triangularRandom(0.5, 0.6, 0.8),
+                breakthroughYears: () => triangularRandom(8, 9, 10),
+                waterGrowthK: () => triangularRandom(0.5, 0.6, 0.7)
+            }
+        };
+
+        const results = {};
+        const allCategoryData = {}; // Store raw npvs for second pass
+
+        // FIRST PASS: Collect all NPV values to determine global range
+        let globalMin = Infinity;
+        let globalMax = -Infinity;
+
+        for (const [configName, samplers] of Object.entries(configs)) {
+            const npvs = [];
+
+            for (let i = 0; i < iterations; i++) {
+                // Sample parameters for this iteration
+                const capexMult = samplers.capexMult();
+                const rigMult = samplers.rigMult();
+                const workoverLambda = samplers.workoverLambda();
+                const declineRate = Math.max(1, samplers.declineRate()); // Ensure positive %
+                const hyperbolicFactor = Math.max(0, Math.min(1, samplers.hyperbolicFactor()));
+                const breakthroughYears = samplers.breakthroughYears();
+                const waterGrowthK = samplers.waterGrowthK();
+
+                // Calculate adjusted CAPEX - Granular Approach
+                // 1. Materials: Apply capexMult
+                // 2. Daily Rates (Rig + Services): Apply rigMult
+
+                // Note: dailyCostTotal includes Rig + Services for the campaign.
+                // We apply rigMult to this component.
+                const deltaMaterials = (materialsCostTotal * 1000000) * (capexMult - 1);
+                const deltaRig = (dailyCostTotal * 1000000) * (rigMult - 1);
+
+                const wellsCapexDelta = deltaMaterials + deltaRig;
+
+                const adjustedTotalCapex = (projectParams?.totalCapex || 5400000000) + wellsCapexDelta;
+
+                // Build iteration params - override the varied parameters
+                const lambdaProfile = samplers.lambdaProfile;
+                const iterParams = {
+                    ...baseParams,
+                    totalCapex: adjustedTotalCapex,
+                    workoverLambda: workoverLambda,
+                    lambdaProfile: lambdaProfile, // Pass profile to calculation
+                    workoverRateMult: rigMult, // Pass rigMult to affect workover daily rate logic in OPEX
+                    declineRate: declineRate,
+                    hyperbolicFactor: hyperbolicFactor,
+                    bswBreakthrough: breakthroughYears,
+                    bswGrowthRate: waterGrowthK
+                };
+
+                // Call the actual project calculation
+                try {
+                    const result = generateProjectData(iterParams);
+                    if (result && result.metrics && typeof result.metrics.vpl === 'number' && isFinite(result.metrics.vpl)) {
+                        npvs.push(result.metrics.vpl / 1000000); // Convert to MM
+                    }
+                } catch (e) {
+                    console.warn('Monte Carlo iteration failed:', e);
+                }
+            }
+
+            // Store for second pass
+            if (npvs.length > 0) {
+                npvs.sort((a, b) => a - b);
+                allCategoryData[configName] = npvs;
+                // Update global range
+                globalMin = Math.min(globalMin, npvs[0]);
+                globalMax = Math.max(globalMax, npvs[npvs.length - 1]);
+            } else {
+                allCategoryData[configName] = [];
+            }
+        }
+
+        // SECOND PASS: Generate histograms with unified bins
+        const binCount = 20;
+        const binWidth = globalMax > globalMin ? (globalMax - globalMin) / binCount : 1;
+
+        for (const [configName, npvs] of Object.entries(allCategoryData)) {
+            if (npvs.length > 0) {
+                const mean = npvs.reduce((a, b) => a + b, 0) / npvs.length;
+                const p10Index = Math.floor(0.10 * npvs.length);
+                const p50Index = Math.floor(0.50 * npvs.length);
+                const p90Index = Math.floor(0.90 * npvs.length);
+
+                // Generate histogram with global bins
+                const histogram = [];
+                for (let b = 0; b < binCount; b++) {
+                    const binStart = globalMin + b * binWidth;
+                    const binEnd = binStart + binWidth;
+                    const count = npvs.filter(v => v >= binStart && v < binEnd).length;
+                    histogram.push({
+                        bin: (binStart / 1000).toFixed(2), // Convert to Billions
+                        value: binStart,
+                        frequency: count,
+                        probability: (count / npvs.length * 100).toFixed(1)
+                    });
+                }
+
+                results[configName] = {
+                    mean: mean,
+                    p10: npvs[p10Index],
+                    p50: npvs[p50Index],
+                    p90: npvs[p90Index],
+                    count: npvs.length,
+                    histogram: histogram
+                };
+            } else {
+                results[configName] = {
+                    mean: 0,
+                    p10: 0,
+                    p50: 0,
+                    p90: 0,
+                    count: 0,
+                    histogram: []
+                };
+            }
+        }
+
+        setMonteCarloResults(results);
+        setIsSimulating(false);
+    };
 
     // Chart Data
     // Chart Data Logic
@@ -1499,18 +1517,18 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Relatórios de Desempenho de Sondas (Rushmore Reviews). A completação convencional é, em média, 20-30% mais rápida de instalar que uma inteligente, economizando dias de sonda.</p>
                                                     <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">0.8</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Falha (Lambda)</p>
                                                 <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
                                                     <p className="font-bold mb-1 text-red-400">Racional (Crítico):</p>
-                                                    <p className="mb-2 leading-relaxed">Se uma zona começa a produzir água excessiva, a completação convencional falha em conter isso. A única solução é uma Intervenção Pesada (Heavy Workover).</p>
+                                                    <p className="mb-2 leading-relaxed">Perfil "Wear-out": falhas aumentam com o tempo devido ao desgaste mecânico. Lambda médio de 0.15</p>
                                                     <p className="font-bold mb-1 text-blue-400">Referência:</p>
-                                                    <p className="italic text-slate-300 leading-relaxed">ISO 14224. Classifica a "inabilidade de isolar zonas" como uma falha funcional crítica do poço.</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">ISO 14224. Classifica a "inabilidade de isolar zonas" como uma falha funcional crítica.</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">0.15</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">0.15 (Wear-out)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
@@ -1525,7 +1543,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">ISO 14224. Classifica a "inabilidade de isolar zonas" como uma falha funcional crítica do poço.</p>
                                                     <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-orange-600 dark:text-orange-400">Triang(90, 120, 180)</p>
+                                                <p className="font-mono font-bold text-orange-600 dark:text-orange-400">Triang(60, 90, 120)</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Declínio Global</p>
@@ -1603,16 +1621,16 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Falha (Lambda)</p>
                                                 <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
                                                     <p className="font-bold mb-1 text-emerald-400">Racional:</p>
-                                                    <p className="mb-2 leading-relaxed">A tecnologia é madura (&gt;20 anos). Falhas hidráulicas geralmente permitem operação degradada (ex: válvula trava aberta), não exigindo sonda imediata. A maioria dos ajustes é feita da sala de controle, por isso o lead_time é zero na maioria dos casos.</p>
+                                                    <p className="mb-2 leading-relaxed">Perfil "Banheira": mortalidade infantil (ajustes) seguida de longa estabilidade. Média 0.05.</p>
                                                     <p className="font-bold mb-1 text-blue-400">Referência:</p>
-                                                    <p className="italic text-slate-300 leading-relaxed">OREDA Handbook (Vol 1 - Subsea & Downhole Equipment). A taxa de falha de sistemas hidráulicos passivos é historicamente baixa em comparação a sistemas eletrônicos.</p>
+                                                    <p className="italic text-slate-300 leading-relaxed">OREDA e Halliburton SmartWell papers. Alta confiabilidade após fase inicial.</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0.05</p>
+                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0.05 (Banheira)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.1</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Tempo Espera (d)</p>
@@ -1671,7 +1689,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">AWES (Advanced Well Equipment Standards) e Papers da OTC (Offshore Technology Conference) sobre "High-Temperature Electronics Survival".</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-purple-600 dark:text-purple-400">0.04</p>
+                                                <p className="font-mono font-bold text-purple-600 dark:text-purple-400">0.04 (Banheira)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>

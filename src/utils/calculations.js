@@ -402,7 +402,24 @@ export const generateProjectData = (params) => {
                 const inflationFactor = Math.pow(1 + costInflation / 100, productionYear - 1);
                 const fixedOpex = opexFixed * inflationFactor;
                 const variableOpex = productionMMbbl * 1000000 * opexVariable;
-                const workover = workoverCost * inflationFactor;
+
+                // Recalculate Workover dynamically to support Monte Carlo variations (Lambda)
+                // If workoverLambda is provided in params, use it. Otherwise fallback to the static workoverCost.
+                let calculatedWorkover = workoverCost;
+
+                if (params.workoverLambda !== undefined) {
+                    const numWells = params.wellsParams?.numWells || 16;
+                    const lambda = params.workoverLambda;
+                    const mob = params.workoverMobCost || 8;
+                    const dur = params.workoverDuration || 20;
+                    const rate = params.workoverDailyRate || 800;
+
+                    // Cost = NumWells * Lambda * (Mob + Dur * Rate)
+                    const costPerEvent = mob + (dur * rate / 1000); // $ MM
+                    calculatedWorkover = (numWells * lambda * costPerEvent * 1000000);
+                }
+
+                const workover = calculatedWorkover * inflationFactor;
                 opex = fixedOpex + variableOpex + workover + gasInjectionCost;
             } else {
                 // Simple Model: % of Revenue + gas injection if in detailed production mode
