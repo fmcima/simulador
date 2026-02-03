@@ -5,8 +5,8 @@ import {
 } from 'recharts';
 import {
     Activity, LayoutTemplate, LineChart as ChartIcon, Landmark, Settings,
-    Split, Table as TableIcon, Maximize, Minimize, Ship, TrendingUp, BookOpen, Wrench,
-    Moon, Sun, Anchor
+    Split, Table as TableIcon, Maximize, Minimize, TrendingUp, BookOpen, Wrench,
+    Moon, Sun, Anchor, Book
 } from 'lucide-react';
 
 import { useTheme } from './hooks/useTheme';
@@ -20,6 +20,7 @@ import ComparisonView from './components/ComparisonView';
 import CashFlowTable from './components/CashFlowTable';
 import ReferencesTable from './components/ReferencesTable';
 import CapexMain from './components/Capex/CapexMain';
+import DocumentationTab from './components/DocumentationTab';
 import { useProjectCalculations } from './hooks/useProjectCalculations';
 import {
     formatCurrency, formatBillions, formatMillionsNoDecimals, calculatePeakFromReserves, getBrentCurve
@@ -28,6 +29,7 @@ import {
 // --- Componente Principal ---
 
 export default function App() {
+    console.log("--- APP MOUNTING: Starting Simulator ---");
     const { theme, toggleTheme } = useTheme();
     const [activeTab, setActiveTab] = useState('single');
     const [isFullScreen, setIsFullScreen] = useState(false);
@@ -407,7 +409,7 @@ export default function App() {
 
                 <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
                     <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right border border-transparent dark:border-slate-800 transition-colors">
-                        {['single', 'production', 'opex', 'capex', 'brent', 'tax', 'compare', 'cashflow_table', 'references'].map(tab => (
+                        {['single', 'production', 'opex', 'capex', 'brent', 'tax', 'compare', 'cashflow_table', 'manual', 'references'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -421,8 +423,9 @@ export default function App() {
                                 {tab === 'tax' && <Landmark size={16} />}
                                 {tab === 'compare' && <Split size={16} />}
                                 {tab === 'cashflow_table' && <TableIcon size={16} />}
+                                {tab === 'manual' && <Book size={16} />}
                                 {tab === 'references' && <BookOpen size={16} />}
-                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'capex' ? 'CAPEX' : tab === 'tax' ? 'Tributos' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Preços' : tab === 'cashflow_table' ? 'Tabela' : 'Referências'}</span>
+                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'capex' ? 'CAPEX' : tab === 'tax' ? 'Tributos' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Preços' : tab === 'cashflow_table' ? 'Tabela' : tab === 'manual' ? 'Manual' : 'Referências'}</span>
                             </button>
                         ))}
                     </div>
@@ -919,6 +922,11 @@ export default function App() {
                         activeModule={capexActiveModule}
                         setActiveModule={setCapexActiveModule}
                     />
+                )}
+
+                {/* --- VIEW: DOCUMENTATION (Manual) --- */}
+                {activeTab === 'manual' && (
+                    <DocumentationTab />
                 )}
 
                 {/* --- VIEW: REFERENCES --- */}
