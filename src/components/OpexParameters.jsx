@@ -176,13 +176,108 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
             const lossPerWell = totalYears > 0 ? totalProductionLoss / numWells / totalYears : 0;
             const totalLossPerYear = totalYears > 0 ? totalProductionLoss / totalYears : 0;
 
+            // Calculate NPV loss from production losses
+            // Uses actual government take from project calculations (royalties + special participation + taxes)
+            const discountRate = (params.tma || 10) / 100;
+            let npvLoss = 0;
+            let totalGovRevenue = 0;
+            let totalRevenueLost = 0;
+
+            projectData.yearlyData.forEach((d, index) => {
+                if (!d || d.revenue <= 0) return;
+
+                const year = d.year;
+                let lambda;
+
+                // Calculate time-dependent lambda for this year
+                if (failureProfile === 'bathtub') {
+                    const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                    const centered = normalizedTime - 0.5;
+
+                    const minLambda = lambdaAvg * 0.5;
+                    const maxLambda = lambdaAvg * 2.0;
+                    const a = (maxLambda - minLambda) * 4;
+                    const b = minLambda;
+
+                    lambda = a * centered * centered + b;
+                    lambda = Math.max(0, Math.min(maxLambda, lambda));
+                } else {
+                    const growthFactor = 1.5;
+                    const normalizedTime = year / Math.max(projectDuration - 1, 1);
+                    const multiplier = 1 + growthFactor * (normalizedTime - 0.5);
+                    lambda = Math.max(0, lambdaAvg * multiplier);
+                }
+
+                // Calculate production loss for this year
+                const daysLostPerYear = lambda * waitDays;
+                const efficiencyLoss = Math.min(1, Math.max(0, daysLostPerYear / 365));
+
+                // Get actual production for this year
+                const productionMMbbl = d.revenue / brentPrice / 1000000;
+                const productionBbl = productionMMbbl * 1000000;
+                const lostProductionBbl = productionBbl * efficiencyLoss;
+
+                // Calculate lost revenue
+                const lostRevenue = lostProductionBbl * brentPrice;
+                totalRevenueLost += lostRevenue;
+
+                // Calculate government take rate for this year from actual data
+                // Note: d.taxes already includes royalties (see calculations.js line 654: taxes = royalties + corporateTax)
+                // Government take = taxes + special participation + profit oil (DO NOT add royalties separately!)
+                const yearTaxes = Math.abs(d.taxes || 0); // Already includes royalties + corporate tax
+                const yearSpecialPart = Math.abs(d.specialParticipation || 0);
+                const yearProfitOil = Math.abs(d.profitOilGov || 0);
+
+                const totalGovRevenueThisYear = yearTaxes + yearSpecialPart + yearProfitOil;
+                totalGovRevenue += totalGovRevenueThisYear;
+
+                const govTakeRate = d.revenue > 0 ? totalGovRevenueThisYear / d.revenue : 0;
+
+                // Calculate net lost revenue (what the company actually loses after government take)
+                const netLostRevenue = lostRevenue * (1 - govTakeRate);
+
+                // Discount to present value
+                const discountFactor = Math.pow(1 + discountRate, -year);
+                npvLoss += netLostRevenue * discountFactor;
+            });
+
+            // Calculate average government take rate across the project
+            // Sum all government revenues and divide by total project revenue
+            let totalProjectRevenue = 0;
+            let totalProjectGovRevenue = 0;
+
+            projectData.yearlyData.forEach(d => {
+                if (!d || d.revenue <= 0) return;
+                totalProjectRevenue += d.revenue;
+
+                const yearTaxes = Math.abs(d.taxes || 0);
+                const yearSpecialPart = Math.abs(d.specialParticipation || 0);
+                const yearProfitOil = Math.abs(d.profitOilGov || 0);
+                totalProjectGovRevenue += (yearTaxes + yearSpecialPart + yearProfitOil);
+            });
+
+            const avgGovTakeRate = totalProjectRevenue > 0 ?
+                (totalProjectGovRevenue / totalProjectRevenue) * 100 :
+                0;
+
+            // Debug: log government take breakdown
+            if (params.opexMode === 'detailed') {
+                console.log('📊 Government Take Calc:', {
+                    totalRevenue: `$${(totalProjectRevenue / 1000000).toFixed(1)}MM`,
+                    totalGovRevenue: `$${(totalProjectGovRevenue / 1000000).toFixed(1)}MM`,
+                    govTakeRate: `${avgGovTakeRate.toFixed(1)}%`
+                });
+            }
+
             return {
                 lossPerWell, // bbl/year per well
-                totalLoss: totalLossPerYear / 1000000 // MM bbl/year total
+                totalLoss: totalLossPerYear / 1000000, // MM bbl/year total
+                npvLoss: npvLoss / 1000000, // MM USD - NPV of lost production
+                govTakeRate: avgGovTakeRate // percentage for display
             };
         } catch (error) {
             console.error('Error calculating production loss:', error);
-            return { lossPerWell: 0, totalLoss: 0 };
+            return { lossPerWell: 0, totalLoss: 0, npvLoss: 0, govTakeRate: 0 };
         }
     }, [params]);
 
@@ -517,6 +612,25 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                         <span className="text-sm font-bold text-red-700 dark:text-red-400">
                                                             {productionLossStats.totalLoss.toFixed(2)} MM bbl/ano
                                                         </span>
+                                                    </div>
+                                                    {/* NPV Loss Card */}
+                                                    <div className="flex justify-between items-center bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 p-3 rounded-lg border-2 border-orange-200 dark:border-orange-800/50 shadow-sm">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wide">
+                                                                💸 Impacto no VPL
+                                                            </span>
+                                                            <span className="text-xs font-bold text-orange-800 dark:text-orange-300 mt-0.5">
+                                                                Perda de Valor Presente Líquido
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="text-base font-bold text-orange-700 dark:text-orange-400">
+                                                                -$ {productionLossStats.npvLoss.toFixed(1)} MM
+                                                            </span>
+                                                            <span className="text-[9px] text-orange-600 dark:text-orange-500">
+                                                                TMA: {params.tma || 10}% • Gov Take: {productionLossStats.govTakeRate.toFixed(1)}%
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
