@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingDown, Droplets, Calculator } from 'lucide-react';
+import { TrendingDown, Droplets, Calculator, Wrench, Info } from 'lucide-react';
 
 // Formatters
 const formatBillions = (value) => {
@@ -7,7 +7,7 @@ const formatBillions = (value) => {
     return `$${inBillions.toFixed(2)}B`;
 };
 
-const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-600" }) => {
+const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-600", onNavigateToCapex, onNavigateToOpex }) => {
     const handleChange = (field, value) => {
         setParams(prev => ({ ...prev, [field]: value }));
     };
@@ -37,9 +37,12 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         className={`w-full ${colorClass}`}
                     />
                     <div className="flex justify-between items-center mt-1">
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                            {formatBillions(params.totalCapex)}
-                        </span>
+                        <button
+                            onClick={onNavigateToCapex}
+                            className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium border border-blue-200 dark:border-blue-800"
+                        >
+                            Detalhamento
+                        </button>
                         <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 border border-slate-200 dark:border-slate-800">
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Manual (Bi $):</span>
                             <input
@@ -55,7 +58,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                     <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-700">
                         <div>
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1 flex justify-between">
-                                <span>Duração (Anos)</span>
+                                <span>Duração do Investimento (Anos)</span>
                                 <span className="font-bold">{params.capexDuration}</span>
                             </label>
                             <input type="range" min="1" max="8" step="1" value={params.capexDuration} onChange={(e) => handleChange('capexDuration', Number(e.target.value))} className={`w-full ${colorClass}`} />
@@ -168,8 +171,28 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             <input type="number" value={params.declineRate} onChange={(e) => handleChange('declineRate', Number(e.target.value))} className="w-full border border-slate-300 dark:border-slate-600 rounded p-1 text-xs bg-white dark:bg-slate-800 dark:text-slate-200" />
                         </div>
                     </div>
-                    <div>
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Margem OPEX: {params.opexMargin}%</label>
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700 mt-2">
+                        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                            <Wrench className="w-4 h-4 text-orange-500" /> Custos Operacionais
+                        </h4>
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                Margem OPEX: {params.opexMargin}%
+                                <div className="group relative">
+                                    <Info className="w-3 h-3 text-slate-400 cursor-help" />
+                                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg hidden group-hover:block z-50 pointer-events-none text-center">
+                                        Percentual da Receita Bruta (modo simplificado)
+                                        <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                                    </div>
+                                </div>
+                            </label>
+                            <button
+                                onClick={onNavigateToOpex}
+                                className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium border border-blue-200 dark:border-blue-800"
+                            >
+                                Detalhamento
+                            </button>
+                        </div>
                         <input
                             type="range" min="10" max="90" step="5"
                             value={params.opexMargin}
@@ -191,7 +214,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         <input type="range" min="0" max="25" step="0.5" value={params.discountRate} onChange={(e) => handleChange('discountRate', Number(e.target.value))} className={`w-full ${colorClass}`} />
                     </div>
                     <div>
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Duração (Anos): {params.projectDuration}</label>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Duração do Projeto (Anos): {params.projectDuration}</label>
                         <input type="range" min="10" max="40" step="1" value={params.projectDuration} onChange={(e) => handleChange('projectDuration', Number(e.target.value))} className={`w-full ${colorClass}`} />
                     </div>
 

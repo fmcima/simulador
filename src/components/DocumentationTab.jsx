@@ -6,6 +6,14 @@ const DocumentationTab = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+    const scrollToSection = (id) => {
+        setActiveSectionId(id);
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
     const manualData = [
         {
             id: 'overview',
@@ -223,30 +231,96 @@ const DocumentationTab = () => {
                         <section>
                             <h5 className="font-bold text-slate-800 dark:text-slate-100">3.1. Curva de Produção (Arps)</h5>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Ramp-up, Platô e Declínio Hiperbólico.</p>
-                            <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">
-                                q(t) = q_max / (1 + b · Di · t)^(1/b)
-                            </code>
+                            <div className="flex justify-center my-4">
+                                <div className="flex items-center gap-3 font-serif text-lg bg-slate-100 dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <span className="italic font-bold">q(t)</span>
+                                    <span>=</span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="border-b border-slate-400 dark:border-slate-500 w-full text-center pb-1 mb-1">
+                                            q<sub>max</sub>
+                                        </span>
+                                        <span className="text-center">
+                                            (1 + b · D<sub>i</sub> · t)<sup>1/b</sup>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded text-xs text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                                <strong className="block mb-2 text-slate-700 dark:text-slate-300">Variáveis:</strong>
+                                <ul className="list-disc pl-4 space-y-1">
+                                    <li><strong className="font-serif">q(t)</strong>: Vazão no tempo t.</li>
+                                    <li><strong className="font-serif">q<sub>max</sub></strong>: Vazão máxima (Platô).</li>
+                                    <li><strong className="font-serif">b</strong>: Fator Hiperbólico (0 a 1).</li>
+                                    <li><strong className="font-serif">D<sub>i</sub></strong>: Declínio Nominal Inicial (% a.a.).</li>
+                                </ul>
+                            </div>
                         </section>
 
                         <section>
                             <h5 className="font-bold text-slate-800 dark:text-slate-100">3.2. Restrição de Líquidos e BSW</h5>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">A água aumenta conforme uma curva logística ("S-Curve"). O óleo é "expulso" pela água quando atinge a capacidade da planta.</p>
-                            <div className="space-y-1">
-                                <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">
-                                    BSW(t) = BSW_max / (1 + e^(-k · (t - t_infl)))
-                                </code>
-                                <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">
-                                    Q_oleo(t) = Min(Q_potencial, Cap_liq × (1 - BSW(t)))
-                                </code>
+                            <div className="space-y-4 my-4">
+                                <div className="flex justify-center">
+                                    <div className="flex items-center gap-3 font-serif text-lg bg-slate-100 dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                        <span className="italic font-bold">BSW(t)</span>
+                                        <span>=</span>
+                                        <div className="flex flex-col items-center">
+                                            <span className="border-b border-slate-400 dark:border-slate-500 w-full text-center pb-1 mb-1">
+                                                BSW<sub>max</sub>
+                                            </span>
+                                            <span className="text-center">
+                                                1 + e<sup>-k · (t - t<sub>infl</sub>)</sup>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex justify-center">
+                                    <div className="flex items-center gap-3 font-serif text-lg bg-slate-100 dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                        <span className="italic font-bold">Q<sub>oleo</sub>(t)</span>
+                                        <span>=</span>
+                                        <span>Min</span>
+                                        <span className="text-2xl">(</span>
+                                        <span className="italic">Q<sub>potencial</sub>, Cap<sub>liq</sub> · (1 - BSW(t))</span>
+                                        <span className="text-2xl">)</span>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded text-xs text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                                    <strong className="block mb-2 text-slate-700 dark:text-slate-300">Variáveis:</strong>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li><strong className="font-serif">BSW<sub>max</sub></strong>: BSW máximo permitido (limite físico).</li>
+                                        <li><strong className="font-serif">k</strong>: Velocidade de crescimento da água.</li>
+                                        <li><strong className="font-serif">t<sub>infl</sub></strong>: Ano de inflexão (quando a água acelera).</li>
+                                        <li><strong className="font-serif">Q<sub>potencial</sub></strong>: Produção téorica sem restrição.</li>
+                                        <li><strong className="font-serif">Cap<sub>liq</sub></strong>: Capacidade de processamento de líquidos da planta.</li>
+                                    </ul>
+                                </div>
                             </div>
                         </section>
 
                         <section>
                             <h5 className="font-bold text-slate-800 dark:text-slate-100">3.3. Receita Bruta</h5>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Volume de óleo multiplicado pelo preço corrigido pela qualidade (API).</p>
-                            <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">
-                                RB(t) = Q_oleo(t) × (P_Brent(t) + ∆_API) × 365
-                            </code>
+                            <div className="flex flex-col items-center my-4 gap-4">
+                                <div className="flex items-center gap-3 font-serif text-lg bg-slate-100 dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <span className="italic font-bold">RB(t)</span>
+                                    <span>=</span>
+                                    <span className="italic">Q<sub>oleo</sub>(t)</span>
+                                    <span>·</span>
+                                    <span>(</span>
+                                    <span className="italic">P<sub>Brent</sub>(t) + ∆<sub>API</sub></span>
+                                    <span>)</span>
+                                    <span>·</span>
+                                    <span>365</span>
+                                </div>
+                                <div className="w-full bg-slate-50 dark:bg-slate-900 p-3 rounded text-xs text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                                    <strong className="block mb-2 text-slate-700 dark:text-slate-300">Variáveis:</strong>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li><strong className="font-serif">Q<sub>oleo</sub></strong>: Vazão diária de óleo (bbl/d).</li>
+                                        <li><strong className="font-serif">P<sub>Brent</sub></strong>: Preço do Brent no ano t ($/bbl).</li>
+                                        <li><strong className="font-serif">∆<sub>API</sub></strong>: Ajuste de qualidade (Premium ou Desconto).</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </section>
 
                         <section>
@@ -254,16 +328,38 @@ const DocumentationTab = () => {
                             <div className="space-y-2">
                                 <div>
                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Royalties:</span>
-                                    <code className="block bg-slate-100 dark:bg-slate-800 p-1 rounded text-xs font-mono mt-1">
-                                        ROY(t) = RB(t) × %Royalty (ex: 10%)
-                                    </code>
+                                    <div className="flex justify-center my-2">
+                                        <div className="flex items-center gap-3 font-serif text-sm bg-slate-100 dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                            <span className="italic font-bold">ROY(t)</span>
+                                            <span>=</span>
+                                            <span className="italic">RB(t)</span>
+                                            <span>·</span>
+                                            <span>%Royalty</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div>
                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Participação Especial (PE):</span>
                                     <p className="text-[10px] text-slate-500 mb-1">Aplicada trimestralmente sobre a Receita Líquida Fiscal.</p>
-                                    <code className="block bg-slate-100 dark:bg-slate-800 p-1 rounded text-xs font-mono">
-                                        PE(t) = (RB(t) - Deduções) × Alíquota_Progressiva
-                                    </code>
+                                    <div className="flex justify-center my-2">
+                                        <div className="flex items-center gap-3 font-serif text-sm bg-slate-100 dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                            <span className="italic font-bold">PE(t)</span>
+                                            <span>=</span>
+                                            <span>(</span>
+                                            <span className="italic">RB(t) - Deduções</span>
+                                            <span>)</span>
+                                            <span>·</span>
+                                            <span>Alíquota<sub>Prog</sub></span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded text-xs text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800 mt-2">
+                                        <strong className="block mb-1 text-slate-700 dark:text-slate-300">Variáveis:</strong>
+                                        <ul className="list-disc pl-4 space-y-1">
+                                            <li><strong className="font-serif">%Royalty</strong>: Geralmente 10% ou 15% da Receita Bruta.</li>
+                                            <li><strong className="font-serif">Deduções</strong>: OPEX, Depreciação e Royalties pagos.</li>
+                                            <li><strong className="font-serif">Alíquota<sub>Prog</sub></strong>: Tabela progressiva da ANP baseada em produção/profundidade.</li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </section>
@@ -271,9 +367,29 @@ const DocumentationTab = () => {
                         <section>
                             <h5 className="font-bold text-slate-800 dark:text-slate-100">3.5. CAPEX Efetivo e Repetro</h5>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">O custo final inclui impostos não recuperáveis ("Gross Up"), mitigados pelo Repetro.</p>
-                            <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">
-                                CAPEX_Final = CAPEX_Base × (1 + ∑(%Item × (1 - %Repetro) × Taxa))
-                            </code>
+                            <div className="flex flex-col items-center my-4 gap-4">
+                                <div className="flex items-center gap-3 font-serif text-lg bg-slate-100 dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <span className="italic font-bold">CAPEX<sub>Final</sub></span>
+                                    <span>=</span>
+                                    <span className="italic">CAPEX<sub>Base</sub></span>
+                                    <span>·</span>
+                                    <span>(</span>
+                                    <span>1 + ∑</span>
+                                    <span className="text-sm">(</span>
+                                    <span className="italic text-sm">%Item · (1 - %Repetro) · Taxa</span>
+                                    <span className="text-sm">)</span>
+                                    <span>)</span>
+                                </div>
+                                <div className="w-full bg-slate-50 dark:bg-slate-900 p-3 rounded text-xs text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                                    <strong className="block mb-2 text-slate-700 dark:text-slate-300">Variáveis:</strong>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li><strong className="font-serif">CAPEX<sub>Base</sub></strong>: Custo de mercado sem impostos.</li>
+                                        <li><strong className="font-serif">%Item</strong>: Peso do item no custo total (ex: 40% Hull).</li>
+                                        <li><strong className="font-serif">%Repetro</strong>: Percentual do item coberto pelo benefício fiscal (0% a 100%).</li>
+                                        <li><strong className="font-serif">Taxa</strong>: Carga tributária sem benefício (aprox. 40-45%).</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </section>
 
                         <section>
@@ -284,27 +400,86 @@ const DocumentationTab = () => {
                                 <li><strong>Acelerada:</strong> Prazo reduzido (ex: 5 anos). Aumenta VPL.</li>
                                 <li><strong>UOP (Unidades Produzidas):</strong> Proporcional à produção.</li>
                             </ul>
-                            <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">
-                                Deprec_UOP(t) = Saldo(t-1) × (Prod(t) / Reservas(t-1))
-                            </code>
+                            <div className="flex flex-col items-center my-4 gap-4">
+                                <div className="flex items-center gap-3 font-serif text-lg bg-slate-100 dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <span className="italic font-bold">Deprec<sub>UOP</sub>(t)</span>
+                                    <span>=</span>
+                                    <span className="italic">Saldo(t-1)</span>
+                                    <span>·</span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="border-b border-slate-400 dark:border-slate-500 w-full text-center pb-1 mb-1">
+                                            Prod(t)
+                                        </span>
+                                        <span className="text-center italic">
+                                            Reservas(t-1)
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="w-full bg-slate-50 dark:bg-slate-900 p-3 rounded text-xs text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                                    <strong className="block mb-2 text-slate-700 dark:text-slate-300">Variáveis:</strong>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li><strong className="font-serif">Saldo(t-1)</strong>: Valor não depreciado do ativo no início do ano.</li>
+                                        <li><strong className="font-serif">Prod(t)</strong>: Produção acumulada no ano.</li>
+                                        <li><strong className="font-serif">Reservas(t-1)</strong>: Reservas remanescentes no início do ano.</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </section>
 
                         <section>
                             <h5 className="font-bold text-slate-800 dark:text-slate-100">3.7. Imposto de Renda e CSLL</h5>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Incide sobre o Lucro Real (34%). Permite compensar prejuízos passados (trava de 30%).</p>
-                            <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">
-                                LucroReal = RB - Roy - PE - OPEX - Deprec
-                            </code>
-                            <code className="block bg-slate-100 dark:bg-slate-800 p-2 mt-1 rounded text-xs font-mono">
-                                IR_CSLL = (LucroReal - Compensaçao) × 34%
-                            </code>
+                            <div className="space-y-4 my-4">
+                                <div className="flex justify-center">
+                                    <div className="flex items-center gap-3 font-serif text-lg bg-slate-100 dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                        <span className="italic font-bold">LucroReal</span>
+                                        <span>=</span>
+                                        <span className="italic">RB - Roy - PE - OPEX - Deprec</span>
+                                    </div>
+                                </div>
+                                <div className="flex justify-center">
+                                    <div className="flex items-center gap-3 font-serif text-lg bg-slate-100 dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                        <span className="italic font-bold">Impostos</span>
+                                        <span>=</span>
+                                        <span>(</span>
+                                        <span className="italic">LucroReal - Compensação</span>
+                                        <span>)</span>
+                                        <span>·</span>
+                                        <span>34%</span>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded text-xs text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                                    <strong className="block mb-2 text-slate-700 dark:text-slate-300">Variáveis:</strong>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li><strong className="font-serif">Compensação</strong>: Uso de prejuízos fiscais acumulados (limitado a 30% do Lucro Real).</li>
+                                        <li><strong className="font-serif">34%</strong>: Soma das alíquotas de IRPJ (25%) e CSLL (9%).</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </section>
 
                         <section>
                             <h5 className="font-bold text-slate-800 dark:text-slate-100">3.8. Fluxo de Caixa Livre (FCF)</h5>
-                            <code className="block bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">
-                                FCF = (Receita - Roy - PE) - OPEX - Impostos - Investimentos
-                            </code>
+                            <div className="flex flex-col items-center my-4 gap-4">
+                                <div className="flex items-center gap-3 font-serif text-lg bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg shadow-sm border border-blue-100 dark:border-blue-800">
+                                    <span className="italic font-bold text-blue-800 dark:text-blue-300">FCF</span>
+                                    <span className="text-blue-800 dark:text-blue-300">=</span>
+                                    <span className="italic text-slate-600 dark:text-slate-400">(Receita - GovTake)</span>
+                                    <span className="text-slate-400">-</span>
+                                    <span className="italic text-red-600 dark:text-red-400">OPEX</span>
+                                    <span className="text-slate-400">-</span>
+                                    <span className="italic text-red-600 dark:text-red-400">Impostos</span>
+                                    <span className="text-slate-400">-</span>
+                                    <span className="italic text-orange-600 dark:text-orange-400">Investimentos</span>
+                                </div>
+                                <div className="w-full bg-slate-50 dark:bg-slate-900 p-3 rounded text-xs text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                                    <strong className="block mb-2 text-slate-700 dark:text-slate-300">Variáveis:</strong>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li><strong className="font-serif">GovTake</strong>: Royalties + Participação Especial (governo).</li>
+                                        <li><strong className="font-serif">Investimentos</strong>: CAPEX + Abandono (descomissionamento).</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </section>
                     </div>
                 </div>
@@ -375,7 +550,7 @@ const DocumentationTab = () => {
                     {filteredData.map(section => (
                         <div key={section.id}>
                             <button
-                                onClick={() => setActiveSectionId(section.id)}
+                                onClick={() => scrollToSection(section.id)}
                                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeSectionId === section.id || (section.subsections && section.subsections.some(s => s.id === activeSectionId)) ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                             >
                                 {section.icon}
@@ -389,7 +564,7 @@ const DocumentationTab = () => {
                                     {section.subsections.map(sub => (
                                         <button
                                             key={sub.id}
-                                            onClick={() => setActiveSectionId(sub.id)}
+                                            onClick={() => scrollToSection(sub.id)}
                                             className={`w-full text-left text-xs py-1.5 px-2 rounded-md transition-colors ${activeSectionId === sub.id ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                         >
                                             {sub.title.split('. ')[1] || sub.title}

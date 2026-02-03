@@ -454,7 +454,7 @@ export default function App() {
                 {/* --- PERSISTENT HEADER: Economic Indicators --- */}
                 <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <KPICard title="VPL (NPV)" value={formatBillions(resultsA.metrics.vpl)} type={resultsA.metrics.vpl > 0 ? 'positive' : 'negative'} subtext="Valor Presente Líquido" />
-                    <KPICard title="TIR (IRR)" value={resultsA.metrics.tir ? `${resultsA.metrics.tir.toFixed(2)}%` : 'N/A'} type="blue" subtext={`Hurdle: ${projectA.discountRate}%`} />
+                    <KPICard title="TIR (IRR)" value={resultsA.metrics.tir ? `${resultsA.metrics.tir.toFixed(2)}%` : 'N/A'} type="blue" subtext={`TMA: ${projectA.discountRate}%`} />
                     <KPICard title="TIR - TMA" value={resultsA.metrics.spread ? `${resultsA.metrics.spread.toFixed(2)}%` : '-'} type={resultsA.metrics.spread > 0 ? 'positive' : 'negative'} subtext="Spread de Retorno" />
                     <KPICard title="VPL / IA" value={resultsA.metrics.vpl_ia.toFixed(2) + 'x'} type={resultsA.metrics.vpl_ia > 0 ? 'purple' : 'neutral'} subtext="Eficiência do Investimento" />
                     <KPICard title="Payback" value={resultsA.metrics.payback ? `${resultsA.metrics.payback.toFixed(1)} anos` : '> Dur.'} type="neutral" subtext="Descontado" />
@@ -466,7 +466,13 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         {/* INPUT FORM (Top on Mobile, Left on Desktop) */}
                         <div className="lg:col-span-3">
-                            <ProjectInputForm params={projectA} setParams={setProjectA} label="Parâmetros do Projeto" />
+                            <ProjectInputForm
+                                params={projectA}
+                                setParams={setProjectA}
+                                label="Parâmetros do Projeto"
+                                onNavigateToCapex={() => setActiveTab('capex')}
+                                onNavigateToOpex={() => setActiveTab('opex')}
+                            />
                         </div>
 
                         {/* CHARTS & ANALYTICS (Bottom on Mobile, Right on Desktop) */}
