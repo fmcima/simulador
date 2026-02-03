@@ -127,27 +127,44 @@ export default function FpsoCapex({ initialParams, onUpdate, peakProduction = 18
     ];
 
     // --- 5. Handlers ---
+    // Auto-update parent when costs change (with debounce/ref check to prevent loops)
+    const lastNotifiedTotal = React.useRef(0);
+    const lastNotifiedConfig = React.useRef(null);
+
+    useEffect(() => {
+        const currentConfig = {
+            mode,
+            simpleTotal,
+            productionCapacity,
+            storageCapacity,
+            hullType,
+            complexity,
+            topsidesWeight,
+            isWeightManual,
+            integrationLoc,
+            engFeePct
+        };
+
+        // Simplified check to avoid deep comparison issues or infinite loops
+        // Only trigger if total changed significantly OR if it's a fresh mounting (handled by parent key)
+        if (Math.abs(costs.total - lastNotifiedTotal.current) > 1 ||
+            JSON.stringify(currentConfig) !== lastNotifiedConfig.current) {
+
+            if (onUpdate) {
+                const timer = setTimeout(() => {
+                    onUpdate(costs.total, currentConfig);
+                    lastNotifiedTotal.current = costs.total;
+                    lastNotifiedConfig.current = JSON.stringify(currentConfig);
+                }, 500); // 500ms debounce
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [costs.total, mode, simpleTotal, productionCapacity, storageCapacity, hullType, complexity, topsidesWeight, isWeightManual, integrationLoc, engFeePct, onUpdate]);
+
+
     const handleWeightChange = (val) => {
         setTopsidesWeight(val);
         setIsWeightManual(true);
-    };
-
-    const handleUpdateClick = () => {
-        if (onUpdate) {
-            const currentConfig = {
-                mode,
-                simpleTotal,
-                productionCapacity,
-                storageCapacity,
-                hullType,
-                complexity,
-                topsidesWeight,
-                isWeightManual,
-                integrationLoc,
-                engFeePct
-            };
-            onUpdate(costs.total, currentConfig);
-        }
     };
 
     const storageInfo = {
@@ -362,12 +379,7 @@ export default function FpsoCapex({ initialParams, onUpdate, peakProduction = 18
                             <div className="bg-slate-50 dark:bg-white/10 p-4 rounded-lg backdrop-blur-sm border border-slate-200 dark:border-white/10 min-w-[200px]">
                                 <p className="text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Custo por Barril</p>
                                 <div className={`text-2xl font-bold ${costPerBarrel > 16000 ? 'text-amber-500 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                    ${costPerBarrel.toFixed(0)} <span className="text-sm font-normal text-slate-400">/ bpd</span>
-                                </div>
-                                <div className="mt-3 border-t border-slate-200 dark:border-white/10 pt-3">
-                                    <button onClick={handleUpdateClick} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-bold text-xs transition-colors shadow-sm active:scale-95">
-                                        <RotateCw size={14} /> Atualizar Projeto
-                                    </button>
+                                    ${costPerBarrel.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-slate-400">/ bpd</span>
                                 </div>
                             </div>
                         </div>

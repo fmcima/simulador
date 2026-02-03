@@ -96,6 +96,7 @@ export default function CapexMain({ currentParams, onUpdate, peakProduction, wel
             {activeModule === 'selection' && renderSelectionScreen()}
             {activeModule === 'fpso' && (
                 <FpsoCapex
+                    key={`${currentParams?.mode}-${currentParams?.complexity}`}
                     initialParams={currentParams}
                     peakProduction={peakProduction}
                     onUpdate={onUpdate}

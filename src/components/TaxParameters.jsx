@@ -193,10 +193,27 @@ const TaxParameters = ({ params, setParams }) => {
                                 const isDisabled = key === 'platform' && params.platformOwnership === 'chartered';
                                 const currentVal = typeof params.repetroRatio === 'object' ? params.repetroRatio[key] : params.repetroRatio;
 
+                                const tooltips = {
+                                    platform: "O casco, módulos, equipamentos de topo. Altíssima aderência ao Repetro. Basicamente paga-se o ICMS reduzido (RJ).",
+                                    wells: "Revestimentos (Casing), Coluna de Produção (Tubing), Cabeça de Poço, Brocas. Baixa aderência ao Repetro sobre o total. O peso dos combustíveis e serviços eleva a média tributável.",
+                                    subsea: "Linhas flexíveis, umbilicais, risers, árvores de natal (ANM), manifolds. A Instalação (navios PLSV) é cara e tributada."
+                                };
+
                                 return (
                                     <div key={key} className={isDisabled ? 'opacity-50' : ''}>
-                                        <div className="flex justify-between text-xs mb-1">
-                                            <span className="capitalize">{key === 'wells' ? 'Poços' : key === 'platform' ? 'Plataforma' : 'Subsea'}</span>
+                                        <div className="flex justify-between text-xs mb-1 items-center">
+                                            <div className="flex items-center gap-1.5 group relative">
+                                                <span className="capitalize cursor-help border-b border-dotted border-slate-300 dark:border-slate-600">
+                                                    {key === 'wells' ? 'Poços' : key === 'platform' ? 'Plataforma' : 'Subsea'}
+                                                </span>
+                                                <Info size={12} className="text-slate-400 hover:text-blue-500 transition-colors" />
+
+                                                {/* Tooltip Nativo Simplificado ou Customizado */}
+                                                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg z-50 pointer-events-none">
+                                                    {tooltips[key]}
+                                                    <div className="absolute bottom-[-4px] left-2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                                                </div>
+                                            </div>
                                             <span className="font-bold">{isDisabled ? '-' : `${currentVal}%`}</span>
                                         </div>
                                         <input

@@ -11,7 +11,23 @@ const ProductionParameters = ({ params, setParams }) => {
     };
 
     const setMode = (newMode) => {
-        handleChange('productionMode', newMode);
+        if (newMode === 'detailed') {
+            setParams(prev => ({
+                ...prev,
+                productionMode: 'detailed',
+                paramBasis: 'field',
+                fieldType: 'pre_salt',
+                subField: 'tupi',
+                peakProduction: 180,
+                plateauDuration: 6,
+                declineRate: 10,
+                hyperbolicFactor: 0.5,
+                bswBreakthrough: 7,
+                bswGrowthRate: 0.4
+            }));
+        } else {
+            handleChange('productionMode', newMode);
+        }
     };
 
     // Presets for Simple Mode (Field Profiles)
@@ -348,7 +364,25 @@ const ProductionParameters = ({ params, setParams }) => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <button
                                             type="button"
-                                            onClick={() => handleChange('fieldType', 'pre_salt')}
+                                            onClick={() => {
+                                                setParams(prev => ({
+                                                    ...prev,
+                                                    fieldType: 'pre_salt',
+                                                    // Automating Wells Capex configuration
+                                                    wellsParams: {
+                                                        ...prev.wellsParams,
+                                                        mode: 'detailed',
+                                                        wellType: 'pre',
+                                                        complexity: 'high'
+                                                    },
+                                                    // Automating FPSO Capex configuration
+                                                    fpsoParams: {
+                                                        ...prev.fpsoParams,
+                                                        mode: 'detailed',
+                                                        complexity: 'high' // Pre-Salt/Gas/CO2
+                                                    }
+                                                }));
+                                            }}
                                             className={`p-3 text-left rounded-lg border transition-all group relative ${params.fieldType === 'pre_salt' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
                                         >
                                             <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Pré-Sal</div>
@@ -358,7 +392,29 @@ const ProductionParameters = ({ params, setParams }) => {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => handleChange('fieldType', 'post_salt')}
+                                            onClick={() => {
+                                                setParams(prev => ({
+                                                    ...prev,
+                                                    fieldType: 'post_salt',
+                                                    // Automating Total Capex (Estimate: ~$1.8Bi FPSO / 0.45 = $4.0Bi Total)
+                                                    totalCapex: 4000000000,
+                                                    capexSplit: { platform: 45, wells: 35, subsea: 20 },
+                                                    // Automating Wells Capex configuration
+                                                    wellsParams: {
+                                                        ...prev.wellsParams,
+                                                        mode: 'detailed',
+                                                        wellType: 'post',
+                                                        complexity: 'high'
+                                                    },
+                                                    // Automating FPSO Capex configuration
+                                                    fpsoParams: {
+                                                        ...prev.fpsoParams,
+                                                        mode: 'detailed',
+                                                        complexity: 'medium', // Heavy Post-Salt
+                                                        simpleTotal: 1800 // Consistent with calculated share
+                                                    }
+                                                }));
+                                            }}
                                             className={`p-3 text-left rounded-lg border transition-all group relative ${params.fieldType === 'post_salt' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
                                         >
                                             <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Pós-Sal</div>

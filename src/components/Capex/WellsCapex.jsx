@@ -8,7 +8,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     const [mode, setMode] = useState(initialParams?.mode || 'simple');
 
     // Simple Mode State
-    const [simpleTotal, setSimpleTotal] = useState(initialParams?.simpleTotal || 2400); // $ MM
+    const [simpleTotal, setSimpleTotal] = useState(initialParams?.simpleTotal || 2000); // $ MM
 
     // Detailed Mode State
     const [numProducers, setNumProducers] = useState(initialParams?.numProducers || 8);
@@ -404,20 +404,25 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     configRef.current = currentConfig;
     totalRef.current = currentTotal;
 
-    // Save state when component unmounts (e.g. switching tabs)
-    useEffect(() => {
-        return () => {
-            if (onUpdate) {
-                onUpdate(totalRef.current, configRef.current);
-            }
-        };
-    }, []);
+    // --- Auto-Update Logic (Debounced) ---
+    const lastNotifiedTotal = useRef(0);
+    const lastNotifiedConfig = useRef(null);
 
-    const handleUpdateClick = () => {
-        if (onUpdate) {
-            onUpdate(currentTotal, currentConfig);
-        }
-    };
+    useEffect(() => {
+        // Debounce logic to prevent frequent updates
+        const timeoutId = setTimeout(() => {
+            const hasTotalChanged = Math.abs(currentTotal - lastNotifiedTotal.current) > 0.1;
+            const hasConfigChanged = JSON.stringify(currentConfig) !== lastNotifiedConfig.current;
+
+            if ((hasTotalChanged || hasConfigChanged) && onUpdate) {
+                onUpdate(currentTotal, currentConfig);
+                lastNotifiedTotal.current = currentTotal;
+                lastNotifiedConfig.current = JSON.stringify(currentConfig);
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(timeoutId);
+    }, [currentTotal, currentConfig, onUpdate]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -1178,23 +1183,18 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                             </div>
 
                             <div className="bg-slate-50 dark:bg-white/10 p-4 rounded-lg backdrop-blur-sm border border-slate-200 dark:border-white/10 min-w-[200px]">
-                                <p className="text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Custo Total</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1">Custo por Poço</p>
                                 <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                                    $ {(currentTotal / 1000).toFixed(2)} <span className="text-sm font-normal text-slate-400">Bi</span>
+                                    $ {(currentTotal / (numWells || 1)).toFixed(1)} <span className="text-sm font-normal text-slate-400">MM</span>
                                 </div>
 
-                                {/* UPDATE PROJECT BUTTON */}
+                                {/* Auto-update active label */}
                                 <div className="mt-3 border-t border-slate-200 dark:border-white/10 pt-3">
-                                    <button
-                                        onClick={handleUpdateClick}
-                                        className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-bold text-xs transition-colors shadow-sm active:scale-95"
-                                    >
-                                        <RotateCw size={14} />
-                                        Atualizar Projeto
-                                    </button>
-                                    <p className="text-[9px] text-center text-slate-400 mt-2">
-                                        As alterações também são salvas automaticamente ao trocar de aba.
-                                    </p>
+                                    <div className="flex justify-end">
+                                        <span className="text-[9px] text-center text-slate-400 flex items-center gap-1">
+                                            <RotateCw size={10} className="animate-spin-slow" /> Atualização Automática
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

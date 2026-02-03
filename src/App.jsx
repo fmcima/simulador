@@ -61,7 +61,7 @@ export default function App() {
         platformOwnership: 'owned',
         charterPV: 2000000000, // Default 2Bi para PV de afretamento
         charterSplitPercent: 85, // 85% Charter, 15% Service
-        repetroRatio: { platform: 100, wells: 100, subsea: 100 }, // Detalhado por componente
+        repetroRatio: { platform: 95, wells: 45, subsea: 75 }, // Detalhado por componente
         capexTaxRate: 40, // Alíquota cheia s/ benefício
 
         brentPrice: 70,
@@ -127,7 +127,14 @@ export default function App() {
         },
 
         // --- Persistence for FPSO Module ---
-        fpsoParams: null, // Stores the detailed configuration object
+        fpsoParams: {
+            mode: 'simple',
+            simpleTotal: 2500,
+        },
+        wellsParams: {
+            mode: 'simple',
+            simpleTotal: 2000,
+        },
     };
 
     const [projectA, setProjectA] = useState({ ...defaultParams });
