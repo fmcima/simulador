@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
 import { Box, DollarSign, Pickaxe, Timer, Activity, TrendingDown, Anchor, Wrench, Cpu, Check, RotateCw, Info, TrendingUp, Play, Loader2 } from 'lucide-react';
-import { generateProjectData } from '../../utils/calculations';
+import { generateProjectData, triangularRandom, normalRandom } from '../../utils/calculations';
+import TechConfigModal from './TechConfigModal';
 
 
 export default function WellsCapex({ costs, onUpdate, initialParams, projectParams, unitNpv }) {
@@ -49,27 +50,28 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     const [fohRecoveryFactorIncrease, setFohRecoveryFactorIncrease] = useState(initialParams?.fohRecoveryFactorIncrease || 5); // %
 
     // --- Monte Carlo Simulation State ---
-    const [isSimulating, setIsSimulating] = useState(false);
-    const [monteCarloResults, setMonteCarloResults] = useState(null);
+    // const [isSimulating, setIsSimulating] = useState(false); // Moved below
+    // const [monteCarloResults, setMonteCarloResults] = useState(null); // Moved below
 
     // --- Monte Carlo Distribution Helpers ---
-    const triangularRandom = (min, mode, max) => {
-        const u = Math.random();
-        const fc = (mode - min) / (max - min);
-        if (u < fc) {
-            return min + Math.sqrt(u * (max - min) * (mode - min));
-        } else {
-            return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
-        }
-    };
+    // Moved to utils/calculations
+    // const triangularRandom = (min, mode, max) => {
+    //     const u = Math.random();
+    //     const fc = (mode - min) / (max - min);
+    //     if (u < fc) {
+    //         return min + Math.sqrt(u * (max - min) * (mode - min));
+    //     } else {
+    //         return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+    //     }
+    // };
 
-    const normalRandom = (mean, stdDev) => {
-        // Box-Muller transform
-        const u1 = Math.random();
-        const u2 = Math.random();
-        const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-        return z0 * stdDev + mean;
-    };
+    // const normalRandom = (mean, stdDev) => {
+    //     // Box-Muller transform
+    //     const u1 = Math.random();
+    //     const u2 = Math.random();
+    //     const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    //     return z0 * stdDev + mean;
+    // };
 
     // --- Monte Carlo Run Function ---
 
@@ -174,29 +176,133 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     const currentTotal = mode === 'simple' ? simpleTotal : dailyCostTotal + materialsCostTotal;
 
     // --- Monte Carlo Simulation Logic (Moved here to access calculated costs) ---
+    // const runMonteCarlo = async () => { // Moved below
+    //     setIsSimulating(true);
+    //     setMonteCarloResults(null);
+
+    //     // IMPORTANT: Ensure OPEX is in detailed mode before running simulation
+    //     // This is critical for the simulation to work with production parameters and workover costs
+    //     if (projectParams?.opexParams?.opexMode !== 'detailed') {
+    //         // Silently force detailed mode with default values if not already set
+    //         const defaultOpexParams = {
+    //             opexMode: 'detailed',
+    //             opexFixed: projectParams?.opexParams?.opexFixed || 100,
+    //             opexVariable: projectParams?.opexParams?.opexVariable || 5,
+    //             workoverLambda: projectParams?.opexParams?.workoverLambda || 0.15,
+    //             workoverDailyRate: projectParams?.opexParams?.workoverDailyRate || 800,
+    //             workoverTesp: projectParams?.opexParams?.workoverTesp || 90
+    //         };
+
+    //         // Update projectParams if there's an update function available
+    //         // Note: This will need to be propagated up to App.jsx
+    //         if (onUpdate) {
+    //             console.log('Forcing OPEX detailed mode for Monte Carlo simulation');
+    //         }
+    //     }
+
+    //     // Use setTimeout to allow UI to update before heavy computation
+    //     await new Promise(resolve => setTimeout(resolve, 50));
+
+    //     const iterations = 5000;
+
+    //     // Base parameters from projectParams (these will be overridden per configuration)
+    //     // FORCE detailed OPEX mode for simulation
+    //     const baseParams = {
+    //         ...projectParams,
+    //         opexMode: 'detailed',
+    //         productionMode: 'detailed',
+    //         opexParams: {
+    //             ...projectParams?.opexParams,
+    //             opexMode: 'detailed',
+    //             opexFixed: projectParams?.opexParams?.opexFixed || 100,
+    //             opexVariable: projectParams?.opexParams?.opexVariable || 5,
+    //             workoverLambda: projectParams?.opexParams?.workoverLambda || 0.15,
+    //             workoverDailyRate: projectParams?.opexParams?.workoverDailyRate || 800,
+    //             workoverTesp: projectParams?.opexParams?.workoverTesp || 90
+    //         },
+    //         productionParams: {
+    //             ...projectParams?.productionParams,
+    //             productionMode: 'detailed'
+    //         }
+    //     };
+
+    // --- Dynamic Tech Configuration State ---
+    const initialTechConfigs = {
+        'Convencional': {
+            capexMult: { type: 'constant', value: 1.0 },
+            workoverLambda: { type: 'constant', value: 0.15 },
+            lambdaProfile: 'wearout',
+            rigMult: { type: 'constant', value: 1.0 },
+            waitDays: { type: 'triangular', min: 60, mode: 90, max: 120 },
+            declineRate: { type: 'normal', mean: 10, stdDev: 2 },
+            hyperbolicFactor: { type: 'triangular', min: 0.1, mode: 0.3, max: 0.4 },
+            breakthroughYears: { type: 'triangular', min: 5, mode: 6, max: 7 },
+            waterGrowthK: { type: 'triangular', min: 0.6, mode: 0.8, max: 1.0 }
+        },
+        'Inteligente Hidráulica': {
+            capexMult: { type: 'triangular', min: 1.05, mode: 1.10, max: 1.20 },
+            workoverLambda: { type: 'constant', value: 0.05 },
+            lambdaProfile: 'bathtub',
+            rigMult: { type: 'constant', value: 1.1 },
+            waitDays: { type: 'constant', value: 0 },
+            declineRate: { type: 'normal', mean: 9, stdDev: 1.5 },
+            hyperbolicFactor: { type: 'triangular', min: 0.3, mode: 0.5, max: 0.6 },
+            breakthroughYears: { type: 'triangular', min: 6, mode: 7, max: 8 },
+            waterGrowthK: { type: 'triangular', min: 0.5, mode: 0.7, max: 0.9 }
+        },
+        'Inteligente Elétrica': {
+            capexMult: { type: 'triangular', min: 1.1, mode: 1.25, max: 1.35 },
+            workoverLambda: { type: 'constant', value: 0.04 },
+            lambdaProfile: 'bathtub',
+            rigMult: { type: 'constant', value: 1.2 },
+            waitDays: { type: 'constant', value: 0 },
+            declineRate: { type: 'normal', mean: 7, stdDev: 1 },
+            hyperbolicFactor: { type: 'triangular', min: 0.5, mode: 0.6, max: 0.8 },
+            breakthroughYears: { type: 'triangular', min: 8, mode: 9, max: 10 },
+            waterGrowthK: { type: 'triangular', min: 0.4, mode: 0.6, max: 0.7 }
+        }
+    };
+
+    const [techConfigs, setTechConfigs] = useState(initialTechConfigs);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTech, setEditingTech] = useState(null);
+
+    const handleEditTech = (techName) => {
+        setEditingTech(techName);
+        setIsModalOpen(true);
+    };
+
+    const handleSaveTechConfig = (newConfig) => {
+        setTechConfigs(prev => ({
+            ...prev,
+            [editingTech]: newConfig
+        }));
+    };
+
+    // Helper: Create a sampler function from config object
+    const getSampler = (param) => {
+        if (param.type === 'constant') return () => param.value;
+        if (param.type === 'normal') return () => normalRandom(param.mean, param.stdDev);
+        if (param.type === 'triangular') return () => triangularRandom(param.min, param.mode, param.max);
+        return () => 0;
+    };
+
+    // Helper: Format parameter for UI display
+    const formatParam = (param) => {
+        if (!param) return '-';
+        if (param.type === 'constant') return param.value.toString();
+        if (param.type === 'normal') return `Normal(${param.mean}, ${param.stdDev})`;
+        if (param.type === 'triangular') return `Triang(${param.min}, ${param.mode}, ${param.max})`;
+        return '?';
+    };
+
+
+    // --- Monte Carlo Simulation Logic ---
+    const [isSimulating, setIsSimulating] = useState(false);
+    const [monteCarloResults, setMonteCarloResults] = useState(null);
+
     const runMonteCarlo = async () => {
         setIsSimulating(true);
-        setMonteCarloResults(null);
-
-        // IMPORTANT: Ensure OPEX is in detailed mode before running simulation
-        // This is critical for the simulation to work with production parameters and workover costs
-        if (projectParams?.opexParams?.opexMode !== 'detailed') {
-            // Silently force detailed mode with default values if not already set
-            const defaultOpexParams = {
-                opexMode: 'detailed',
-                opexFixed: projectParams?.opexParams?.opexFixed || 100,
-                opexVariable: projectParams?.opexParams?.opexVariable || 5,
-                workoverLambda: projectParams?.opexParams?.workoverLambda || 0.15,
-                workoverDailyRate: projectParams?.opexParams?.workoverDailyRate || 800,
-                workoverTesp: projectParams?.opexParams?.workoverTesp || 90
-            };
-
-            // Update projectParams if there's an update function available
-            // Note: This will need to be propagated up to App.jsx
-            if (onUpdate) {
-                console.log('Forcing OPEX detailed mode for Monte Carlo simulation');
-            }
-        }
 
         // Use setTimeout to allow UI to update before heavy computation
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -224,43 +330,6 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
             }
         };
 
-        // Configuration Definitions with their parameter distributions
-        const configs = {
-            'Convencional': {
-                capexMult: () => 1.0,
-                workoverLambda: () => 0.15,
-                lambdaProfile: 'wearout', // Increasing failure rate
-                rigMult: () => 1.0,
-                waitDays: () => triangularRandom(60, 90, 120),
-                declineRate: () => normalRandom(10, 2), // % value
-                hyperbolicFactor: () => triangularRandom(0.1, 0.3, 0.4),
-                breakthroughYears: () => triangularRandom(5, 6, 7),
-                waterGrowthK: () => triangularRandom(0.6, 0.8, 1.0)
-            },
-            'Inteligente Hidráulica': {
-                capexMult: () => triangularRandom(1.05, 1.10, 1.20),
-                workoverLambda: () => 0.05,
-                lambdaProfile: 'bathtub', // High early, low mid, high late
-                rigMult: () => 1.1, // Adjusted to 1.1 as requested
-                waitDays: () => 0,
-                declineRate: () => normalRandom(9, 1.5), // % value
-                hyperbolicFactor: () => triangularRandom(0.3, 0.5, 0.6),
-                breakthroughYears: () => triangularRandom(6, 7, 8),
-                waterGrowthK: () => triangularRandom(0.5, 0.7, 0.9)
-            },
-            'Inteligente Elétrica': {
-                capexMult: () => triangularRandom(1.1, 1.25, 1.35),
-                workoverLambda: () => 0.04,
-                lambdaProfile: 'bathtub', // High early, low mid, high late
-                rigMult: () => 1.2,
-                waitDays: () => 0,
-                declineRate: () => normalRandom(7, 1), // % value
-                hyperbolicFactor: () => triangularRandom(0.5, 0.6, 0.8),
-                breakthroughYears: () => triangularRandom(8, 9, 10),
-                waterGrowthK: () => triangularRandom(0.4, 0.6, 0.7)
-            }
-        };
-
         const results = {};
         const allCategoryData = {}; // Store raw npvs for second pass
 
@@ -268,8 +337,21 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
         let globalMin = Infinity;
         let globalMax = -Infinity;
 
-        for (const [configName, samplers] of Object.entries(configs)) {
+        // Iterate over dynamic techConfigs
+        for (const [configName, config] of Object.entries(techConfigs)) {
             const npvs = [];
+
+            // Create samplers for this config
+            const samplers = {
+                capexMult: getSampler(config.capexMult),
+                rigMult: getSampler(config.rigMult),
+                workoverLambda: getSampler(config.workoverLambda),
+                declineRate: getSampler(config.declineRate),
+                hyperbolicFactor: getSampler(config.hyperbolicFactor),
+                breakthroughYears: getSampler(config.breakthroughYears),
+                waterGrowthK: getSampler(config.waterGrowthK),
+                waitDays: getSampler(config.waitDays) // Though not explicitly used in main logic, good to have
+            };
 
             for (let i = 0; i < iterations; i++) {
                 // Sample parameters for this iteration
@@ -295,7 +377,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                 const adjustedTotalCapex = (projectParams?.totalCapex || 5400000000) + wellsCapexDelta;
 
                 // Build iteration params - override the varied parameters
-                const lambdaProfile = samplers.lambdaProfile;
+                const lambdaProfile = config.lambdaProfile;
                 const iterParams = {
                     ...baseParams,
                     totalCapex: adjustedTotalCapex,
@@ -1545,14 +1627,17 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                             <div className="w-2 h-2 rounded-full bg-slate-400"></div>
                                             <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">1. Convencional (Benchmark)</h4>
                                         </div>
-                                        <span className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 text-slate-500">
+                                        <span
+                                            onClick={() => handleEditTech('Convencional')}
+                                            className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400 cursor-pointer transition-colors"
+                                        >
                                             Robusto & Barato
                                         </span>
                                     </div>
                                     <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
                                             <div className="group relative">
-                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Capex Multiplier</p>
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Multiplicador de Capex (Materiais)</p>
                                                 <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
                                                     <p className="font-bold mb-1 text-emerald-400">Racional:</p>
                                                     <p className="mb-2 leading-relaxed">É a configuração mais simples possível. Não exige feedthroughs na cabeça do poço, não exige descida de cabos planos (flat packs) e o tempo de sonda para completação é o menor de todos.</p>
@@ -1560,10 +1645,10 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Relatórios de Desempenho de Sondas (Rushmore Reviews). A completação convencional é, em média, 20-30% mais rápida de instalar que uma inteligente, economizando dias de sonda.</p>
                                                     <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{formatParam(techConfigs['Convencional'].capexMult)}</p>
                                             </div>
                                             <div className="group relative">
-                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Falha (Lambda)</p>
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Taxa de Falha (Lambda)</p>
                                                 <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
                                                     <p className="font-bold mb-1 text-red-400">Racional (Crítico):</p>
                                                     <p className="mb-2 leading-relaxed">Perfil "Wear-out": falhas aumentam com o tempo devido ao desgaste mecânico. Lambda médio de 0.15</p>
@@ -1571,11 +1656,11 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">ISO 14224. Classifica a "inabilidade de isolar zonas" como uma falha funcional crítica.</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">0.15 (Wear-out)</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{formatParam(techConfigs['Convencional'].workoverLambda)} (Wear-out)</p>
                                             </div>
                                             <div>
-                                                <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.0</p>
+                                                <p className="text-slate-400 mb-0.5">Multiplicador de Taxa de Sonda</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{formatParam(techConfigs['Convencional'].rigMult)}</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Tempo Espera (d)</p>
@@ -1586,7 +1671,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">ISO 14224. Classifica a "inabilidade de isolar zonas" como uma falha funcional crítica do poço.</p>
                                                     <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-orange-600 dark:text-orange-400">Triang(60, 90, 120)</p>
+                                                <p className="font-mono font-bold text-orange-600 dark:text-orange-400">{formatParam(techConfigs['Convencional'].waitDays)}</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Declínio Global</p>
@@ -1597,7 +1682,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Arps (1945) e Fetkovich (1980). Curvas típicas de depleção natural ou injeção sem controle.</p>
                                                     <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.10, 0.02)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Convencional'].declineRate)}</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Fator Hiperbólico</p>
@@ -1608,7 +1693,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Arps (1945). Parâmetro b baixo (próximo de 0 ou 0.1) indica baixa recuperação secundária.</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.1, 0.3, 0.4)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Convencional'].hyperbolicFactor)}</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Breakthrough (anos)</p>
@@ -1619,10 +1704,10 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">SPE Papers "Water Coning and Channeling". Poços sem controle sofrem breakthrough muito antes do previsto.</p>
                                                     <div className="absolute top-full left-4 md:right-4 md:left-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(5, 6, 7)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Convencional'].breakthroughYears)}</p>
                                             </div>
                                             <div className="group relative">
-                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Cresc. Água (k)</p>
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Crescimento de Água (k)</p>
                                                 <div className="absolute bottom-full right-0 mb-2 w-72 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
                                                     <p className="font-bold mb-1 text-red-400">Racional:</p>
                                                     <p className="mb-2 leading-relaxed">Reflete a velocidade de "afogamento". Sem ICVs restringindo água, o crescimento do BSW segue uma logística agressiva (k alto).</p>
@@ -1630,7 +1715,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Dados de campo de Búz/Tupi (poços não inteligentes).</p>
                                                     <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.6, 0.8, 1.0)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Convencional'].waterGrowthK)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1643,14 +1728,17 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                                             <h4 className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">2. Inteligente Hidráulica</h4>
                                         </div>
-                                        <span className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+                                        <span
+                                            onClick={() => handleEditTech('Inteligente Hidráulica')}
+                                            className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 hover:border-blue-300 cursor-pointer transition-colors"
+                                        >
                                             Controle Zonal
                                         </span>
                                     </div>
                                     <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
                                             <div className="group relative">
-                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Capex Multiplier</p>
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Multiplicador de Capex (Materiais)</p>
                                                 <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
                                                     <p className="font-bold mb-1 text-emerald-400">Racional:</p>
                                                     <p className="mb-2 leading-relaxed">O custo adicional refere-se principalmente ao hardware (Válvulas ICV, Packers, Mandris) e às linhas de controle hidráulico (Flat Packs) que correm até a superfície. O valor é menor que a elétrica pois a tecnologia de controle de superfície é mais simples.</p>
@@ -1658,10 +1746,10 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">PSAC (Petroleum Services Association of Canada) Well Cost Study (ajustado para Offshore) e dados históricos de contratação de SLB/Halliburton para pacotes de completação inferior.</p>
                                                     <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">Triang(1.05, 1.10, 1.20)</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{formatParam(techConfigs['Inteligente Hidráulica'].capexMult)}</p>
                                             </div>
                                             <div className="group relative">
-                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Falha (Lambda)</p>
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Taxa de Falha (Lambda)</p>
                                                 <div className="absolute bottom-full right-0 md:left-0 md:right-auto mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
                                                     <p className="font-bold mb-1 text-emerald-400">Racional:</p>
                                                     <p className="mb-2 leading-relaxed">Perfil "Banheira": mortalidade infantil (ajustes) seguida de longa estabilidade. Média 0.05.</p>
@@ -1669,19 +1757,19 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">OREDA e Halliburton SmartWell papers. Alta confiabilidade após fase inicial.</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0.05 (Banheira)</p>
+                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{formatParam(techConfigs['Inteligente Hidráulica'].workoverLambda)} (Banheira)</p>
                                             </div>
                                             <div>
-                                                <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">1.1</p>
+                                                <p className="text-slate-400 mb-0.5">Multiplicador de Taxa de Sonda</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{formatParam(techConfigs['Inteligente Hidráulica'].rigMult)}</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Tempo Espera (d)</p>
-                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0 (Remoto)</p>
+                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{formatParam(techConfigs['Inteligente Hidráulica'].waitDays)} (Remoto)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Declínio Global</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.09, 0.015)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Inteligente Hidráulica'].declineRate)}</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Fator Hiperbólico</p>
@@ -1692,15 +1780,15 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Fetkovich (1980) - A relação entre estratificação de reservatório e fator $b$. Menor controle de estratificação = menor $b$.</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.3, 0.5, 0.6)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Inteligente Hidráulica'].hyperbolicFactor)}</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Breakthrough (anos)</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(6, 7, 8)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Inteligente Hidráulica'].breakthroughYears)}</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Cresc. Água (k)</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.5, 0.7, 0.9)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Inteligente Hidráulica'].waterGrowthK)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1713,15 +1801,18 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                             <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                                             <h4 className="text-xs font-bold text-purple-800 dark:text-purple-300 uppercase tracking-wider">3. Inteligente Elétrica</h4>
                                         </div>
-                                        <span className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-400">
+                                        <span
+                                            onClick={() => handleEditTech('Inteligente Elétrica')}
+                                            className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-400 hover:border-purple-300 cursor-pointer transition-colors"
+                                        >
                                             Digital & Real-time
                                         </span>
                                     </div>
                                     <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
                                             <div>
-                                                <p className="text-slate-400 mb-0.5">Capex Multiplier</p>
-                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">Triang(1.1, 1.25, 1.35)</p>
+                                                <p className="text-slate-400 mb-0.5">Multiplicador de Capex (Materiais)</p>
+                                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{formatParam(techConfigs['Inteligente Elétrica'].capexMult)}</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Falha (Lambda)</p>
@@ -1732,19 +1823,19 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">AWES (Advanced Well Equipment Standards) e Papers da OTC (Offshore Technology Conference) sobre "High-Temperature Electronics Survival".</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-purple-600 dark:text-purple-400">0.04 (Banheira)</p>
+                                                <p className="font-mono font-bold text-purple-600 dark:text-purple-400">{formatParam(techConfigs['Inteligente Elétrica'].workoverLambda)} (Banheira)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Taxa Sonda (Mult)</p>
-                                                <p className="font-mono font-bold text-red-600 dark:text-red-400">1.2 (Sonda Espec.)</p>
+                                                <p className="font-mono font-bold text-red-600 dark:text-red-400">{formatParam(techConfigs['Inteligente Elétrica'].rigMult)} (Sonda Espec.)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Tempo Espera (d)</p>
-                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0 (Remoto)</p>
+                                                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{formatParam(techConfigs['Inteligente Elétrica'].waitDays)} (Remoto)</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Declínio Global</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Normal(0.07, 0.01)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Inteligente Elétrica'].declineRate)}</p>
                                             </div>
                                             <div className="group relative">
                                                 <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Fator Hiperbólico</p>
@@ -1755,14 +1846,14 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Dikken (1990) sobre Pressure Drop in Horizontal Wells e Al-Khelaiwi (SPE 2013) sobre o impacto de Interval Control Valves (ICV) na varredura de óleo.</p>
                                                     <div className="absolute top-full right-4 md:left-4 md:right-auto border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.5, 0.6, 0.8)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Inteligente Elétrica'].hyperbolicFactor)}</p>
                                             </div>
                                             <div>
                                                 <p className="text-slate-400 mb-0.5">Breakthrough (anos)</p>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(8, 9, 10)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Inteligente Elétrica'].breakthroughYears)}</p>
                                             </div>
                                             <div className="group relative">
-                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Cresc. Água (k)</p>
+                                                <p className="text-slate-400 mb-0.5 cursor-help decoration-dashed decoration-slate-300 underline underline-offset-2">Crescimento de Água (k)</p>
                                                 <div className="absolute bottom-full right-0 mb-2 w-72 p-3 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-left">
                                                     <p className="font-bold mb-1 text-emerald-400">Racional:</p>
                                                     <p className="mb-2 leading-relaxed">A "Máxima Granularidade" (&gt;8 zonas) permite o "Water Shaving". O operador fecha apenas a fratura específica que produz água. Isso achata a curva de crescimento do BSW ($k$ baixo) e estende a vida produtiva ($b$ alto).</p>
@@ -1770,7 +1861,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                     <p className="italic text-slate-300 leading-relaxed">Dikken (1990) sobre Pressure Drop in Horizontal Wells e Al-Khelaiwi (SPE 2013) sobre o impacto de Interval Control Valves (ICV) na varredura de óleo.</p>
                                                     <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-800"></div>
                                                 </div>
-                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Triang(0.4, 0.6, 0.7)</p>
+                                                <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatParam(techConfigs['Inteligente Elétrica'].waterGrowthK)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1796,6 +1887,16 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                     </div>
                 </div >
             </div >
+
+            <TechConfigModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingTech}
+                config={editingTech ? techConfigs[editingTech] : null}
+                defaultConfig={editingTech ? initialTechConfigs[editingTech] : null}
+                onSave={handleSaveTechConfig}
+            />
+
         </div >
     );
 }

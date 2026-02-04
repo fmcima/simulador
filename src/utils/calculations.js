@@ -48,6 +48,26 @@ export const calculateNPV = (rate, cashFlows) => {
     return cashFlows.reduce((acc, val, t) => acc + val / Math.pow(1 + rate / 100, t), 0);
 };
 
+// --- Statistical Helper Functions ---
+
+export const triangularRandom = (min, mode, max) => {
+    const u = Math.random();
+    const fc = (mode - min) / (max - min);
+    if (u < fc) {
+        return min + Math.sqrt(u * (max - min) * (mode - min));
+    } else {
+        return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+    }
+};
+
+export const normalRandom = (mean, stdDev) => {
+    // Box-Muller transform
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    return z0 * stdDev + mean;
+};
+
 export const calculateDiscountedPayback = (rate, cashFlows) => {
     let cumulative = 0;
     for (let t = 0; t < cashFlows.length; t++) {
