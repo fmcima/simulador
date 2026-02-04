@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
 import { Box, DollarSign, Pickaxe, Timer, Activity, TrendingDown, Anchor, Wrench, Cpu, Check, RotateCw, Info, TrendingUp, Play, Loader2 } from 'lucide-react';
 import { generateProjectData } from '../../utils/calculations';
-import TornadoChart from '../Analysis/TornadoChart';
+
 
 export default function WellsCapex({ costs, onUpdate, initialParams, projectParams, unitNpv }) {
     // Mode: 'simple' (Total Value) or 'detailed' (Number of Wells)
@@ -1535,10 +1535,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                 )}
                             </div>
 
-                            {/* TORNADO CHART (Integrated in Right Column) */}
-                            <div className="mb-6">
-                                <TornadoChart projectParams={{ ...projectParams, wellsParams: currentConfig }} />
-                            </div>
+
 
                             <div className="space-y-6">
                                 {/* CATEGORY 1: CONVENTIONAL */}

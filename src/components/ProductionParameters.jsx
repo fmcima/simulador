@@ -458,11 +458,11 @@ const ProductionParameters = ({ params, setParams }) => {
                                                         ...prev,
                                                         subField: 'mero',
                                                         peakProduction: 180,
-                                                        plateauDuration: 4,
-                                                        declineRate: 15,
+                                                        plateauDuration: 5,
+                                                        declineRate: 12,
                                                         hyperbolicFactor: 0.4,
-                                                        bswBreakthrough: 4,
-                                                        bswGrowthRate: 0.9
+                                                        bswBreakthrough: 5.5,
+                                                        bswGrowthRate: 0.60
                                                     }));
                                                 }}
                                                 className={`p-2 text-left rounded border transition-all ${params.subField === 'mero' ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-500 ring-1 ring-emerald-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50/50'}`}
@@ -635,6 +635,8 @@ const ProductionParameters = ({ params, setParams }) => {
                                     </p>
                                 </div>
                             )}
+
+
 
                             {/* Explanatory Note for Smart Electric Completion */}
                             {(params.paramBasis === 'completion' || !params.paramBasis) && params.declineRate === 7 && Math.abs((params.hyperbolicFactor || 0.5) - 0.8) < 0.01 && (

@@ -305,7 +305,23 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                             Simples
                         </button>
                         <button
-                            onClick={() => handleChange('opexMode', 'detailed')}
+                            onClick={() => {
+                                handleChange('opexMode', 'detailed');
+                                // Set default to Convencional
+                                const numWells = params.wellsParams?.numWells || 16;
+                                const lambda = 0.15;
+                                const tesp = 90;
+                                const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                const total = numWells * lambda * costPerEvent * 1000000;
+                                setParams(prev => ({
+                                    ...prev,
+                                    opexMode: 'detailed',
+                                    workoverLambda: lambda,
+                                    workoverFailureProfile: 'wearout',
+                                    workoverTesp: tesp,
+                                    workoverCost: total
+                                }));
+                            }}
                             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.opexMode === 'detailed' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                         >
                             Detalhado
@@ -453,46 +469,80 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                     onClick={() => {
                                                         const numWells = params.wellsParams?.numWells || 16;
                                                         const lambda = 0.05;
-                                                        const tesp = 5;
-                                                        const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                                        const tesp = 30;
+                                                        const duration = 30;
+                                                        const costPerEvent = (params.workoverMobCost || 8) + (duration * (params.workoverDailyRate || 800) / 1000);
                                                         const total = numWells * lambda * costPerEvent * 1000000;
                                                         setParams(prev => ({
                                                             ...prev,
                                                             workoverLambda: lambda,
-                                                            workoverFailureProfile: 'bathtub',
+                                                            workoverFailureProfile: 'wearout',
                                                             workoverTesp: tesp,
+                                                            workoverDuration: duration,
                                                             workoverCost: total
                                                         }));
                                                     }}
                                                     className="flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 bg-white dark:bg-slate-900 hover:shadow-md hover:scale-105 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
                                                 >
                                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CI Hidráulica</span>
-                                                    <span className="text-[9px] text-slate-500">λ=0.05 • 5d</span>
+                                                    <span className="text-[9px] text-slate-500">λ=0.05 • 30d</span>
                                                 </button>
                                                 <button
                                                     onClick={() => {
                                                         const numWells = params.wellsParams?.numWells || 16;
                                                         const lambda = 0.04;
-                                                        const tesp = 5;
-                                                        const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                                        const tesp = 30;
+                                                        const duration = 30;
+                                                        const costPerEvent = (params.workoverMobCost || 8) + (duration * (params.workoverDailyRate || 800) / 1000);
                                                         const total = numWells * lambda * costPerEvent * 1000000;
                                                         setParams(prev => ({
                                                             ...prev,
                                                             workoverLambda: lambda,
                                                             workoverFailureProfile: 'bathtub',
                                                             workoverTesp: tesp,
+                                                            workoverDuration: duration,
                                                             workoverCost: total
                                                         }));
                                                     }}
                                                     className="flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 bg-white dark:bg-slate-900 hover:shadow-md hover:scale-105 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
                                                 >
                                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CI Elétrica</span>
-                                                    <span className="text-[9px] text-slate-500">λ=0.04 • 5d</span>
+                                                    <span className="text-[9px] text-slate-500">λ=0.04 • 30d</span>
                                                 </button>
                                             </div>
                                             <p className="text-[9px] text-blue-600 dark:text-blue-400 mt-2 text-center">
                                                 Clique para aplicar valores típicos de cada tecnologia
                                             </p>
+
+                                            {/* Explanatory Note for Conventional Completion */}
+                                            {Math.abs((params.workoverLambda || 0.15) - 0.15) < 0.001 && (
+                                                <div className="mt-4 p-3 bg-slate-100/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 animate-in fade-in slide-in-from-top-2">
+                                                    <p className="font-bold text-slate-800 dark:text-slate-200 mb-2">Nota sobre Tecnologia de Completação (Convencional):</p>
+                                                    <p className="leading-relaxed text-justify">
+                                                        A taxa de falha de 0,15 eventos/ano utilizada para completação convencional é uma estimativa conservadora de 'Taxa de Intervenção com Sonda' (Rig-based Intervention Rate). Ela é baseada na agregação das taxas de falha mecânica de componentes de fundo (DHSV e Packers) conforme o OREDA Handbook (2015/2020), somada à frequência histórica de intervenções para gerenciamento de reservatório (isolamento de água e gás) em campos offshore análogos, conforme relatado em estudos da SPE (Society of Petroleum Engineers) sobre a Bacia de Campos e Mar do Norte.
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Explanatory Note for Hydraulic CI */}
+                                            {Math.abs((params.workoverLambda || 0.15) - 0.05) < 0.001 && (
+                                                <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800/30 text-xs text-slate-600 dark:text-slate-400 animate-in fade-in slide-in-from-top-2">
+                                                    <p className="font-bold text-blue-800 dark:text-blue-300 mb-2">Nota sobre Tecnologia de Completação (CI Hidráulica):</p>
+                                                    <p className="leading-relaxed text-justify">
+                                                        A taxa de intervenção de 0,05 eventos/ano para Completação Inteligente Hidráulica reflete a eliminação das intervenções para isolamento de água (Water Shutoff), que são realizadas remotamente pelas ICVs. O valor remanescente é atribuído à falha de componentes de segurança mandatórios (DHSV) e perda de integridade de packers. Estudos de confiabilidade de longo prazo (Survival Analysis), como Brouwer et al. (SPE 142247) e dados internos de operadoras do Pré-Sal, demonstram que sistemas hidráulicos passivos mantêm funcionalidade superior a 90% em janelas de 10 anos, e seus modos de falha raramente exigem mobilização imediata de sonda (Heavy Workover), permitindo operação degradada.
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Explanatory Note for Electric CI */}
+                                            {Math.abs((params.workoverLambda || 0.15) - 0.04) < 0.001 && (
+                                                <div className="mt-4 p-3 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-800/30 text-xs text-slate-600 dark:text-slate-400 animate-in fade-in slide-in-from-top-2">
+                                                    <p className="font-bold text-emerald-800 dark:text-emerald-300 mb-2">Nota sobre Tecnologia de Completação (CI Elétrica):</p>
+                                                    <p className="leading-relaxed text-justify">
+                                                        A taxa de falha de 0,04 a 0,05 eventos/ano para Completação Elétrica baseia-se na simplificação da arquitetura de fundo de poço (Multiplexação), onde múltiplos tubos hidráulicos são substituídos por um único cabo TEC (Tubing Encapsulated Cable), reduzindo estatisticamente os pontos de vazamento e falha mecânica durante a instalação. Referências como os padrões do consórcio AWES (Advanced Well Equipment Standards) e estudos de confiabilidade de eletrônica de alta temperatura (High-Temperature Electronics) apresentados na OTC, indicam que, após o período de 'mortalidade infantil' (burn-in), sistemas eletrônicos em ambiente de fundo de poço apresentam taxas de falha estocástica inferiores a sistemas eletromecânicos complexos, desde que operados dentro dos limites térmicos (&lt;150°C-175°C).
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
