@@ -27,9 +27,7 @@ export default function TechConfigModal({ isOpen, onClose, title, config, defaul
 
     const handleReset = () => {
         if (defaultConfig) {
-            if (window.confirm('Tem certeza que deseja restaurar os valores padrão para esta tecnologia?')) {
-                setLocalConfig(JSON.parse(JSON.stringify(defaultConfig)));
-            }
+            setLocalConfig(JSON.parse(JSON.stringify(defaultConfig)));
         }
     };
 

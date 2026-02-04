@@ -944,16 +944,16 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                         </div>
                                         <input
                                             type="range"
-                                            min={wellType === 'pre' ? 460 : 350}
-                                            max={wellType === 'pre' ? 520 : 420}
+                                            min="250"
+                                            max="600"
                                             step="5"
                                             value={rigRate}
                                             onChange={(e) => setRigRate(Number(e.target.value))}
                                             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-slate-700"
                                         />
                                         <div className="flex justify-between text-[9px] text-slate-400 mt-1">
-                                            <span>$ {wellType === 'pre' ? 460 : 350}k</span>
-                                            <span>$ {wellType === 'pre' ? 520 : 420}k</span>
+                                            <span>$ 250k</span>
+                                            <span>$ 600k</span>
                                         </div>
                                     </div>
 
@@ -965,8 +965,8 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                         </div>
                                         <input
                                             type="range"
-                                            min={wellType === 'pre' ? 400 : 300}
-                                            max={wellType === 'pre' ? 480 : 380}
+                                            min="250"
+                                            max="600"
                                             step="5"
                                             value={serviceRate}
                                             onChange={(e) => setServiceRate(Number(e.target.value))}
@@ -1610,7 +1610,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                 )}
                                             </div>
                                             <p className="text-[9px] text-slate-400 mt-3 text-center">
-                                                Histograma baseado em 2000 iterações por categoria | Eixo X: VPL em Bilhões ($B)
+                                                Histograma baseado em 5000 iterações por categoria | Eixo X: VPL em Bilhões ($B)
                                             </p>
                                         </div>
                                     </>
