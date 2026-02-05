@@ -1,5 +1,6 @@
 import React from 'react';
 import { Settings, Droplets, ArrowUpRight, ArrowDownRight, Activity, Beaker } from 'lucide-react';
+import ProductionMonteCarlo from './ProductionMonteCarlo';
 
 const ProductionParameters = ({ params, setParams }) => {
 
@@ -777,6 +778,11 @@ const ProductionParameters = ({ params, setParams }) => {
 
                     </div>
                 )}
+
+                {/* ADVANCED TOOLS: MONTE CARLO */}
+                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+                    <ProductionMonteCarlo baseParams={params} />
+                </div>
             </div>
         </div>
     );
