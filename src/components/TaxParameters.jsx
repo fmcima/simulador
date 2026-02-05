@@ -414,7 +414,7 @@ const TaxParameters = ({ params, setParams }) => {
                                                 <span className="capitalize">{key === 'wells' ? 'Poços' : key === 'platform' ? 'Plataforma' : 'Subsea'}</span>
                                                 <div className="text-right">
                                                     <span className="font-bold mr-2">
-                                                        {isDisabled ? '0% (Afretada)' : `${params.capexSplit[key]}%`}
+                                                        {isDisabled ? '0% (Afretada)' : `${parseFloat(params.capexSplit[key]).toFixed(1)}%`}
                                                     </span>
                                                     {!isDisabled && (
                                                         <span className="text-xs text-slate-700 dark:text-slate-200 font-bold font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">
@@ -435,9 +435,9 @@ const TaxParameters = ({ params, setParams }) => {
                                 })}
                                 <div className="text-[10px] text-right text-slate-400 dark:text-slate-500">
                                     Total: {
-                                        (params.platformOwnership === 'chartered' ? 0 : params.capexSplit.platform) +
-                                        params.capexSplit.wells +
-                                        params.capexSplit.subsea
+                                        ((params.platformOwnership === 'chartered' ? 0 : params.capexSplit.platform) +
+                                            params.capexSplit.wells +
+                                            params.capexSplit.subsea).toFixed(1)
                                     }%
                                 </div>
                             </div>

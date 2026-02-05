@@ -37,7 +37,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
 
     const [casingCost, setCasingCost] = useState(initialParams?.casingCost || 24); // $ MM
     const [tubingCost, setTubingCost] = useState(initialParams?.tubingCost || 18.5); // $ MM
-    const [anmCost, setAnmCost] = useState(initialParams?.anmCost || 7.5); // $ MM
+
 
     // --- NEW: Smart Well Technology State ---
     const [useSmartWell, setUseSmartWell] = useState(initialParams?.useSmartWell || false);
@@ -76,16 +76,12 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     // --- Monte Carlo Run Function ---
 
 
-    // --- EFFECT: Update Defaults based on Type & Complexity ---
-    useEffect(() => {
-        // Only reset if we are not initializing from existing params (simple check: if defaults don't match logic)
-        // For simplicity in this interaction, we force update when Type/Complexity changes significantly
-        // User can then fine-tune via sliders.
-
-        if (wellType === 'post') {
+    // --- Helper: Apply Defaults based on Type & Complexity ---
+    const applyDefaults = (type, comp) => {
+        if (type === 'post') {
             // -- POST SALT DEFAULTS --
             // Durations
-            if (complexity === 'low') {
+            if (comp === 'low') {
                 setDrillingDays(30); setCompletionDays(15); setConnectionDays(5); setNpt(10);
             } else {
                 setDrillingDays(45); setCompletionDays(20); setConnectionDays(10); setNpt(12);
@@ -96,12 +92,11 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
             // Materials
             setCasingCost(10); // Avg of 8-12
             setTubingCost(9); // Avg of 8-10
-            setAnmCost(4.5); // Avg of 4-5
 
         } else {
             // -- PRE SALT DEFAULTS --
             // Durations & Rates
-            if (complexity === 'low') {
+            if (comp === 'low') {
                 setDrillingDays(60); setCompletionDays(25); setConnectionDays(10); setNpt(15);
                 setRigRate(350);
                 setServiceRate(350);
@@ -113,9 +108,18 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
             // Materials
             setCasingCost(24); // Avg of 20-28
             setTubingCost(18.5); // Avg of 15-22
-            setAnmCost(7.5); // Avg of 6-9
         }
-    }, [wellType, complexity]);
+    };
+
+    const handleWellTypeChange = (newType) => {
+        setWellType(newType);
+        applyDefaults(newType, complexity);
+    };
+
+    const handleComplexityChange = (newComplexity) => {
+        setComplexity(newComplexity);
+        applyDefaults(wellType, newComplexity);
+    };
 
     // Ensure smartWellCount doesn't exceed total wells
     useEffect(() => {
@@ -129,6 +133,8 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     const t1Days = drillingDays + completionDays + connectionDays; // Days for First Well (without NPT)
     const nptFactor = 1 + (npt / 100);
     const t1WithNpt = t1Days * nptFactor;
+
+    // ... (rest of render code) ...
 
     // Calculate Campaign Days with Learning Curve
     // Tn = T1 * n^b
@@ -160,7 +166,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     const dailyCostTotal = (totalCampaignDays * (rigRate + serviceRate)) / 1000; // $ MM
 
     // Materials Cost Calculation with FOH Hardware Increase
-    const baseMaterialsCostPerWell = casingCost + tubingCost + anmCost;
+    const baseMaterialsCostPerWell = casingCost + tubingCost;
     let materialsCostTotal = baseMaterialsCostPerWell * numWells;
 
     if (useSmartWell && useFOH) {
@@ -170,7 +176,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
 
     // Per Well Costs (Weighted Average)
     const dailyCostPerWellAvg = dailyCostTotal / numWells;
-    const materialsCostPerWell = casingCost + tubingCost + anmCost;
+    const materialsCostPerWell = casingCost + tubingCost;
 
     const calculatedCostPerWell = dailyCostPerWellAvg + materialsCostPerWell; // $ MM
     const currentTotal = mode === 'simple' ? simpleTotal : dailyCostTotal + materialsCostTotal;
@@ -496,7 +502,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
 
         // Completion Category = Rig Share + Tubing + ANM
         const compRigCost = totalRigCost * compRatio;
-        const compMatCost = (tubingCost + anmCost) * numWells;
+        const compMatCost = (tubingCost) * numWells;
         const completionTotal = compRigCost + compMatCost;
 
         chartData = [
@@ -524,7 +530,6 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
         serviceRate,
         casingCost,
         tubingCost,
-        anmCost,
         useLearningCurve,
         learningRate,
         avgDaysPerWell,
@@ -562,7 +567,16 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
             }
         }, 500); // 500ms debounce
 
-        return () => clearTimeout(timeoutId);
+        return () => {
+            clearTimeout(timeoutId);
+            // Force update on unmount if there are unsaved changes
+            if (onUpdate && configRef.current) {
+                const currentConfigStr = JSON.stringify(configRef.current);
+                if (currentConfigStr !== lastNotifiedConfig.current) {
+                    onUpdate(totalRef.current, configRef.current);
+                }
+            }
+        };
     }, [currentTotal, currentConfig, onUpdate]);
 
     return (
@@ -712,7 +726,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                         <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Tipo de Poço</label>
                                         <div className="flex flex-col gap-2">
                                             <button
-                                                onClick={() => setWellType('post')}
+                                                onClick={() => handleWellTypeChange('post')}
                                                 className={`p-2 rounded border text-xs font-bold transition-all ${wellType === 'post'
                                                     ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
                                                     : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
@@ -720,7 +734,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                 Pós-Sal
                                             </button>
                                             <button
-                                                onClick={() => setWellType('pre')}
+                                                onClick={() => handleWellTypeChange('pre')}
                                                 className={`p-2 rounded border text-xs font-bold transition-all ${wellType === 'pre'
                                                     ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
                                                     : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
@@ -733,7 +747,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                         <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Complexidade</label>
                                         <div className="flex flex-col gap-2">
                                             <button
-                                                onClick={() => setComplexity('low')}
+                                                onClick={() => handleComplexityChange('low')}
                                                 className={`p-2 rounded border text-xs font-bold transition-all ${complexity === 'low'
                                                     ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
                                                     : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
@@ -741,7 +755,7 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                                 Baixa
                                             </button>
                                             <button
-                                                onClick={() => setComplexity('high')}
+                                                onClick={() => handleComplexityChange('high')}
                                                 className={`p-2 rounded border text-xs font-bold transition-all ${complexity === 'high'
                                                     ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
                                                     : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
@@ -1039,250 +1053,234 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                         />
                                     </div>
 
-                                    {/* ANM */}
-                                    <div>
-                                        <div className="flex justify-between mb-1">
-                                            <label className="text-[10px] font-medium text-slate-500">ANM (Árvore de Natal)</label>
-                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">$ {anmCost} MM</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min={wellType === 'pre' ? 6 : 4}
-                                            max={wellType === 'pre' ? 9 : 5}
-                                            step="0.5"
-                                            value={anmCost}
-                                            onChange={(e) => setAnmCost(Number(e.target.value))}
-                                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 dark:bg-slate-700"
-                                        />
-                                    </div>
-                                </div>
 
-                                {/* SMART WELL TECHNOLOGY SECTION */}
-                                <div className="space-y-4 pt-2">
-                                    {/* Smart Well Toggle */}
-                                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <Cpu className="w-4 h-4 text-purple-500" />
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Tecnologia Smart Well</span>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={useSmartWell}
-                                                    onChange={(e) => setUseSmartWell(e.target.checked)}
-                                                />
-                                                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                                            </label>
-                                        </div>
-
-                                        {useSmartWell && (
-                                            <div className="mt-3 animate-in fade-in slide-in-from-top-1">
-                                                <div className="p-2 mb-3 rounded bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/20 text-[10px] text-purple-800 dark:text-purple-300 leading-relaxed">
-                                                    <p><strong>Benefício:</strong> Permite controle remoto de zonas e monitoramento em tempo real, potencialmente aumentando o fator de recuperação, mas com maior custo inicial.</p>
+                                    {/* SMART WELL TECHNOLOGY SECTION */}
+                                    <div className="space-y-4 pt-2">
+                                        {/* Smart Well Toggle */}
+                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Cpu className="w-4 h-4 text-purple-500" />
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Tecnologia Smart Well</span>
                                                 </div>
-
-                                                {/* Smart Well Count Slider */}
-                                                <div>
-                                                    <div className="flex justify-between mb-1">
-                                                        <label className="text-[10px] font-medium text-slate-500 uppercase">
-                                                            Poços com Smart Well
-                                                        </label>
-                                                        <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
-                                                            {smartWellCount} poços
-                                                        </span>
-                                                    </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
                                                     <input
-                                                        type="range"
-                                                        min="0"
-                                                        max={numWells}
-                                                        step="1"
-                                                        value={smartWellCount}
-                                                        onChange={(e) => setSmartWellCount(Number(e.target.value))}
-                                                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600 dark:bg-slate-700"
+                                                        type="checkbox"
+                                                        className="sr-only peer"
+                                                        checked={useSmartWell}
+                                                        onChange={(e) => setUseSmartWell(e.target.checked)}
                                                     />
-                                                    <div className="flex justify-between text-[9px] text-slate-400 mt-1">
-                                                        <span>0</span>
-                                                        <span>{numWells} (Todos)</span>
-                                                    </div>
-                                                </div>
+                                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                                                </label>
+                                            </div>
 
-                                                {/* FOH Section */}
-                                                <div className="mt-4 border-t border-purple-100 dark:border-purple-900/30 pt-3">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
-                                                                checked={useFOH}
-                                                                onChange={(e) => setUseFOH(e.target.checked)}
-                                                            />
-                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                                                Full Open Hole Intelligent Completion (FOH)
+                                            {useSmartWell && (
+                                                <div className="mt-3 animate-in fade-in slide-in-from-top-1">
+                                                    <div className="p-2 mb-3 rounded bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/20 text-[10px] text-purple-800 dark:text-purple-300 leading-relaxed">
+                                                        <p><strong>Benefício:</strong> Permite controle remoto de zonas e monitoramento em tempo real, potencialmente aumentando o fator de recuperação, mas com maior custo inicial.</p>
+                                                    </div>
+
+                                                    {/* Smart Well Count Slider */}
+                                                    <div>
+                                                        <div className="flex justify-between mb-1">
+                                                            <label className="text-[10px] font-medium text-slate-500 uppercase">
+                                                                Poços com Smart Well
+                                                            </label>
+                                                            <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
+                                                                {smartWellCount} poços
                                                             </span>
-                                                        </label>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max={numWells}
+                                                            step="1"
+                                                            value={smartWellCount}
+                                                            onChange={(e) => setSmartWellCount(Number(e.target.value))}
+                                                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600 dark:bg-slate-700"
+                                                        />
+                                                        <div className="flex justify-between text-[9px] text-slate-400 mt-1">
+                                                            <span>0</span>
+                                                            <span>{numWells} (Todos)</span>
+                                                        </div>
                                                     </div>
 
-                                                    {useFOH && (
-                                                        <div className="pl-6 animate-in fade-in slide-in-from-top-1 space-y-3">
-                                                            <div className="p-2 rounded bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/30 text-[10px] text-purple-800 dark:text-purple-300">
-                                                                <p>Reduz o tempo de construção eliminando etapas de cimentação e canhoneio.</p>
-                                                            </div>
-                                                            <div>
-                                                                <div className="flex justify-between mb-1">
-                                                                    <label className="text-[10px] font-medium text-slate-500 uppercase">
-                                                                        Redução de Tempo (Dias/Poço)
-                                                                    </label>
-                                                                    <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
-                                                                        -{fohReductionDays} dias
-                                                                    </span>
-                                                                </div>
+                                                    {/* FOH Section */}
+                                                    <div className="mt-4 border-t border-purple-100 dark:border-purple-900/30 pt-3">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <label className="flex items-center gap-2 cursor-pointer select-none">
                                                                 <input
-                                                                    type="range"
-                                                                    min="10"
-                                                                    max="25"
-                                                                    step="1"
-                                                                    value={fohReductionDays}
-                                                                    onChange={(e) => setFohReductionDays(Number(e.target.value))}
-                                                                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600 dark:bg-slate-700"
+                                                                    type="checkbox"
+                                                                    className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                                                                    checked={useFOH}
+                                                                    onChange={(e) => setUseFOH(e.target.checked)}
                                                                 />
-                                                                <div className="flex justify-between text-[9px] text-slate-400 mt-1">
-                                                                    <span>10 dias</span>
-                                                                    <span>25 dias</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <span className="text-[10px] text-slate-500">Economia Total na Campanha: </span>
-                                                                <span className="text-xs font-bold text-emerald-600">
-                                                                    -{Math.round(reductionSmartWell).toLocaleString('pt-BR')} dias
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                                    Full Open Hole Intelligent Completion (FOH)
                                                                 </span>
-                                                            </div>
+                                                            </label>
+                                                        </div>
 
-                                                            <div className="border-t border-purple-100 dark:border-purple-900/30 pt-2 mt-2">
-                                                                <div className="flex justify-between mb-1">
-                                                                    <label className="text-[10px] font-medium text-slate-500 uppercase">
-                                                                        Custo de Hardware (Equipamentos)
-                                                                    </label>
-                                                                    <span className="text-xs font-bold text-amber-600">
-                                                                        +{fohHardwareCostIncrease}%
-                                                                    </span>
+                                                        {useFOH && (
+                                                            <div className="pl-6 animate-in fade-in slide-in-from-top-1 space-y-3">
+                                                                <div className="p-2 rounded bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/30 text-[10px] text-purple-800 dark:text-purple-300">
+                                                                    <p>Reduz o tempo de construção eliminando etapas de cimentação e canhoneio.</p>
                                                                 </div>
-                                                                <input
-                                                                    type="range"
-                                                                    min="10"
-                                                                    max="35"
-                                                                    step="1"
-                                                                    value={fohHardwareCostIncrease}
-                                                                    onChange={(e) => setFohHardwareCostIncrease(Number(e.target.value))}
-                                                                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500 dark:bg-slate-700"
-                                                                />
-                                                                <div className="flex justify-between text-[9px] text-slate-400 mt-1">
-                                                                    <span>10%</span>
-                                                                    <span>35%</span>
-                                                                </div>
-                                                                <div className="mt-2 text-[9px] text-slate-400 italic">
-                                                                    * Aumento devido ao uso de packers expansíveis com feed-through e válvulas mais robustas.
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Recovery Factor Increase Input */}
-                                                            <div className="border-t border-purple-100 dark:border-purple-900/30 pt-2 mt-2">
-                                                                <div className="flex justify-between items-center mb-1">
-                                                                    <label className="text-[10px] font-medium text-slate-500 uppercase">
-                                                                        Aumento do Fator de Recuperação
-                                                                    </label>
-                                                                    <div className="flex items-center gap-2">
-                                                                        {/* Decrease Button */}
-                                                                        <button
-                                                                            onClick={() => setFohRecoveryFactorIncrease(Math.max(1, fohRecoveryFactorIncrease - 1))}
-                                                                            className="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold transition-colors"
-                                                                        >
-                                                                            -
-                                                                        </button>
-
-                                                                        {/* Value Display */}
-                                                                        <div className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded px-2 py-0.5 min-w-[3rem] text-center">
-                                                                            <span className="text-xs font-bold text-purple-700 dark:text-purple-400">
-                                                                                {fohRecoveryFactorIncrease}%
-                                                                            </span>
-                                                                        </div>
-
-                                                                        {/* Increase Button */}
-                                                                        <button
-                                                                            onClick={() => setFohRecoveryFactorIncrease(Math.min(10, fohRecoveryFactorIncrease + 1))}
-                                                                            className="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold transition-colors"
-                                                                        >
-                                                                            +
-                                                                        </button>
+                                                                <div>
+                                                                    <div className="flex justify-between mb-1">
+                                                                        <label className="text-[10px] font-medium text-slate-500 uppercase">
+                                                                            Redução de Tempo (Dias/Poço)
+                                                                        </label>
+                                                                        <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
+                                                                            -{fohReductionDays} dias
+                                                                        </span>
+                                                                    </div>
+                                                                    <input
+                                                                        type="range"
+                                                                        min="10"
+                                                                        max="25"
+                                                                        step="1"
+                                                                        value={fohReductionDays}
+                                                                        onChange={(e) => setFohReductionDays(Number(e.target.value))}
+                                                                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600 dark:bg-slate-700"
+                                                                    />
+                                                                    <div className="flex justify-between text-[9px] text-slate-400 mt-1">
+                                                                        <span>10 dias</span>
+                                                                        <span>25 dias</span>
                                                                     </div>
                                                                 </div>
-                                                                <div className="p-2 rounded bg-emerald-50/50 dark:bg-emerald-900/10 text-[9px] text-emerald-800 dark:text-emerald-300 leading-relaxed italic border border-emerald-100/50 dark:border-emerald-900/20 mb-3">
-                                                                    O aumento médio do fator de recuperação varia de 4% a 6% ao otimizar a drenagem do reservatório.
+                                                                <div className="text-right">
+                                                                    <span className="text-[10px] text-slate-500">Economia Total na Campanha: </span>
+                                                                    <span className="text-xs font-bold text-emerald-600">
+                                                                        -{Math.round(reductionSmartWell).toLocaleString('pt-BR')} dias
+                                                                    </span>
                                                                 </div>
 
-                                                                {/* INCREMENTAL VALUES */}
-                                                                {(() => {
-                                                                    if (!projectParams) return null;
-                                                                    const { peakProduction = 150, rampUpDuration = 3, plateauDuration = 4, projectDuration = 30, baseDeclineRate, declineRate } = projectParams;
-                                                                    const baseDec = baseDeclineRate || declineRate || 8;
+                                                                <div className="border-t border-purple-100 dark:border-purple-900/30 pt-2 mt-2">
+                                                                    <div className="flex justify-between mb-1">
+                                                                        <label className="text-[10px] font-medium text-slate-500 uppercase">
+                                                                            Custo de Hardware (Equipamentos)
+                                                                        </label>
+                                                                        <span className="text-xs font-bold text-amber-600">
+                                                                            +{fohHardwareCostIncrease}%
+                                                                        </span>
+                                                                    </div>
+                                                                    <input
+                                                                        type="range"
+                                                                        min="10"
+                                                                        max="35"
+                                                                        step="1"
+                                                                        value={fohHardwareCostIncrease}
+                                                                        onChange={(e) => setFohHardwareCostIncrease(Number(e.target.value))}
+                                                                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500 dark:bg-slate-700"
+                                                                    />
+                                                                    <div className="flex justify-between text-[9px] text-slate-400 mt-1">
+                                                                        <span>10%</span>
+                                                                        <span>35%</span>
+                                                                    </div>
+                                                                    <div className="mt-2 text-[9px] text-slate-400 italic">
+                                                                        * Aumento devido ao uso de packers expansíveis com feed-through e válvulas mais robustas.
+                                                                    </div>
+                                                                </div>
 
-                                                                    // Calculate Volume Helper
-                                                                    const calcVol = (dec) => {
-                                                                        let total = 0;
-                                                                        for (let t = 1; t <= projectDuration; t++) {
-                                                                            let vol = 0;
-                                                                            if (t <= rampUpDuration) vol = peakProduction * (t / rampUpDuration);
-                                                                            else if (t <= rampUpDuration + plateauDuration) vol = peakProduction;
-                                                                            else {
-                                                                                const post = t - (rampUpDuration + plateauDuration);
-                                                                                vol = peakProduction * Math.pow(1 - dec / 100, post);
+                                                                {/* Recovery Factor Increase Input */}
+                                                                <div className="border-t border-purple-100 dark:border-purple-900/30 pt-2 mt-2">
+                                                                    <div className="flex justify-between items-center mb-1">
+                                                                        <label className="text-[10px] font-medium text-slate-500 uppercase">
+                                                                            Aumento do Fator de Recuperação
+                                                                        </label>
+                                                                        <div className="flex items-center gap-2">
+                                                                            {/* Decrease Button */}
+                                                                            <button
+                                                                                onClick={() => setFohRecoveryFactorIncrease(Math.max(1, fohRecoveryFactorIncrease - 1))}
+                                                                                className="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold transition-colors"
+                                                                            >
+                                                                                -
+                                                                            </button>
+
+                                                                            {/* Value Display */}
+                                                                            <div className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded px-2 py-0.5 min-w-[3rem] text-center">
+                                                                                <span className="text-xs font-bold text-purple-700 dark:text-purple-400">
+                                                                                    {fohRecoveryFactorIncrease}%
+                                                                                </span>
+                                                                            </div>
+
+                                                                            {/* Increase Button */}
+                                                                            <button
+                                                                                onClick={() => setFohRecoveryFactorIncrease(Math.min(10, fohRecoveryFactorIncrease + 1))}
+                                                                                className="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold transition-colors"
+                                                                            >
+                                                                                +
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="p-2 rounded bg-emerald-50/50 dark:bg-emerald-900/10 text-[9px] text-emerald-800 dark:text-emerald-300 leading-relaxed italic border border-emerald-100/50 dark:border-emerald-900/20 mb-3">
+                                                                        O aumento médio do fator de recuperação varia de 4% a 6% ao otimizar a drenagem do reservatório.
+                                                                    </div>
+
+                                                                    {/* INCREMENTAL VALUES */}
+                                                                    {(() => {
+                                                                        if (!projectParams) return null;
+                                                                        const { peakProduction = 150, rampUpDuration = 3, plateauDuration = 4, projectDuration = 30, baseDeclineRate, declineRate } = projectParams;
+                                                                        const baseDec = baseDeclineRate || declineRate || 8;
+
+                                                                        // Calculate Volume Helper
+                                                                        const calcVol = (dec) => {
+                                                                            let total = 0;
+                                                                            for (let t = 1; t <= projectDuration; t++) {
+                                                                                let vol = 0;
+                                                                                if (t <= rampUpDuration) vol = peakProduction * (t / rampUpDuration);
+                                                                                else if (t <= rampUpDuration + plateauDuration) vol = peakProduction;
+                                                                                else {
+                                                                                    const post = t - (rampUpDuration + plateauDuration);
+                                                                                    vol = peakProduction * Math.pow(1 - dec / 100, post);
+                                                                                }
+                                                                                total += vol * 365;
                                                                             }
-                                                                            total += vol * 365;
-                                                                        }
-                                                                        return total / 1000; // MMbbl
-                                                                    };
+                                                                            return total / 1000; // MMbbl
+                                                                        };
 
-                                                                    const volBase = calcVol(baseDec);
-                                                                    const optimizedDec = baseDec / (1 + fohRecoveryFactorIncrease / 100);
-                                                                    const volOpt = calcVol(optimizedDec);
-                                                                    const deltaVol = volOpt - volBase;
-                                                                    const deltaNpv = deltaVol * (unitNpv || 5); // $ MM
+                                                                        const volBase = calcVol(baseDec);
+                                                                        const optimizedDec = baseDec / (1 + fohRecoveryFactorIncrease / 100);
+                                                                        const volOpt = calcVol(optimizedDec);
+                                                                        const deltaVol = volOpt - volBase;
+                                                                        const deltaNpv = deltaVol * (unitNpv || 5); // $ MM
 
-                                                                    return (
-                                                                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800/30 shadow-sm animate-in fade-in slide-in-from-top-1">
-                                                                            <h5 className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase mb-2 flex items-center gap-1">
-                                                                                <TrendingUp className="w-3 h-3" /> Valor Agregado Estimado
-                                                                            </h5>
-                                                                            <div className="grid grid-cols-2 gap-4">
-                                                                                <div>
-                                                                                    <span className="text-[10px] text-emerald-700/70 dark:text-emerald-400/70 block">Volume Adicional</span>
-                                                                                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">+{deltaVol.toFixed(1)} MMbbl</span>
-                                                                                </div>
-                                                                                <div className="text-right">
-                                                                                    <span className="text-[10px] text-emerald-700/70 dark:text-emerald-400/70 block">VPL Incremental</span>
-                                                                                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">+$ {deltaNpv.toFixed(1)} MM</span>
+                                                                        return (
+                                                                            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800/30 shadow-sm animate-in fade-in slide-in-from-top-1">
+                                                                                <h5 className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase mb-2 flex items-center gap-1">
+                                                                                    <TrendingUp className="w-3 h-3" /> Valor Agregado Estimado
+                                                                                </h5>
+                                                                                <div className="grid grid-cols-2 gap-4">
+                                                                                    <div>
+                                                                                        <span className="text-[10px] text-emerald-700/70 dark:text-emerald-400/70 block">Volume Adicional</span>
+                                                                                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">+{deltaVol.toFixed(1)} MMbbl</span>
+                                                                                    </div>
+                                                                                    <div className="text-right">
+                                                                                        <span className="text-[10px] text-emerald-700/70 dark:text-emerald-400/70 block">VPL Incremental</span>
+                                                                                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">+$ {deltaNpv.toFixed(1)} MM</span>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
-                                                                        </div>
-                                                                    );
-                                                                })()}
+                                                                        );
+                                                                    })()}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
+                        </div>
                     )}
                 </div>
 
                 {/* RIGHT COLUMN: RESULTS */}
-                < div className="lg:col-span-6 space-y-6" >
+                <div className="lg:col-span-6 space-y-6">
 
                     {mode === 'detailed' && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

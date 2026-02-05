@@ -135,6 +135,12 @@ export default function App() {
         wellsParams: {
             mode: 'simple',
             simpleTotal: 2000,
+            numProducers: 8,
+            numInjectors: 8,
+        },
+        subseaParams: {
+            mode: 'simple',
+            simpleTotal: 1200,
         },
     };
 
@@ -242,19 +248,20 @@ export default function App() {
 
     const handleUpdateCapex = useCallback((fpsoCostMillions, detailedParams) => {
         setProjectA(prev => {
-            // New Logic: FPSO determines the Total Project Value based on a fixed 45% share
-            // Target Split: FPSO (45%), Wells (35%), Subsea (20%)
+            // Strategy: Update FPSO ABSOLUTE cost, keep Wells and Subsea ABSOLUTE costs constant
+            const currentTotal = prev.totalCapex;
+            const wellsCost = currentTotal * (prev.capexSplit.wells / 100);
+            const subseaCost = currentTotal * (prev.capexSplit.subsea / 100);
 
             const newFpsoCost = fpsoCostMillions * 1000000;
+            const newTotalCapex = newFpsoCost + wellsCost + subseaCost;
 
-            // Calculate Total CAPEX assuming FPSO is 45%
-            // Avoid division by zero
-            const newTotalCapex = newFpsoCost > 0 ? newFpsoCost / 0.45 : prev.totalCapex;
+            const safeTotal = newTotalCapex > 0 ? newTotalCapex : 1;
 
             const newSplit = {
-                platform: 45,
-                wells: 35,
-                subsea: 20
+                platform: (newFpsoCost / safeTotal) * 100,
+                wells: (wellsCost / safeTotal) * 100,
+                subsea: (subseaCost / safeTotal) * 100
             };
 
             return {
@@ -327,6 +334,33 @@ export default function App() {
                 workoverMobCost: mob,
                 workoverDuration: dur,
                 workoverDailyRate: rate
+            };
+        });
+    }, []);
+
+    const handleUpdateSubsea = useCallback((subseaCostMillions, detailedParams) => {
+        setProjectA(prev => {
+            // Strategy: Keep FPSO and Wells ABSOLUTE costs constant, update Subsea, sum for new Total
+            const currentTotal = prev.totalCapex;
+            const fpsoCost = currentTotal * (prev.capexSplit.platform / 100);
+            const wellsCost = currentTotal * (prev.capexSplit.wells / 100);
+
+            const newSubseaCost = subseaCostMillions * 1000000;
+            const newTotalCapex = fpsoCost + wellsCost + newSubseaCost;
+
+            const safeTotal = newTotalCapex > 0 ? newTotalCapex : 1;
+
+            const newSplit = {
+                platform: (fpsoCost / safeTotal) * 100,
+                wells: (wellsCost / safeTotal) * 100,
+                subsea: (newSubseaCost / safeTotal) * 100
+            };
+
+            return {
+                ...prev,
+                totalCapex: newTotalCapex,
+                capexSplit: newSplit,
+                subseaParams: detailedParams
             };
         });
     }, []);
@@ -928,11 +962,13 @@ export default function App() {
                     <CapexMain
                         currentParams={projectA.fpsoParams}
                         wellsParams={projectA.wellsParams}
+                        subseaParams={projectA.subseaParams}
                         peakProduction={projectA.peakProduction}
                         projectParams={projectA} // Pass full params for volume calc
                         unitNpv={(resultsA.metrics.vpl / (resultsA.yearlyData.reduce((acc, y) => acc + (y.productionVolume * 365), 0) / 1000 * 1000000)) || 5} // $/bbl (default 5 to avoid NaN)
                         onUpdate={handleUpdateCapex}
                         onUpdateWells={handleUpdateWells}
+                        onUpdateSubsea={handleUpdateSubsea}
                         activeModule={capexActiveModule}
                         setActiveModule={setCapexActiveModule}
                     />
