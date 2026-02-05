@@ -559,53 +559,69 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
                     </div>
 
                     {/* Breakdown Chart */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64">
-                        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
-                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Breakdown Estimado</h4>
-                            <div className="flex-1 min-h-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={chartData}
-                                            cx="50%" cy="50%"
-                                            innerRadius={40} outerRadius={60}
-                                            paddingAngle={2} dataKey="value"
-                                        >
-                                            {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />)}
-                                        </Pie>
-                                        <Tooltip
-                                            formatter={(val) => `$${Math.round(val)}MM`}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-80">
+                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4">Breakdown Estimado</h4>
+                            <ResponsiveContainer width="100%" height="90%">
+                                <PieChart>
+                                    <Pie
+                                        data={chartData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={55}
+                                        outerRadius={75}
+                                        paddingAngle={2}
+                                        dataKey="value"
+                                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, value }) => {
+                                            const RADIAN = Math.PI / 180;
+                                            const radius = outerRadius + 20;
+                                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                                            const textAnchor = x > cx ? 'start' : 'end';
+
+                                            return (
+                                                <text x={x} y={y} fill="#64748b" textAnchor={textAnchor} dominantBaseline="central" fontSize={11} className="dark:fill-slate-400">
+                                                    {name}
+                                                    <tspan x={x} dy="14" fontSize={10} fontWeight="bold">
+                                                        $ {Math.round(value).toLocaleString('pt-BR')} MM ({(percent * 100).toFixed(0)}%)
+                                                    </tspan>
+                                                </text>
+                                            );
+                                        }}
+                                    >
+                                        {chartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={1} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(val) => `$${val.toFixed(0)}M`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
                         </div>
 
                         {/* Details Table */}
-                        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-auto">
-                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Detalhamento</h4>
-                            <table className="w-full text-xs">
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-80 overflow-auto">
+                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4">Detalhamento (USD Milhões)</h4>
+                            <table className="w-full text-sm">
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {chartData.map((item, idx) => {
                                         const percent = (item.value / costs.total) * 100;
                                         return (
                                             <tr key={idx} className="group">
-                                                <td className="py-2 text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
+                                                <td className="py-3 text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
                                                         {item.name}
                                                     </div>
                                                 </td>
-                                                <td className="py-2 text-right font-medium dark:text-slate-200">
-                                                    $ {Math.round(item.value).toLocaleString('pt-BR')} <span className="text-xxs text-slate-400 ml-1">({percent.toFixed(0)}%)</span>
+                                                <td className="py-3 text-right font-medium text-slate-700 dark:text-slate-300">
+                                                    $ {Math.round(item.value).toLocaleString('pt-BR')}
                                                 </td>
                                             </tr>
                                         );
                                     })}
-                                    <tr className="border-t border-slate-200 dark:border-slate-700">
-                                        <td className="py-2 font-bold text-slate-800 dark:text-white">TOTAL</td>
-                                        <td className="py-2 text-right font-bold text-sky-600 dark:text-sky-400">$ {Math.round(costs.total).toLocaleString('pt-BR')}</td>
+                                    <tr className="border-t-2 border-slate-200 dark:border-slate-700">
+                                        <td className="py-3 font-bold text-slate-900 dark:text-white">TOTAL</td>
+                                        <td className="py-3 text-right font-bold text-sky-600 dark:text-sky-400">$ {Math.round(costs.total).toLocaleString('pt-BR')}</td>
                                     </tr>
                                 </tbody>
                             </table>

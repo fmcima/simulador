@@ -1623,13 +1623,13 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                     <div className="bg-slate-50 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center rounded-t-lg">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                                            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">1. Convencional (Benchmark)</h4>
+                                            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">CONVENCIONAL - Robusto & Barato</h4>
                                         </div>
                                         <span
                                             onClick={() => handleEditTech('Convencional')}
                                             className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400 cursor-pointer transition-colors"
                                         >
-                                            Robusto & Barato
+                                            Configurar Parâmetros
                                         </span>
                                     </div>
                                     <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">
@@ -1724,13 +1724,13 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                     <div className="bg-blue-50 dark:bg-blue-900/20 p-3 border-b border-blue-200 dark:border-blue-900/50 flex justify-between items-center rounded-t-lg">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                            <h4 className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">2. Inteligente Hidráulica</h4>
+                                            <h4 className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">INTELIGENTE HIDRÁULICA - Controle Zonal</h4>
                                         </div>
                                         <span
                                             onClick={() => handleEditTech('Inteligente Hidráulica')}
                                             className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 hover:border-blue-300 cursor-pointer transition-colors"
                                         >
-                                            Controle Zonal
+                                            Configurar Parâmetros
                                         </span>
                                     </div>
                                     <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">
@@ -1797,13 +1797,13 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
                                     <div className="bg-purple-50 dark:bg-purple-900/20 p-3 border-b border-purple-200 dark:border-purple-900/50 flex justify-between items-center rounded-t-lg">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                                            <h4 className="text-xs font-bold text-purple-800 dark:text-purple-300 uppercase tracking-wider">3. Inteligente Elétrica</h4>
+                                            <h4 className="text-xs font-bold text-purple-800 dark:text-purple-300 uppercase tracking-wider">INTELIGENTE ELÉTRICA - Digital & Real-time</h4>
                                         </div>
                                         <span
                                             onClick={() => handleEditTech('Inteligente Elétrica')}
                                             className="text-[10px] bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-400 hover:border-purple-300 cursor-pointer transition-colors"
                                         >
-                                            Digital & Real-time
+                                            Configurar Parâmetros
                                         </span>
                                     </div>
                                     <div className="p-4 bg-white dark:bg-slate-900/50 rounded-b-lg">

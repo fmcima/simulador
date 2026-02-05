@@ -94,7 +94,7 @@ export default function App() {
 
 
         // OPEX
-        opexMargin: 20,
+        opexMargin: 15,
         opexMode: 'simple', // 'simple' | 'detailed'
         opexFixed: 100000000, // $100M/ano (típico para ~150kbpd)
         opexVariable: 4, // $4/bbl
