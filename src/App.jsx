@@ -956,7 +956,7 @@ export default function App() {
                             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-[500px]">
                                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Projeção do Preço Brent (Nominal)</h3>
                                 <ResponsiveContainer width="100%" height="85%">
-                                    <AreaChart data={brentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                    <AreaChart data={brentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
                                         <defs>
                                             <linearGradient id="colorBrent" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1} />
