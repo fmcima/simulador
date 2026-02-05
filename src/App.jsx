@@ -33,6 +33,7 @@ export default function App() {
     console.log("--- APP MOUNTING: Starting Simulator ---");
     const { theme, toggleTheme } = useTheme();
     const [activeTab, setActiveTab] = useState('single');
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isCssFullScreen, setIsCssFullScreen] = useState(false);
     const containerRef = useRef(null);
@@ -439,23 +440,34 @@ export default function App() {
 
             {/* Navbar / Tabs */}
             <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 lg:px-6 lg:py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-20 shadow-sm transition-colors duration-300">
-                <div className="flex items-center gap-2 w-full lg:w-auto">
-                    <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-lg shadow-blue-200 shrink-0">
-                        <Activity size={20} />
+                <div className="flex justify-between items-center w-full lg:w-auto">
+                    <div className="flex items-center gap-2">
+                        <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-lg shadow-blue-200 shrink-0">
+                            <Activity size={20} />
+                        </div>
+                        <div className="min-w-0">
+                            <h1 className="text-lg font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 truncate">Simulador E&P</h1>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Análise Econômica de Projetos</p>
+                        </div>
                     </div>
-                    <div className="min-w-0">
-                        <h1 className="text-lg font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 truncate">Simulador E&P</h1>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Análise Econômica de Projetos</p>
-                    </div>
+
+                    {/* Mobile Menu Button - Visible only on mobile */}
+                    <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="lg:hidden p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        {isMenuOpen ? <Minimize size={24} /> : <div className="space-y-1.5"><div className="w-6 h-0.5 bg-current"></div><div className="w-6 h-0.5 bg-current"></div><div className="w-6 h-0.5 bg-current"></div></div>}
+                    </button>
                 </div>
 
-                <div className="flex items-center gap-3 w-full lg:w-auto overflow-hidden">
-                    <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg overflow-x-auto w-full lg:w-auto no-scrollbar mask-gradient-right border border-transparent dark:border-slate-800 transition-colors">
+                <div className="flex items-center gap-3 w-full lg:w-auto">
+                    {/* Desktop Menu - Hidden on mobile */}
+                    <div className="hidden lg:flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg overflow-x-auto w-auto no-scrollbar mask-gradient-right border border-transparent dark:border-slate-800 transition-colors">
                         {['single', 'production', 'opex', 'capex', 'brent', 'tax', 'compare', 'cashflow_table', 'manual', 'references'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeTab === tab ? 'bg-white dark:bg-slate-800 shadow-sm text-blue-700 dark:text-blue-400 ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeTab === tab ? 'bg-white dark:bg-slate-800 shadow-sm text-blue-700 dark:text-blue-400 ring-1 ring-black/5 dark:ring-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}
                             >
                                 {tab === 'single' && <LayoutTemplate size={16} />}
                                 {tab === 'production' && <Settings size={16} />}
@@ -471,7 +483,8 @@ export default function App() {
                             </button>
                         ))}
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="hidden lg:flex items-center gap-2">
                         <button
                             onClick={toggleTheme}
                             className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors shrink-0"
@@ -488,6 +501,45 @@ export default function App() {
                         </button>
                     </div>
                 </div>
+
+                {/* Mobile Dropdown Menu */}
+                {isMenuOpen && (
+                    <div className="lg:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xl p-4 flex flex-col gap-2 z-50 animate-in slide-in-from-top-2">
+                        {['single', 'production', 'opex', 'capex', 'brent', 'tax', 'compare', 'cashflow_table', 'manual', 'references'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => { setActiveTab(tab); setIsMenuOpen(false); }}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                            >
+                                {tab === 'single' && <LayoutTemplate size={18} />}
+                                {tab === 'production' && <Settings size={18} />}
+                                {tab === 'opex' && <Wrench size={18} />}
+                                {tab === 'capex' && <Anchor size={18} />}
+                                {tab === 'brent' && <ChartIcon size={18} />}
+                                {tab === 'tax' && <Landmark size={18} />}
+                                {tab === 'compare' && <Split size={18} />}
+                                {tab === 'cashflow_table' && <TableIcon size={18} />}
+                                {tab === 'manual' && <Book size={18} />}
+                                {tab === 'references' && <BookOpen size={18} />}
+                                <span className="capitalize">{tab === 'single' ? 'Dashboard' : tab === 'production' ? 'Produção' : tab === 'opex' ? 'Custos' : tab === 'capex' ? 'CAPEX' : tab === 'tax' ? 'Tributos' : tab === 'compare' ? 'Comparar' : tab === 'brent' ? 'Preços' : tab === 'cashflow_table' ? 'Tabela' : tab === 'manual' ? 'Manual' : 'Referências'}</span>
+                            </button>
+                        ))}
+                        <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <button
+                                onClick={toggleTheme}
+                                className="flex-1 flex items-center justify-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg"
+                            >
+                                {theme === 'dark' ? <><Sun size={18} /> Modo Claro</> : <><Moon size={18} /> Modo Escuro</>}
+                            </button>
+                            <button
+                                onClick={toggleFullScreen}
+                                className="flex-1 flex items-center justify-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg"
+                            >
+                                {isFullScreen || isCssFullScreen ? <><Minimize size={18} /> Sair Tela Cheia</> : <><Maximize size={18} /> Tela Cheia</>}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="p-4 md:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">

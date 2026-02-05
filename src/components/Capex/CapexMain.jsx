@@ -45,7 +45,7 @@ export default function CapexMain({ currentParams, onUpdate, peakProduction, wel
                         <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <Droplets size={24} />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Poços & Sondagem</h3>
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Engenharia de Poços</h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 h-10">Campanha de perfuração e completação.</p>
 
                         <div className="flex items-center text-sm font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">
