@@ -294,7 +294,28 @@ export const generateProjectData = (params) => {
         weightSum += w;
     }
 
-    const decommissioningCost = totalCapex * 0.15; // Decom sobre valor original (sem impostos)
+    let decommissioningCost = 0;
+
+    if (params.abexMode === 'detailed') {
+        // 1. Wells P&A
+        const numWells = params.wellsParams?.numWells || 16;
+        const abexPerWell = params.abexPerWell || 25000000;
+        const wellsAbex = numWells * abexPerWell;
+
+        // 2. Subsea Removal (Based on Subsea CAPEX)
+        const subseaCapex = totalCapex * (capexSplit.subsea / 100);
+        const subseaAbexPct = params.abexSubseaPct || 25;
+        const subseaAbex = subseaCapex * (subseaAbexPct / 100);
+
+        // 3. Platform Decommissioning (Cleaning + Towing)
+        const platformAbex = params.abexPlatform || 150000000;
+
+        decommissioningCost = wellsAbex + subseaAbex + platformAbex;
+    } else {
+        // Default Simple Mode: % of Total CAPEX
+        const simpleRate = params.abexSimpleRate || 15;
+        decommissioningCost = totalCapex * (simpleRate / 100);
+    }
 
     let accumulatedDepreciation = { platform: 0, wells: 0, subsea: 0, simple: 0 };
     let accumulatedRecoverableCost = 0;

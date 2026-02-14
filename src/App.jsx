@@ -54,6 +54,12 @@ export default function App() {
         setActiveTab('capex');
     };
     const defaultParams = {
+        // --- DECOMMISSIONING (ABEX) ---
+        abexMode: 'simple', // 'simple' | 'detailed'
+        abexSimpleRate: 15, // % do CAPEX Total
+        abexPerWell: 25000000, // $25 MM por poço (P&A)
+        abexSubseaPct: 25, // % do CAPEX Subsea para remoção
+        abexPlatform: 150000000, // $150 MM lump sum (limpeza + rebocagem)
         totalCapex: 6000000000,
         capexDuration: 5,
         capexPeakRelative: 4, // Ano do pico de investimento (1 a capexDuration)

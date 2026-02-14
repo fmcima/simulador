@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, Percent, Wrench, Activity, Info, Droplet, BarChart2, TrendingUp, Eye, EyeOff } from 'lucide-react';
+import { DollarSign, Percent, Wrench, Activity, Info, Droplet, BarChart2, TrendingUp, Eye, EyeOff, Anchor } from 'lucide-react';
 import { formatCurrency, formatMillionsNoDecimals, generateProjectData } from '../utils/calculations';
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -782,7 +782,131 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                         </div>
                     )}
                 </div>
+
+                {/* --- DECOMMISSIONING (ABEX) SECTION --- */}
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mt-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                            <Anchor size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Descomissionamento (ABEX)</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Custos de abandono ao final da vida útil.</p>
+                        </div>
+                    </div>
+
+                    {/* Mode Switch ABEX */}
+                    <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex mb-6">
+                        <button
+                            onClick={() => handleChange('abexMode', 'simple')}
+                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.abexMode === 'simple' ? 'bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
+                        >
+                            Simples (%)
+                        </button>
+                        <button
+                            onClick={() => handleChange('abexMode', 'detailed')}
+                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.abexMode === 'detailed' ? 'bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
+                        >
+                            Detalhado
+                        </button>
+                    </div>
+
+                    {params.abexMode === 'simple' ? (
+                        <div>
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                <span className="flex items-center gap-2">Taxa Global (% do CAPEX Total)</span>
+                                <span className="font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded">{params.abexSimpleRate || 15}%</span>
+                            </label>
+                            <input
+                                type="range" min="5" max="30" step="1"
+                                value={params.abexSimpleRate || 15}
+                                onChange={(e) => handleChange('abexSimpleRate', Number(e.target.value))}
+                                className="w-full accent-amber-600"
+                            />
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                Estima o ABEX como uma porcentagem fixa do CAPEX Total. Padrão de mercado: 15%.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* 1. Wells P&A */}
+                            <div>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                    <span className="flex items-center gap-2">1. Poços (P&A unitário)</span>
+                                    <span className="font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded">
+                                        {formatMillionsNoDecimals(params.abexPerWell || 25000000)}/poço
+                                    </span>
+                                </label>
+                                <input
+                                    type="range" min="5000000" max="100000000" step="1000000"
+                                    value={params.abexPerWell || 25000000}
+                                    onChange={(e) => handleChange('abexPerWell', Number(e.target.value))}
+                                    className="w-full accent-amber-600"
+                                />
+                                <div className="flex justify-between text-xs text-slate-500 mt-1">
+                                    <span>Base: {params.wellsParams?.numWells || 16} Poços</span>
+                                    <span>Total: {formatMillionsNoDecimals((params.wellsParams?.numWells || 16) * (params.abexPerWell || 25000000))}</span>
+                                </div>
+                            </div>
+
+                            {/* 2. Subsea */}
+                            <div>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                    <span className="flex items-center gap-2">2. Remoção Subsea (% CAPEX Subsea)</span>
+                                    <span className="font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded">
+                                        {params.abexSubseaPct || 25}%
+                                    </span>
+                                </label>
+                                <input
+                                    type="range" min="10" max="50" step="1"
+                                    value={params.abexSubseaPct || 25}
+                                    onChange={(e) => handleChange('abexSubseaPct', Number(e.target.value))}
+                                    className="w-full accent-amber-600"
+                                />
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Custo de recolhimento de linhas e equipamentos submarinos.
+                                </p>
+                            </div>
+
+                            {/* 3. Platform */}
+                            <div>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
+                                    <span className="flex items-center gap-2">3. Plataforma (Limpeza/Rebocagem)</span>
+                                    <span className="font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded">
+                                        {formatMillionsNoDecimals(params.abexPlatform || 150000000)}
+                                    </span>
+                                </label>
+                                <input
+                                    type="range" min="0" max="500000000" step="10000000"
+                                    value={params.abexPlatform || 150000000}
+                                    onChange={(e) => handleChange('abexPlatform', Number(e.target.value))}
+                                    className="w-full accent-amber-600"
+                                />
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Custo fixo lump-sum para desconexão, limpeza e destinação da unidade.
+                                </p>
+                            </div>
+
+                            {/* Total Summary for Detailed Mode */}
+                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-lg">
+                                <div>
+                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Custo Total de Descomissionamento</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Soma de Poços, Subsea e Plataforma</p>
+                                </div>
+                                <span className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                                    {formatMillionsNoDecimals(
+                                        ((params.wellsParams?.numWells || 16) * (params.abexPerWell || 25000000)) +
+                                        ((params.totalCapex || 6000000000) * ((params.capexSplit?.subsea || 20) / 100) * ((params.abexSubseaPct || 25) / 100)) +
+                                        (params.abexPlatform || 150000000)
+                                    )}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
             </div>
+
 
             {/* RIGHT COLUMN: CHART */}
             <div className="lg:col-span-7 space-y-6">
@@ -1035,7 +1159,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

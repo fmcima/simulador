@@ -47,7 +47,18 @@ export default function TechConfigModal({ isOpen, onClose, title, config, defaul
         waterGrowthK: 'Crescimento de Água (k)'
     };
 
+    const paramSteps = {
+        capexMult: 0.1,
+        rigMult: 0.1,
+        hyperbolicFactor: 0.1,
+        waterGrowthK: 0.1,
+        declineRate: 0.1,
+        breakthroughYears: 0.1
+    };
+
     const renderParamInput = (key, param) => {
+        const step = paramSteps[key] || "any";
+
         return (
             <div key={key} className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
                 <div className="flex justify-between items-center mb-2">
@@ -69,7 +80,7 @@ export default function TechConfigModal({ isOpen, onClose, title, config, defaul
                             <label className="text-[9px] text-slate-500 block">Valor</label>
                             <input
                                 type="number"
-                                step="any"
+                                step={step}
                                 value={param.value}
                                 onChange={(e) => handleChange(key, 'value', Number(e.target.value))}
                                 className="w-full text-xs p-1 rounded border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
@@ -82,7 +93,7 @@ export default function TechConfigModal({ isOpen, onClose, title, config, defaul
                                 <label className="text-[9px] text-slate-500 block">Min</label>
                                 <input
                                     type="number"
-                                    step="any"
+                                    step={step}
                                     value={param.min}
                                     onChange={(e) => handleChange(key, 'min', Number(e.target.value))}
                                     className="w-full text-xs p-1 rounded border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
@@ -92,7 +103,7 @@ export default function TechConfigModal({ isOpen, onClose, title, config, defaul
                                 <label className="text-[9px] text-slate-500 block">Moda</label>
                                 <input
                                     type="number"
-                                    step="any"
+                                    step={step}
                                     value={param.mode}
                                     onChange={(e) => handleChange(key, 'mode', Number(e.target.value))}
                                     className="w-full text-xs p-1 rounded border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
@@ -102,7 +113,7 @@ export default function TechConfigModal({ isOpen, onClose, title, config, defaul
                                 <label className="text-[9px] text-slate-500 block">Max</label>
                                 <input
                                     type="number"
-                                    step="any"
+                                    step={step}
                                     value={param.max}
                                     onChange={(e) => handleChange(key, 'max', Number(e.target.value))}
                                     className="w-full text-xs p-1 rounded border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
@@ -116,7 +127,7 @@ export default function TechConfigModal({ isOpen, onClose, title, config, defaul
                                 <label className="text-[9px] text-slate-500 block">Média</label>
                                 <input
                                     type="number"
-                                    step="any"
+                                    step={step}
                                     value={param.mean}
                                     onChange={(e) => handleChange(key, 'mean', Number(e.target.value))}
                                     className="w-full text-xs p-1 rounded border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
@@ -126,7 +137,7 @@ export default function TechConfigModal({ isOpen, onClose, title, config, defaul
                                 <label className="text-[9px] text-slate-500 block">DesvPad</label>
                                 <input
                                     type="number"
-                                    step="any"
+                                    step={step}
                                     value={param.stdDev}
                                     onChange={(e) => handleChange(key, 'stdDev', Number(e.target.value))}
                                     className="w-full text-xs p-1 rounded border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
