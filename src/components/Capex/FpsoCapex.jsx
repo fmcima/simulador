@@ -320,6 +320,14 @@ export default function FpsoCapex({ initialParams, onUpdate, peakProduction = 18
                                         <div className={`mt-3 p-3 rounded-lg border transition-colors duration-300 ${complexity === 'high' ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20' : complexity === 'medium' ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/20' : 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/20'}`}>
                                             <p className={`text-[10px] font-bold mb-1 ${complexity === 'high' ? 'text-red-700 dark:text-red-400' : complexity === 'medium' ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{complexityInfo[complexity]?.tooltip}</p>
                                             <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">{complexityInfo[complexity]?.driver}</p>
+
+                                            {/* Cost per Ton Display */}
+                                            <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800/50 flex justify-between items-center">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase">Custo Unitário Estimado:</span>
+                                                <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                                                    $ {({ 'low': 28000, 'medium': 35000, 'high': 42000 }[complexity]).toLocaleString('pt-BR')} / ton
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     {/* Weight Input */}

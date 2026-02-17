@@ -16,9 +16,12 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
     const [lineCostPerKm, setLineCostPerKm] = useState(initialParams?.lineCostPerKm || 3.5); // $ MM/km (Flowline + Umbilical avg for Flexible/Sweet)
     const [riserCostPerKm, setRiserCostPerKm] = useState(initialParams?.riserCostPerKm || 6.0); // $ MM/km
     const [manifoldCost, setManifoldCost] = useState(initialParams?.manifoldCost || 20); // $ MM per Manifold
-    const [plsvRate, setPlsvRate] = useState(initialParams?.plsvRate || 400); // $k/day
-    const [pipelayRate, setPipelayRate] = useState(initialParams?.pipelayRate || 650); // $k/day (For Rigid J-Lay/Reel-Lay)
-    const [trackRecord, setTrackRecord] = useState(initialParams?.trackRecord || 0.8); // km/day (Lay rate efficiency)
+
+    // Unified Vessel Rate (replaces plsvRate / pipelayRate distinction)
+    // Flexible -> PLSV (~400k), Rigid -> CONST/J-LAY (~650k)
+    const [vesselRate, setVesselRate] = useState(initialParams?.vesselRate || 400); // $k/day
+
+    const [trackRecord, setTrackRecord] = useState(initialParams?.trackRecord || 1.5); // km/day (Lay rate efficiency)
     const [anmCost, setAnmCost] = useState(initialParams?.anmCost || 8.0); // $ MM (Wet Xmas Tree)
 
     // New Detailed Tech Params
@@ -46,6 +49,42 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
         return prod + inj;
     }, [wellsParams]);
 
+    // --- 1.b Auto-Update Inputs based on Tech ---
+    useEffect(() => {
+        // Only valid in detailed mode
+        if (mode !== 'detailed') return;
+
+        // Base Costs (unmultiplied)
+        // Flexible: 3.5 MM/km (includes umbilical avg)
+        // Rigid: 2.0 MM/km (cheaper material, expensive install)
+        const isRigid = riserTech.includes('rigid');
+
+        // 1. Line Cost Logic
+        const baseLineCost = isRigid ? 2.0 : 3.5;
+        const isSour = fluidCorrosivity === 'sour';
+        const isPiP = insulation === 'pip';
+
+        const metallurgyMult = isSour ? 2.8 : 1.0;
+        const insulationMult = isPiP ? 1.6 : 1.0;
+
+        const recommendedCost = baseLineCost * metallurgyMult * insulationMult;
+        setLineCostPerKm(Math.round(recommendedCost * 100) / 100);
+
+        // 2. Installation Parameters Logic
+        if (isRigid) {
+            // Rigid Pipelay (J-Lay/Reel-Lay)
+            // Slower (welding) but expensive vessel
+            setVesselRate(650); // $650k/day
+            setTrackRecord(0.7); // 0.7 km/day
+        } else {
+            // Flexible (PLSV)
+            // Faster (spooling) and standard vessel
+            setVesselRate(400); // $400k/day
+            setTrackRecord(1.5); // 1.5 km/day
+        }
+
+    }, [riserTech, fluidCorrosivity, insulation, mode]);
+
     // --- 2. Calculations ---
     const costs = useMemo(() => {
         if (mode === 'simple') {
@@ -63,20 +102,13 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
 
         // --- Detailed Logic ---
 
-        // --- Detailed Logic ---
+        // 1. Tech Multipliers (Now applied directly to Input State via Effect below)
+        // We use the input directly as the "Adjusted Cost"
+        const adjustedLineCost = lineCostPerKm;
 
-        // 1. Tech Multipliers
+        // Helper Booleans
         const isRigid = riserTech.includes('rigid');
         const isLazyWave = riserTech.includes('lazy_wave');
-        const isSour = fluidCorrosivity === 'sour';
-        const isPiP = insulation === 'pip';
-
-        const metallurgyMult = isSour ? 2.8 : 1.0; // CRA effect
-        const insulationMult = isPiP ? 1.6 : 1.0; // Pipe-in-Pipe effect
-
-        const adjustedLineCost = lineCostPerKm * metallurgyMult * insulationMult;
-        // Note: lineCostPerKm input should be "Base Carbon Steel" if using multipliers, 
-        // OR "Base Flexible" if flexible. For simplicity, we assume the input is the BASE for the selected tech class.
 
         // 2. Quantities
         const numRisers = numWells;
@@ -111,6 +143,8 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
         // 3. Hardware Costs
         const costFlowlines = totalFlowlineLength * adjustedLineCost;
 
+
+
         let costRisers = totalRiserLength * riserCostPerKm;
         if (isLazyWave) {
             // Add Buoyancy Modules Cost: ~$1.5 MM per riser set
@@ -133,11 +167,11 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
         const totalHardware = costFlowlines + costRisers + costManifolds + costPLETs + costANMs;
 
         // 4. Installation Costs
-        const vesselRate = isRigid ? pipelayRate : plsvRate; // Rigid needs J-Lay/Reel-Lay ($$$)
-        const laySpeed = isRigid ? (trackRecord * 0.7) : trackRecord; // Rigid is slower (welding)
+        // Unified Logic: We trust the inputs (vesselRate and trackRecord)
+        // which are now auto-set by the effect above based on tech.
 
         const totalLayLength = totalFlowlineLength + totalRiserLength;
-        const daysLay = totalLayLength / laySpeed;
+        const daysLay = totalLayLength / trackRecord;
         const daysHookup = numWells * (isRigid ? 5 : 3); // Rigid hookup hard
         const totalCampaignDays = daysLay + daysHookup + 21; // +21 days mob/demob
 
@@ -151,7 +185,7 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
             total: totalHardware + costInstallation
         };
 
-    }, [mode, simpleTotal, topology, avgDistance, waterDepth, lineCostPerKm, riserCostPerKm, manifoldCost, plsvRate, pipelayRate, trackRecord, numWells, riserTech, fluidCorrosivity, insulation, hasPiggingLoop, anmCost]);
+    }, [mode, simpleTotal, topology, avgDistance, waterDepth, lineCostPerKm, riserCostPerKm, manifoldCost, vesselRate, trackRecord, numWells, riserTech, fluidCorrosivity, insulation, hasPiggingLoop, anmCost]);
 
     // --- 3. Chart Data ---
     const chartData = useMemo(() => {
@@ -184,10 +218,7 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
             lineCostPerKm,
             riserCostPerKm,
             manifoldCost,
-            plsvRate,
-            manifoldCost,
-            plsvRate,
-            pipelayRate,
+            vesselRate,
             trackRecord,
             riserTech,
             fluidCorrosivity,
@@ -208,7 +239,7 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [costs.total, mode, simpleTotal, topology, avgDistance, waterDepth, lineCostPerKm, riserCostPerKm, manifoldCost, plsvRate, pipelayRate, trackRecord, riserTech, fluidCorrosivity, insulation, hasPiggingLoop, onUpdate]);
+    }, [costs.total, mode, simpleTotal, topology, avgDistance, waterDepth, lineCostPerKm, riserCostPerKm, manifoldCost, vesselRate, trackRecord, riserTech, fluidCorrosivity, insulation, hasPiggingLoop, onUpdate]);
 
 
     return (
@@ -491,7 +522,7 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
                                 <div className="space-y-4">
                                     {/* Cost Inputs */}
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div>
+                                        <div className="space-y-2">
                                             <label className="text-[10px] font-medium text-slate-500 mb-1 block truncate" title="Custo Médio de Linhas (Flow + Umb)">Linhas (SURF) ($ MM/km)</label>
                                             <div className="relative">
                                                 <span className="absolute left-2 top-1.5 text-xs font-bold text-slate-400">$</span>
@@ -503,18 +534,38 @@ export default function SubseaCapex({ initialParams, onUpdate, wellsParams }) {
                                                     className="w-full pl-5 p-1.5 text-sm font-bold border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 dark:text-white"
                                                 />
                                             </div>
+                                            {/* Explanatory Note for Cost Multipliers */}
+                                            <div className="p-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded text-[9px] leading-tight text-slate-500 dark:text-slate-400">
+                                                <div className="font-bold mb-1">Cálculo Sugerido:</div>
+                                                <div className="font-mono">
+                                                    {riserTech.includes('rigid') ? '$ 2.0 (Base)' : '$ 3.5 (Base)'}
+                                                    {fluidCorrosivity === 'sour' && ' x 2.8 (Sour)'}
+                                                    {insulation === 'pip' && ' x 1.6 (PiP)'}
+                                                    {' = '}${lineCostPerKm}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="text-[10px] font-medium text-slate-500 mb-1 block truncate" title="Diária de PLSV">Diária PLSV ($ k/dia)</label>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-medium text-slate-500 mb-1 block truncate" title="Diária de Embarcação">
+                                                {riserTech.includes('rigid') ? "Diária Pipelay (J-Lay/Reel)" : "Diária PLSV"}
+                                            </label>
                                             <div className="relative">
                                                 <span className="absolute left-2 top-1.5 text-xs font-bold text-slate-400">$</span>
                                                 <input
                                                     type="number"
                                                     step="10"
-                                                    value={plsvRate}
-                                                    onChange={e => setPlsvRate(Number(e.target.value))}
+                                                    value={vesselRate}
+                                                    onChange={e => setVesselRate(Number(e.target.value))}
                                                     className="w-full pl-5 p-1.5 text-sm font-bold border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 dark:text-white"
                                                 />
+                                            </div>
+                                            {/* Tech Note for Vessel */}
+                                            <div className="p-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded text-[9px] leading-tight text-slate-500 dark:text-slate-400">
+                                                {riserTech.includes('rigid')
+                                                    ? "O método J-Lay (lançamento em \"J\") é necessário para águas ultraprofundas (Pré-Sal) quando se usa duto rígido, pois o tubo desce na vertical para não colapsar com o próprio peso. Isso exige navios gigantescos com torres de lançamento verticais (Ex: Saipem FDS2, Heerema Aegir, Technip Deep Blue)."
+                                                    : "Lançamento Flexível usa PLSV padrão com alta velocidade de lançamento."
+                                                }
                                             </div>
                                         </div>
                                     </div>
