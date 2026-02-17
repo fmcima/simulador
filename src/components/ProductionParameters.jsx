@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings, Droplets, ArrowUpRight, ArrowDownRight, Activity, Beaker } from 'lucide-react';
 import ProductionMonteCarlo from './ProductionMonteCarlo';
 
-const ProductionParameters = ({ params, setParams }) => {
+const ProductionParameters = ({ params, setParams, monteCarloResults, setMonteCarloResults }) => {
 
 
     const mode = params.productionMode || 'simple';
@@ -790,7 +790,11 @@ const ProductionParameters = ({ params, setParams }) => {
 
                 {/* ADVANCED TOOLS: MONTE CARLO */}
                 <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
-                    <ProductionMonteCarlo baseParams={params} />
+                    <ProductionMonteCarlo
+                        baseParams={params}
+                        results={monteCarloResults}
+                        setResults={setMonteCarloResults}
+                    />
                 </div>
             </div>
         </div>

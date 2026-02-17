@@ -43,10 +43,10 @@ const ParameterInput = ({ label, setting, onChange, unit, step = 1 }) => {
     );
 };
 
-export default function ProductionMonteCarlo({ baseParams }) {
+export default function ProductionMonteCarlo({ baseParams, results, setResults }) {
     const [isRunning, setIsRunning] = useState(false);
-    const [results, setResults] = useState(null);
-    const [isConfigOpen, setIsConfigOpen] = useState(true);
+    // results and setResults are now props
+    const [isConfigOpen, setIsConfigOpen] = useState(!results); // Auto-open if no results
 
     const r1 = (v) => Math.round(v * 10) / 10;
 
@@ -118,7 +118,13 @@ export default function ProductionMonteCarlo({ baseParams }) {
                 max: r1((baseParams.bswGrowthRate || 1.2) * 1.2)
             }
         }));
-    }, [baseParams.peakProduction, baseParams.plateauDuration, baseParams.declineRate, baseParams.bswBreakthrough, baseParams.bswGrowthRate]);
+    }, [
+        baseParams.peakProduction,
+        baseParams.plateauDuration,
+        baseParams.declineRate,
+        baseParams.bswBreakthrough,
+        baseParams.bswGrowthRate
+    ]);
 
     const handleRunSimulation = () => {
         setIsRunning(true);

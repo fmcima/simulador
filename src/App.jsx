@@ -40,6 +40,7 @@ export default function App() {
 
     // Estados dos Projetos
     const [capexActiveModule, setCapexActiveModule] = useState('selection'); // Lifted state for navigation
+    const [monteCarloResults, setMonteCarloResults] = useState(null); // Lifted state for Monte Carlo persistence
 
     const handleNavigateToWells = () => {
         // Ensure Detailed Mode is ON
@@ -893,7 +894,12 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         {/* CONTROLS - Using new ProductionParameters component */}
                         <div className="lg:col-span-5">
-                            <ProductionParameters params={projectA} setParams={setProjectA} />
+                            <ProductionParameters
+                                params={projectA}
+                                setParams={setProjectA}
+                                monteCarloResults={monteCarloResults}
+                                setMonteCarloResults={setMonteCarloResults}
+                            />
                             {/* <div className="p-4 bg-red-100 text-red-800">Production Parameters Disabled</div> */}
                         </div>
 
