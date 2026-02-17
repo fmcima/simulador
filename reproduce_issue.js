@@ -1,86 +1,104 @@
 
-// reproduce_issue.js
+// Mock of the implementation in calculations.js
+const calculateDiscountedPayback = (rate, cashFlows) => {
+    let cumulative = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+        const discountedVal = cashFlows[t] / Math.pow(1 + rate / 100, t);
+        const previousCum = cumulative;
+        cumulative += discountedVal; // Corrected: summing discounted values
+        if (cumulative >= 0) {
+            if (t === 0) return 0;
+            return t - 1 + Math.abs(previousCum) / discountedVal;
+        }
+    }
+    return null;
+};
 
-/**
- * Simplified reproduction of the NPV anomaly.
- * Scenario: Project has positive cash flows until year 21, then negative until year 30.
- * Anomaly: Reducing duration from 30 to 25 years DECREASES NPV, even though we cut off 5 years of losses.
- * Hypothesis: Use of Decommissioning Cost (Abex) at end of project is the cause.
- */
+// Simple Payback (Nominal)
+const calculateNominalPayback = (cashFlows) => {
+    let cumulative = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+        const val = cashFlows[t];
+        const previousCum = cumulative;
+        cumulative += val;
+        if (cumulative >= 0) {
+            if (t === 0) return 0;
+            return t - 1 + Math.abs(previousCum) / val;
+        }
+    }
+    return null;
+};
 
-function calculateNPV(rate, cashFlows) {
-    return cashFlows.reduce((acc, val, t) => acc + val / Math.pow(1 + rate / 100, t), 0);
-}
+// Simulation Data Validation
+// Use a synthetic cash flow that resembles a project
+// Year 0-4: Capex (Negative)
+// Year 5+: Production (Positive)
 
-function runSimulation(duration) {
+const generateSyntheticFlow = () => {
+    const flows = [];
     const discountRate = 10;
-    const totalCapex = 7000; // $7 Billion
-    const decomRate = 0.15; // 15% of Capex
-    const decomCost = totalCapex * decomRate;
 
-    const cashFlows = [];
+    // Year 0: -500
+    // Year 1: -1000
+    // Year 2: -1500
+    // Year 3: -1000
+    // Year 4: -500
+    // Total Capex: -4500
 
-    // Year 0-5: Investment (Negative Cash Flow)
-    // Simplified: Just put some heavy negative flow early on
-    for (let i = 0; i <= duration; i++) {
-        let flow = 0;
+    for (let i = 0; i < 5; i++) flows.push(-900); // Concentrated
 
-        if (i === 0) flow = -1000; // Initial setup
-        else if (i <= 5) flow = -1000; // Capex phase
-        else if (i <= 21) flow = 800; // Positive generation
-        else flow = -50; // Late life negative flow (maintenance > revenue)
-
-        cashFlows.push(flow);
+    // Production Years 5 to 30
+    // Revenue ramps up then declines
+    for (let i = 5; i < 35; i++) {
+        let revenue = 1000;
+        if (i > 10) revenue = 1000 * Math.pow(0.9, i - 10); // Decline
+        flows.push(revenue - 200); // 200 opex
     }
 
-    // Decommissioning happens at Duration + 1
-    // We add it to the last year or append a new year. 
-    // In the real app logic: "isDecomYear = (year === projectDuration + 1)"
-    const decomYear = duration + 1;
-    // Ensure array is long enough
-    while (cashFlows.length <= decomYear) cashFlows.push(0);
-
-    cashFlows[decomYear] -= decomCost;
-
-    const npv = calculateNPV(discountRate, cashFlows);
-    const decomPV = -decomCost / Math.pow(1 + discountRate / 100, decomYear);
-
-    return {
-        duration,
-        npv,
-        decomYear,
-        decomCost,
-        decomPV,
-        sumNegativeFlowsTail: duration > 21 ? (duration - 21) * -50 : 0
-    };
+    return { flows, discountRate };
 }
 
-const sim30 = runSimulation(30);
-const sim25 = runSimulation(25);
+const runTest = () => {
+    const { flows, discountRate } = generateSyntheticFlow();
 
-console.log("--- Results ---");
-console.log("30 Years NPV:", sim30.npv.toFixed(2));
-console.log("25 Years NPV:", sim25.npv.toFixed(2));
-console.log("Difference:", (sim30.npv - sim25.npv).toFixed(2));
+    console.log("--- Synthetic Data Test ---");
+    console.log("Discount Rate:", discountRate);
 
-console.log("\n--- Analysis of Decommissioning Cost (Abex) ---");
-console.log(`Abex Value (Nominal): ${sim30.decomCost}`);
-console.log(`PV of Abex at Year 31 (30y case): ${sim30.decomPV.toFixed(2)}`);
-console.log(`PV of Abex at Year 26 (25y case): ${sim25.decomPV.toFixed(2)}`);
-console.log(`Impact of Acceleration (Loss): ${(sim25.decomPV - sim30.decomPV).toFixed(2)}`);
+    // Calculate Nominal Accumulation Curve (for chart)
+    const nominalCurve = [];
+    let cum = 0;
+    flows.forEach((f, i) => {
+        cum += f;
+        nominalCurve.push({ t: i, flow: f, cum });
+    });
 
-console.log("\n--- Analysis of Avoided Losses ---");
-// We avoided 5 years (26-30) of -50 flow
-// Simplified PV of those avoided losses
-let avoidedLossPV = 0;
-for (let t = 26; t <= 30; t++) {
-    const flow = -50;
-    avoidedLossPV += flow / Math.pow(1 + 10 / 100, t);
+    // Calculate Paybacks
+    const discPayback = calculateDiscountedPayback(discountRate, flows);
+    const nomPayback = calculateNominalPayback(flows);
+
+    console.log(`Discounted Payback (KPI): ${discPayback?.toFixed(2)} years`);
+    console.log(`Nominal Payback (Chart): ${nomPayback?.toFixed(2)} years`);
+
+    // Check Crossing Points manually
+    const crossNom = nominalCurve.find(x => x.cum >= 0);
+    console.log(`Nominal Crosses Positive at Year: ${crossNom?.t}`);
+
+    const discountedCurve = [];
+    let discCum = 0;
+    flows.forEach((f, i) => {
+        const dF = f / Math.pow(1 + discountRate / 100, i);
+        discCum += dF;
+        discountedCurve.push({ t: i, flow: dF, cum: discCum });
+    });
+
+    const crossDisc = discountedCurve.find(x => x.cum >= 0);
+    console.log(`Discounted Crosses Positive at Year: ${crossDisc?.t}`);
+
+    if (discPayback < nomPayback) {
+        console.warn("!!! ANOMALY DETECTED: Discounted Payback is FASTER than Nominal !!!");
+    } else {
+        console.log("Normal Behavior: Discounted Payback is SLOWER than Nominal.");
+    }
 }
-console.log(`PV of Avoided Tail Losses (Benefit): ${(-avoidedLossPV).toFixed(2)}`); // Negative of negative is benefit
 
-console.log("\n--- Conclusion ---");
-const netEffect = (sim25.decomPV - sim30.decomPV) - avoidedLossPV;
-console.log(`Net Effect on NPV: ${netEffect.toFixed(2)}`);
-if (netEffect < 0) console.log("The cost of accelerating Abex outweighs the benefit of cutting losses -> NPV decreases.");
-else console.log("Cutting losses outweighs Abex acceleration -> NPV increases.");
+runTest();

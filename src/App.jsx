@@ -242,6 +242,87 @@ export default function App() {
             }));
     }, [resultsA]);
 
+    // --- Sincronização de Eixos para Gráfico de Fluxo de Caixa ---
+    const syncedDomains = useMemo(() => {
+        const data = resultsA.yearlyData;
+        if (!data || data.length === 0) return { left: ['auto', 'auto'], right: ['auto', 'auto'] };
+
+        // 1. Obter Extremos Reais
+        const minLeft = Math.min(0, ...data.map(d => d.freeCashFlow || 0));
+        const maxLeft = Math.max(0, ...data.map(d => d.freeCashFlow || 0));
+
+        const minRight = Math.min(0, ...data.map(d => d.accumulatedDiscountedCashFlow || 0));
+        const maxRight = Math.max(0, ...data.map(d => d.accumulatedDiscountedCashFlow || 0));
+
+        const absMinLeft = Math.abs(minLeft);
+        const absMinRight = Math.abs(minRight);
+
+        // Fração Negativa Real (0 a 1)
+        const rangeLeft = absMinLeft + maxLeft;
+        const rangeRight = absMinRight + maxRight;
+
+        // Evitar divisão por zero
+        if (rangeLeft === 0 || rangeRight === 0) return { left: ['auto', 'auto'], right: ['auto', 'auto'] };
+
+        const fracLeft = absMinLeft / rangeLeft;   // % do eixo que deve ser negativo
+        const fracRight = absMinRight / rangeRight;
+
+        // Estratégia: Testar os dois cenários (forçar fL ou forçar fR) e escolher o que desperdiça menos espaço
+
+        const calculateDomains = (targetFrac) => {
+            // Left
+            // N_L / (N_L + P_L) = targetFrac
+            // N_L * (1 - target) = P_L * target
+            // Se N_L é o gargalo (fracAtual < target): N_new = P_old * target / (1-target)
+            // Se P_L é o gargalo (fracAtual > target): P_new = N_old * (1-target) / target
+
+            let newMinLeft = absMinLeft;
+            let newMaxLeft = maxLeft;
+
+            if (fracLeft < targetFrac) {
+                // Precisamos de mais negativo
+                newMinLeft = maxLeft * targetFrac / (1 - targetFrac);
+            } else {
+                // Precisamos de mais positivo
+                newMaxLeft = absMinLeft * (1 - targetFrac) / targetFrac;
+            }
+
+            let newMinRight = absMinRight;
+            let newMaxRight = maxRight;
+
+            if (fracRight < targetFrac) {
+                newMinRight = maxRight * targetFrac / (1 - targetFrac);
+            } else {
+                newMaxRight = absMinRight * (1 - targetFrac) / targetFrac;
+            }
+
+            const wasteLeft = (newMinLeft + newMaxLeft) - rangeLeft;
+            const wasteRight = (newMinRight + newMaxRight) - rangeRight;
+
+            return {
+                domains: {
+                    left: [-newMinLeft, newMaxLeft],
+                    right: [-newMinRight, newMaxRight]
+                },
+                waste: wasteLeft + wasteRight
+            };
+        };
+
+        // Cenário 1: Alinhar pelo Left (fracLeft)
+        // Se target = fracLeft, Left não muda (waste=0). Right ajusta.
+        const c1 = calculateDomains(fracLeft);
+
+        // Cenário 2: Alinhar pelo Right (fracRight)
+        const c2 = calculateDomains(fracRight);
+
+        // Escolher o menor desperdício
+        // Adicionar margem de segurança pequena (opcional) para evitar corte exato
+        const best = c1.waste <= c2.waste ? c1.domains : c2.domains;
+
+        return best;
+
+    }, [resultsA]);
+
     const handleChangeProjectA = (field, value) => {
         setProjectA(prev => {
             const updates = { [field]: value };
@@ -430,8 +511,8 @@ export default function App() {
                                 <span className="dark:text-slate-200">{formatMillionsNoDecimals(data.freeCashFlow)}</span>
                             </div>
                             <div className="flex justify-between gap-4 text-emerald-500 dark:text-emerald-400">
-                                <span>Acumulado:</span>
-                                <span>{formatMillionsNoDecimals(data.accumulatedCashFlow)}</span>
+                                <span>Acumulado (Desc.):</span>
+                                <span>{formatMillionsNoDecimals(data.accumulatedDiscountedCashFlow)}</span>
                             </div>
                         </div>
                     </div>
@@ -602,6 +683,7 @@ export default function App() {
                                         />
                                         <YAxis
                                             yAxisId="left"
+                                            domain={syncedDomains.left}
                                             tickFormatter={(v) => `$${(v / 1000000000).toFixed(1)}B`}
                                             fontSize={10}
                                             axisLine={false}
@@ -609,7 +691,12 @@ export default function App() {
                                             tick={{ fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
                                             label={{ value: 'FCL (USD)', angle: -90, position: 'insideLeft', fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b', dy: 40 }}
                                         />
-                                        <YAxis yAxisId="right" orientation="right" hide />
+                                        <YAxis
+                                            yAxisId="right"
+                                            orientation="right"
+                                            domain={syncedDomains.right}
+                                            hide
+                                        />
                                         <Tooltip content={<CustomTooltip />} />
                                         <Legend
                                             verticalAlign="top"
@@ -619,7 +706,7 @@ export default function App() {
                                         />
                                         <ReferenceLine yAxisId="left" y={0} stroke={theme === 'dark' ? '#475569' : '#cbd5e1'} />
                                         <Bar yAxisId="left" dataKey="freeCashFlow" name="FCL Anual" fill="#3b82f6" barSize={30} radius={[4, 4, 0, 0]} />
-                                        <Line yAxisId="right" type="monotone" dataKey="accumulatedCashFlow" name="Acumulado" stroke="#10b981" strokeWidth={3} dot={false} />
+                                        <Line yAxisId="right" type="monotone" dataKey="accumulatedDiscountedCashFlow" name="Acumulado (Desc.)" stroke="#10b981" strokeWidth={3} dot={false} />
                                         <Line yAxisId="left" type="step" dataKey="taxes" name="Impostos" stroke="#9333ea" strokeWidth={2} dot={false} opacity={0.6} />
                                         {projectA.platformOwnership === 'chartered' && (
                                             <Line yAxisId="left" type="monotone" dataKey="charterCost" name="Custo Afretamento" stroke="#ea580c" strokeWidth={2} dot={false} />

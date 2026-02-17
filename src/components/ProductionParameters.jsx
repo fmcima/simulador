@@ -130,15 +130,24 @@ const ProductionParameters = ({ params, setParams }) => {
                     <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-100 dark:border-emerald-900">
                         <label className="block text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-3">Escolha um Perfil Típico:</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <button onClick={() => applySimplePreset('pre_salt')} className="p-3 text-left bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm transition-all group">
+                            <button
+                                onClick={() => applySimplePreset('pre_salt')}
+                                className={`p-3 text-left rounded-lg border transition-all group ${params.peakProduction === 180 && params.declineRate === 10 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                            >
                                 <div className="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Pré-Sal (Offshore)</div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400">Alta prod., platô 4 anos, dec. 8%</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">Alta prod., platô 4 anos, dec. 10%</div>
                             </button>
-                            <button onClick={() => applySimplePreset('post_salt')} className="p-3 text-left bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm transition-all group">
+                            <button
+                                onClick={() => applySimplePreset('post_salt')}
+                                className={`p-3 text-left rounded-lg border transition-all group ${params.peakProduction === 100 && params.declineRate === 12 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                            >
                                 <div className="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Pós-Sal (Offshore)</div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400">Campos maduros, dec. 12%</div>
                             </button>
-                            <button onClick={() => applySimplePreset('onshore')} className="p-3 text-left bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm transition-all group">
+                            <button
+                                onClick={() => applySimplePreset('onshore')}
+                                className={`p-3 text-left rounded-lg border transition-all group ${params.peakProduction === 15 && params.declineRate === 6 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 ring-1 ring-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm'}`}
+                            >
                                 <div className="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:text-emerald-400">Onshore</div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400">Vida longa, dec. 6%</div>
                             </button>

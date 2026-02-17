@@ -69,13 +69,22 @@ export const normalRandom = (mean, stdDev) => {
 };
 
 export const calculateDiscountedPayback = (rate, cashFlows) => {
+    const r = Number(rate);
+    if (isNaN(r)) return null;
+
     let cumulative = 0;
     for (let t = 0; t < cashFlows.length; t++) {
-        const discountedVal = cashFlows[t] / Math.pow(1 + rate / 100, t);
+        // Ensure discount factor is correct
+        const discountFactor = Math.pow(1 + r / 100, t);
+        const discountedVal = cashFlows[t] / discountFactor;
+
         const previousCum = cumulative;
         cumulative += discountedVal;
+
         if (cumulative >= 0) {
             if (t === 0) return 0;
+            // Interpolation: Time + (Remaining Negative / Inflow during period)
+            // Using abs(previousCum) because it's the amount we need to cover
             return t - 1 + Math.abs(previousCum) / discountedVal;
         }
     }
@@ -320,6 +329,8 @@ export const generateProjectData = (params) => {
     let accumulatedDepreciation = { platform: 0, wells: 0, subsea: 0, simple: 0 };
     let accumulatedRecoverableCost = 0;
     let accumulatedLoss = 0;
+
+    let accumulatedDiscountedCashFlow = 0;
 
     for (let year = 0; year <= projectDuration + 1; year++) {
         let capex = 0;
@@ -699,6 +710,10 @@ export const generateProjectData = (params) => {
         const freeCashFlow = revenue - opex - charterCost - taxes - capex;
         const previousAccumulated = year > 0 ? data[year - 1].accumulatedCashFlow : 0;
 
+        // Calculate Discounted Cash Flow for this year
+        const discountedCashFlow = freeCashFlow / Math.pow(1 + discountRate / 100, year);
+        accumulatedDiscountedCashFlow += discountedCashFlow;
+
         // Benefício Fiscal Potencial (Nominal) da Depreciação = Depreciação * Alíquota
         // Nota: O benefício real depende do lucro tributável e prejuízo acumulado, 
         // mas para fins de visualização de "Potencial de Economia", usa-se o nominal.
@@ -718,7 +733,9 @@ export const generateProjectData = (params) => {
             capexTax: -capexTax,
             depreciationTaxShield, // New field, positive value representing saving
             freeCashFlow,
+            discountedCashFlow, // Added: Year's DCF
             accumulatedCashFlow: previousAccumulated + freeCashFlow,
+            accumulatedDiscountedCashFlow, // Added: Accumulated DCF
             isDecomYear,
             brentPrice: yearlyBrent,
             productionVolume,

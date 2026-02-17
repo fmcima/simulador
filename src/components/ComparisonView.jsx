@@ -26,6 +26,7 @@ const ComparisonView = ({ projectA, setProjectA, projectB, setProjectB, resultsA
     const metrics = [
         { label: 'VPL (NPV)', key: 'vpl', fmt: formatBillions, diffGood: 'higher' },
         { label: 'TIR (IRR)', key: 'tir', fmt: (v) => `${v?.toFixed(2)}%`, diffGood: 'higher' },
+        { label: 'TIR - TMA (Spread)', key: 'spread', fmt: (v) => `${v?.toFixed(2)}%`, diffGood: 'higher' },
         { label: 'VPL / IA', key: 'vpl_ia', fmt: (v) => `${v?.toFixed(2)}x`, diffGood: 'higher' },
         { label: 'Payback', key: 'payback', fmt: (v) => `${v?.toFixed(1)} anos`, diffGood: 'lower' },
         { label: 'Brent Eq.', key: 'breakevenBrent', fmt: (v) => `$${v?.toFixed(2)}`, diffGood: 'lower' }
