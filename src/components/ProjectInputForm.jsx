@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingDown, Droplets, Calculator, Wrench, Info } from 'lucide-react';
+import { TrendingDown, Droplets, Calculator, Wrench, Info, ChevronUp, ChevronDown } from 'lucide-react';
 
 // Formatters
 const formatBillions = (value) => {
@@ -111,8 +111,16 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             <span>Preço Brent Inicial</span>
                             <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded">${params.brentPrice}</span>
                         </label>
-                        <input type="range" min="30" max="120" step="1" value={params.brentPrice} onChange={(e) => handleChange('brentPrice', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => handleChange('brentPrice', Math.max(30, Number(params.brentPrice) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                            <input type="range" min="30" max="120" step="1" value={params.brentPrice} onChange={(e) => handleChange('brentPrice', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
+                            <button onClick={() => handleChange('brentPrice', Math.min(120, Number(params.brentPrice) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                        </div>
                     </div>
+
+
+
+
 
                     {params.brentStrategy === 'custom' && (
                         <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded space-y-3 border border-slate-100 dark:border-slate-700 animate-in fade-in slide-in-from-top-2">
@@ -123,10 +131,14 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                                     <span>Ano de Pico</span>
                                     <span className="font-bold">Ano {params.brentPeakYear || 5}</span>
                                 </label>
-                                <input type="range" min="1" max="20" step="1"
-                                    value={params.brentPeakYear || 5}
-                                    onChange={(e) => handleChange('brentPeakYear', Number(e.target.value))}
-                                    className={`w-full ${colorClass}`} />
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleChange('brentPeakYear', Math.max(1, (params.brentPeakYear || 5) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
+                                    <input type="range" min="1" max="20" step="1"
+                                        value={params.brentPeakYear || 5}
+                                        onChange={(e) => handleChange('brentPeakYear', Number(e.target.value))}
+                                        className={`flex-1 ${colorClass}`} />
+                                    <button onClick={() => handleChange('brentPeakYear', Math.min(20, (params.brentPeakYear || 5) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={14} /></button>
+                                </div>
                             </div>
 
                             <div>
@@ -134,10 +146,14 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                                     <span>Valor no Pico ($)</span>
                                     <span className="font-bold">${params.brentPeakValue || 90}</span>
                                 </label>
-                                <input type="range" min="30" max="200" step="1"
-                                    value={params.brentPeakValue || 90}
-                                    onChange={(e) => handleChange('brentPeakValue', Number(e.target.value))}
-                                    className={`w-full ${colorClass}`} />
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleChange('brentPeakValue', Math.max(30, (params.brentPeakValue || 90) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
+                                    <input type="range" min="30" max="200" step="1"
+                                        value={params.brentPeakValue || 90}
+                                        onChange={(e) => handleChange('brentPeakValue', Number(e.target.value))}
+                                        className={`flex-1 ${colorClass}`} />
+                                    <button onClick={() => handleChange('brentPeakValue', Math.min(200, (params.brentPeakValue || 90) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={14} /></button>
+                                </div>
                             </div>
 
                             <div>
@@ -145,22 +161,28 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                                     <span>Longo Prazo ($)</span>
                                     <span className="font-bold">${params.brentLongTerm || 60}</span>
                                 </label>
-                                <input type="range" min="30" max="150" step="1"
-                                    value={params.brentLongTerm || 60}
-                                    onChange={(e) => handleChange('brentLongTerm', Number(e.target.value))}
-                                    className={`w-full ${colorClass}`} />
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleChange('brentLongTerm', Math.max(30, (params.brentLongTerm || 60) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
+                                    <input type="range" min="30" max="150" step="1"
+                                        value={params.brentLongTerm || 60}
+                                        onChange={(e) => handleChange('brentLongTerm', Number(e.target.value))}
+                                        className={`flex-1 ${colorClass}`} />
+                                    <button onClick={() => handleChange('brentLongTerm', Math.min(150, (params.brentLongTerm || 60) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={14} /></button>
+                                </div>
                             </div>
                         </div>
                     )}
-
-
 
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
                             <span>Produção Pico (mil bpd)</span>
                             <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded">{params.peakProduction}k</span>
                         </label>
-                        <input type="range" min="1" max="300" step="1" value={params.peakProduction} onChange={(e) => handleChange('peakProduction', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => handleChange('peakProduction', Math.max(1, Number(params.peakProduction) - 5))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                            <input type="range" min="1" max="300" step="5" value={params.peakProduction} onChange={(e) => handleChange('peakProduction', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
+                            <button onClick={() => handleChange('peakProduction', Math.min(300, Number(params.peakProduction) + 5))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-2">
@@ -198,12 +220,16 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             )}
 
                         </div>
-                        <input
-                            type="range" min="10" max="90" step="5"
-                            value={params.opexMargin}
-                            onChange={(e) => handleChange('opexMargin', Number(e.target.value))}
-                            className={`w-full ${colorClass}`}
-                        />
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => handleChange('opexMargin', Math.max(10, Number(params.opexMargin) - 5))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                            <input
+                                type="range" min="10" max="90" step="5"
+                                value={params.opexMargin}
+                                onChange={(e) => handleChange('opexMargin', Number(e.target.value))}
+                                className={`flex-1 ${colorClass}`}
+                            />
+                            <button onClick={() => handleChange('opexMargin', Math.min(90, Number(params.opexMargin) + 5))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -216,11 +242,19 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                 <div className="space-y-3">
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400">TMA (%): {params.discountRate}</label>
-                        <input type="range" min="0" max="25" step="0.5" value={params.discountRate} onChange={(e) => handleChange('discountRate', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => handleChange('discountRate', Math.max(0, Number(params.discountRate) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                            <input type="range" min="0" max="25" step="1" value={params.discountRate} onChange={(e) => handleChange('discountRate', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
+                            <button onClick={() => handleChange('discountRate', Math.min(25, Number(params.discountRate) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                        </div>
                     </div>
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Duração do Projeto (Anos): {params.projectDuration}</label>
-                        <input type="range" min="10" max="40" step="1" value={params.projectDuration} onChange={(e) => handleChange('projectDuration', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => handleChange('projectDuration', Math.max(10, Number(params.projectDuration) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                            <input type="range" min="10" max="40" step="1" value={params.projectDuration} onChange={(e) => handleChange('projectDuration', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
+                            <button onClick={() => handleChange('projectDuration', Math.min(40, Number(params.projectDuration) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                        </div>
                     </div>
 
                     {/* INFLAÇÃO DE CUSTOS */}
@@ -229,12 +263,16 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             <span>Inflação de Custos (Real %)</span>
                             <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded">{params.costInflation}%</span>
                         </label>
-                        <input
-                            type="range" min="0" max="10" step="0.5"
-                            value={params.costInflation}
-                            onChange={(e) => handleChange('costInflation', Number(e.target.value))}
-                            className={`w-full ${colorClass}`}
-                        />
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => handleChange('costInflation', Math.max(0, Number(params.costInflation) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                            <input
+                                type="range" min="0" max="10" step="1"
+                                value={params.costInflation}
+                                onChange={(e) => handleChange('costInflation', Number(e.target.value))}
+                                className={`flex-1 ${colorClass}`}
+                            />
+                            <button onClick={() => handleChange('costInflation', Math.min(10, Number(params.costInflation) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                        </div>
                     </div>
                 </div>
             </div>

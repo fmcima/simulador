@@ -6,10 +6,11 @@ import {
 import {
     Activity, LayoutTemplate, LineChart as ChartIcon, Landmark, Settings,
     Split, Table as TableIcon, Maximize, Minimize, TrendingUp, BookOpen, Wrench,
-    Moon, Sun, Anchor, Book, Ship
+    Moon, Sun, Anchor, Book, Ship, ChevronUp, ChevronDown
 } from 'lucide-react';
 
 import { useTheme } from './hooks/useTheme';
+import { runMonteCarloScatter } from './utils/monteCarloScatter';
 
 import KPICard from './components/KPICard';
 import ProjectInputForm from './components/ProjectInputForm';
@@ -61,9 +62,9 @@ export default function App() {
         abexPerWell: 25000000, // $25 MM por poço (P&A)
         abexSubseaPct: 25, // % do CAPEX Subsea para remoção
         abexPlatform: 150000000, // $150 MM lump sum (limpeza + rebocagem)
-        totalCapex: 6000000000,
-        capexDuration: 5,
-        capexPeakRelative: 4, // Ano do pico de investimento (1 a capexDuration)
+        totalCapex: 5500000000,
+        capexDuration: 4,
+        capexPeakRelative: 3, // Ano do pico de investimento (1 a capexDuration)
         capexConcentration: 50, // Concentração em % (0-100)
 
         // Contratação & Incentivos
@@ -73,7 +74,7 @@ export default function App() {
         repetroRatio: { platform: 95, wells: 45, subsea: 75 }, // Detalhado por componente
         capexTaxRate: 40, // Alíquota cheia s/ benefício
 
-        brentPrice: 70,
+        brentPrice: 75,
         brentSpread: 0,
         brentStrategy: 'constant',
         brentLongTerm: 60,
@@ -91,7 +92,7 @@ export default function App() {
         productionMode: 'simple', // 'simple' | 'detailed'
         oilAPI: 28, // Grau API típico offshore
         gor: 150, // Razão Gás-Óleo m³/m³
-        maxLiquids: 252000, // Capacidade de líquidos bpd (1.4 * 180k)
+        maxLiquids: 210000, // Capacidade de líquidos bpd (1.4 * 150k)
 
         // Parâmetros BSW (Função Logística) - Defaults Inteligente Hidráulica
         bswMax: 95, // Corte de água máximo (%)
@@ -101,7 +102,7 @@ export default function App() {
 
 
         // OPEX
-        opexMargin: 15,
+        opexMargin: 20,
         opexMode: 'simple', // 'simple' | 'detailed'
         opexFixed: 100000000, // $100M/ano (típico para ~150kbpd)
         opexVariable: 4, // $4/bbl
@@ -116,7 +117,7 @@ export default function App() {
         totalReserves: 1000,
 
         discountRate: 10,
-        projectDuration: 30,
+        projectDuration: 25,
         depreciationYears: 10,
 
         taxRegime: 'sharing',
@@ -164,9 +165,27 @@ export default function App() {
         serviceTaxRate: 14.25
     });
 
+
     // Cálculos
     const resultsA = useProjectCalculations(projectA);
     const resultsB = useProjectCalculations(projectB);
+
+    // Estado para Monte Carlo Scatter (Executado apenas na aba Dashboard)
+    const [mcResults, setMcResults] = useState({ monteCarloData: [], mcCorrelation: 0, trendLine: [] });
+    const [isSimulatingScatter, setIsSimulatingScatter] = useState(false);
+
+    useEffect(() => {
+        if (activeTab === 'single') {
+            setIsSimulatingScatter(true);
+            // Pequeno delay para não travar a renderização da troca de aba
+            const timer = setTimeout(() => {
+                const res = runMonteCarloScatter(projectA);
+                setMcResults(res);
+                setIsSimulatingScatter(false);
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [activeTab]); // Intencionalmente omitindo projectA para não rodar a cada variação
 
     // ERROR BOUNDARY Logic moved to render to prevent Hook violation
 
@@ -846,7 +865,7 @@ export default function App() {
                                     <div className="flex justify-between items-center">
                                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-100">Correlação entre o Prêmio de Rentabilidade (TIR - TMA) e a Eficiência do Investimento (VPL / IA)</h3>
                                         <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700" title="Correlação Linear de Pearson">
-                                            r = {resultsA.mcCorrelation?.toFixed(4)}
+                                            r = {mcResults.mcCorrelation?.toFixed(4)}
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -898,12 +917,12 @@ export default function App() {
                                                 return null;
                                             }}
                                         />
-                                        <Scatter name="Cenários" data={resultsA.monteCarloData} fill="#10b981" fillOpacity={0.15} line={false} />
+                                        <Scatter name="Cenários" data={mcResults.monteCarloData} fill="#10b981" fillOpacity={0.15} line={false} />
 
-                                        {resultsA.trendLine && resultsA.trendLine.length > 0 && (
+                                        {mcResults.trendLine && mcResults.trendLine.length > 0 && (
                                             <Scatter
                                                 name="Tendência"
-                                                data={resultsA.trendLine}
+                                                data={mcResults.trendLine}
                                                 line={{ stroke: '#f59e0b', strokeWidth: 2, strokeDasharray: '5 5' }}
                                                 shape={false}
                                                 legendType="none"
@@ -1036,7 +1055,11 @@ export default function App() {
                                                     <span>Preço Inicial (Ano 0)</span>
                                                     <span className="font-bold">${projectA.brentPrice}</span>
                                                 </label>
-                                                <input type="range" min="30" max="150" value={projectA.brentPrice} onChange={(e) => handleChangeProjectA('brentPrice', Number(e.target.value))} className="w-full accent-purple-600" />
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => handleChangeProjectA('brentPrice', Math.max(30, Number(projectA.brentPrice) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                                                    <input type="range" min="30" max="150" value={projectA.brentPrice} onChange={(e) => handleChangeProjectA('brentPrice', Number(e.target.value))} className="flex-1 accent-purple-600" />
+                                                    <button onClick={() => handleChangeProjectA('brentPrice', Math.min(150, Number(projectA.brentPrice) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                                                </div>
                                             </div>
 
                                             <div>
@@ -1044,10 +1067,14 @@ export default function App() {
                                                     <span>Ano de Pico</span>
                                                     <span className="font-bold">Ano {projectA.brentPeakYear || 5}</span>
                                                 </label>
-                                                <input type="range" min="1" max="20" step="1"
-                                                    value={projectA.brentPeakYear || 5}
-                                                    onChange={(e) => handleChangeProjectA('brentPeakYear', Number(e.target.value))}
-                                                    className="w-full accent-purple-600" />
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => handleChangeProjectA('brentPeakYear', Math.max(1, (projectA.brentPeakYear || 5) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
+                                                    <input type="range" min="1" max="20" step="1"
+                                                        value={projectA.brentPeakYear || 5}
+                                                        onChange={(e) => handleChangeProjectA('brentPeakYear', Number(e.target.value))}
+                                                        className="flex-1 accent-purple-600" />
+                                                    <button onClick={() => handleChangeProjectA('brentPeakYear', Math.min(20, (projectA.brentPeakYear || 5) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={14} /></button>
+                                                </div>
                                             </div>
 
                                             <div>
@@ -1055,10 +1082,14 @@ export default function App() {
                                                     <span>Valor no Pico ($)</span>
                                                     <span className="font-bold">${projectA.brentPeakValue || 90}</span>
                                                 </label>
-                                                <input type="range" min="30" max="200" step="1"
-                                                    value={projectA.brentPeakValue || 90}
-                                                    onChange={(e) => handleChangeProjectA('brentPeakValue', Number(e.target.value))}
-                                                    className="w-full accent-purple-600" />
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => handleChangeProjectA('brentPeakValue', Math.max(30, (projectA.brentPeakValue || 90) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
+                                                    <input type="range" min="30" max="200" step="1"
+                                                        value={projectA.brentPeakValue || 90}
+                                                        onChange={(e) => handleChangeProjectA('brentPeakValue', Number(e.target.value))}
+                                                        className="flex-1 accent-purple-600" />
+                                                    <button onClick={() => handleChangeProjectA('brentPeakValue', Math.min(200, (projectA.brentPeakValue || 90) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={14} /></button>
+                                                </div>
                                             </div>
 
                                             <div>
@@ -1066,10 +1097,14 @@ export default function App() {
                                                     <span>Longo Prazo ($)</span>
                                                     <span className="font-bold">${projectA.brentLongTerm || 60}</span>
                                                 </label>
-                                                <input type="range" min="30" max="150" step="1"
-                                                    value={projectA.brentLongTerm || 60}
-                                                    onChange={(e) => handleChangeProjectA('brentLongTerm', Number(e.target.value))}
-                                                    className="w-full accent-purple-600" />
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => handleChangeProjectA('brentLongTerm', Math.max(30, (projectA.brentLongTerm || 60) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
+                                                    <input type="range" min="30" max="150" step="1"
+                                                        value={projectA.brentLongTerm || 60}
+                                                        onChange={(e) => handleChangeProjectA('brentLongTerm', Number(e.target.value))}
+                                                        className="flex-1 accent-purple-600" />
+                                                    <button onClick={() => handleChangeProjectA('brentLongTerm', Math.min(150, (projectA.brentLongTerm || 60) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={14} /></button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}

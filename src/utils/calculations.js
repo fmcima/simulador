@@ -262,7 +262,8 @@ export const generateProjectData = (params) => {
     const effectiveTotalCapex = totalCapex + capexTaxTotal; // Base para depreciação cresce com impostos capitalizados
 
     // --- LÓGICA DE AFRETAMENTO vs PRÓPRIA ---
-    let capexForConstruction = effectiveTotalCapex;
+    let capexForConstruction = totalCapex; // Base sem impostos (serão adicionados no fluxo)
+    let applicableTaxRate = effectiveTaxRate; // Taxa padrão (pode mudar se o mix de ativos mudar)
     let annualCharterCost = 0;
 
     let assetBase = {
@@ -351,12 +352,36 @@ export const generateProjectData = (params) => {
         annualCharterCost = partCharter + partServiceGross;
 
 
-        const nonPlatformSplitSum = capexSplit.wells + capexSplit.subsea;
-        const factor = nonPlatformSplitSum > 0 ? 100 / nonPlatformSplitSum : 0;
+        // CORREÇÃO: No modo chartered, o operador NÃO paga o CAPEX da plataforma.
+        // O totalCapex contém a plataforma, mas apenas Wells e Subsea são ativos do operador.
 
+        // 1. Calcula a base (Net) de cada componente do operador
+        const wellsBase = totalCapex * (capexSplit.wells / 100);
+        const subseaBase = totalCapex * (capexSplit.subsea / 100);
+
+        // 2. Calcula o imposto específico desses componentes
+        // taxShare = (part % * (1-repes) * rate). Multiplicando por Total, temos o valor absoluto do imposto.
+        const wellsTax = totalCapex * taxShareWells;
+        const subseaTax = totalCapex * taxShareSubsea;
+
+        // 3. Define a base depreciável (Gross = Net + Tax)
         assetBase.platform = 0;
-        assetBase.wells = effectiveTotalCapex * ((capexSplit.wells * factor) / 100);
-        assetBase.subsea = effectiveTotalCapex * ((capexSplit.subsea * factor) / 100);
+        assetBase.wells = wellsBase + wellsTax;
+        assetBase.subsea = subseaBase + subseaTax;
+
+        // 4. Redefine o CAPEX de Construção (Cash Outflow Base) apenas com a parte do operador
+        capexForConstruction = wellsBase + subseaBase;
+
+        // 5. Recalcula a Taxa Efetiva de Imposto para o novo mix (apenas Wells/Subsea)
+        // Isso é crucial porque a taxa média original incluía a plataforma (que pode ter rate diferente).
+        const operatorBase = wellsBase + subseaBase;
+        const operatorTax = wellsTax + subseaTax;
+
+        if (operatorBase > 0) {
+            applicableTaxRate = operatorTax / operatorBase;
+        } else {
+            applicableTaxRate = 0;
+        }
 
     } else {
         assetBase.platform = effectiveTotalCapex * (capexSplit.platform / 100);
@@ -437,7 +462,7 @@ export const generateProjectData = (params) => {
 
             const capexBase = (constructionCapexTotal * weight) * capexInflationFactor;
             // Imposto Proporcional ao desembolso
-            const taxPart = capexBase * effectiveTaxRate;
+            const taxPart = capexBase * applicableTaxRate;
 
             capex += capexBase + taxPart;
             capexTax += taxPart;
@@ -449,7 +474,7 @@ export const generateProjectData = (params) => {
             const capexInflationFactor = Math.pow(1 + costInflation / 100, year);
             const capexBase = (postOilCapexTotal / 2) * capexInflationFactor;
 
-            const taxPart = capexBase * effectiveTaxRate;
+            const taxPart = capexBase * applicableTaxRate;
             capex += capexBase + taxPart;
             capexTax += taxPart;
         }
@@ -818,7 +843,6 @@ export const generateProjectData = (params) => {
         cashFlowsVector.push(safeFreeCashFlow);
 
         // --- DEBUGGING ---
-        console.log('CashFlowsVector:', cashFlowsVector.slice(0, 10)); // Log first 10 years
         // ----------------
 
         data.push({
