@@ -306,21 +306,25 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                         </button>
                         <button
                             onClick={() => {
-                                handleChange('opexMode', 'detailed');
-                                // Set default to Convencional
-                                const numWells = params.wellsParams?.numWells || 16;
-                                const lambda = 0.15;
-                                const tesp = 90;
-                                const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
-                                const total = numWells * lambda * costPerEvent * 1000000;
-                                setParams(prev => ({
-                                    ...prev,
-                                    opexMode: 'detailed',
-                                    workoverLambda: lambda,
-                                    workoverFailureProfile: 'wearout',
-                                    workoverTesp: tesp,
-                                    workoverCost: total
-                                }));
+                                if (params.completionType) {
+                                    handleChange('opexMode', 'detailed');
+                                } else {
+                                    // Set default to Convencional only if not set
+                                    const numWells = params.wellsParams?.numWells || 16;
+                                    const lambda = 0.15;
+                                    const tesp = 90;
+                                    const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                    const total = numWells * lambda * costPerEvent * 1000000;
+                                    setParams(prev => ({
+                                        ...prev,
+                                        opexMode: 'detailed',
+                                        completionType: 'conventional',
+                                        workoverLambda: lambda,
+                                        workoverFailureProfile: 'wearout',
+                                        workoverTesp: tesp,
+                                        workoverCost: total
+                                    }));
+                                }
                             }}
                             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${params.opexMode === 'detailed' ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200'}`}
                         >
@@ -467,20 +471,30 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                         const numWells = params.wellsParams?.numWells || 16;
                                                         const lambda = 0.15;
                                                         const tesp = 90;
-                                                        const costPerEvent = (params.workoverMobCost || 8) + ((params.workoverDuration || 20) * (params.workoverDailyRate || 800) / 1000);
+                                                        const duration = 20;
+                                                        const mobCost = 8;
+                                                        const dailyRate = 800;
+                                                        const costPerEvent = mobCost + (duration * dailyRate / 1000);
                                                         const total = numWells * lambda * costPerEvent * 1000000;
                                                         setParams(prev => ({
                                                             ...prev,
+                                                            completionType: 'conventional',
                                                             workoverLambda: lambda,
                                                             workoverFailureProfile: 'wearout',
                                                             workoverTesp: tesp,
+                                                            workoverDuration: duration,
+                                                            workoverMobCost: mobCost,
+                                                            workoverDailyRate: dailyRate,
                                                             workoverCost: total
                                                         }));
                                                     }}
-                                                    className="flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 bg-white dark:bg-slate-900 hover:shadow-md hover:scale-105 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
+                                                    className={`flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 hover:shadow-md hover:scale-105 ${(params.completionType === 'conventional' || (!params.completionType && Math.abs((params.workoverLambda || 0.15) - 0.15) < 0.001))
+                                                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500 text-blue-800 dark:text-blue-100'
+                                                        : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 hover:border-blue-400 dark:hover:border-blue-600'
+                                                        }`}
                                                 >
-                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Convencional</span>
-                                                    <span className="text-[9px] text-slate-500">λ=0.15 • 90d</span>
+                                                    <span className={`text-xs font-bold mb-1 ${(params.completionType === 'conventional' || (!params.completionType && Math.abs((params.workoverLambda || 0.15) - 0.15) < 0.001)) ? 'text-blue-700 dark:text-blue-200' : 'text-slate-700 dark:text-slate-300'}`}>Convencional</span>
+                                                    <span className="text-[9px] opacity-80">λ=0.15 • 90d</span>
                                                 </button>
                                                 <button
                                                     onClick={() => {
@@ -488,21 +502,29 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                         const lambda = 0.05;
                                                         const tesp = 30;
                                                         const duration = 30;
-                                                        const costPerEvent = (params.workoverMobCost || 8) + (duration * (params.workoverDailyRate || 800) / 1000);
+                                                        const mobCost = 8;
+                                                        const dailyRate = 800;
+                                                        const costPerEvent = mobCost + (duration * dailyRate / 1000);
                                                         const total = numWells * lambda * costPerEvent * 1000000;
                                                         setParams(prev => ({
                                                             ...prev,
+                                                            completionType: 'hydraulic',
                                                             workoverLambda: lambda,
                                                             workoverFailureProfile: 'wearout',
                                                             workoverTesp: tesp,
                                                             workoverDuration: duration,
+                                                            workoverMobCost: mobCost,
+                                                            workoverDailyRate: dailyRate,
                                                             workoverCost: total
                                                         }));
                                                     }}
-                                                    className="flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 bg-white dark:bg-slate-900 hover:shadow-md hover:scale-105 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
+                                                    className={`flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all ${(params.completionType === 'hydraulic' || (!params.completionType && Math.abs((params.workoverLambda || 0.15) - 0.05) < 0.001))
+                                                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500 text-blue-800 dark:text-blue-100'
+                                                        : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 hover:border-blue-400 dark:hover:border-blue-600'
+                                                        }`}
                                                 >
-                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CI Hidráulica</span>
-                                                    <span className="text-[9px] text-slate-500">λ=0.05 • 30d</span>
+                                                    <span className={`text-xs font-bold mb-1 ${(params.completionType === 'hydraulic' || (!params.completionType && Math.abs((params.workoverLambda || 0.15) - 0.05) < 0.001)) ? 'text-blue-700 dark:text-blue-200' : 'text-slate-700 dark:text-slate-300'}`}>CI Hidráulica</span>
+                                                    <span className="text-[9px] opacity-80">λ=0.05 • 30d</span>
                                                 </button>
                                                 <button
                                                     onClick={() => {
@@ -510,21 +532,29 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                                         const lambda = 0.04;
                                                         const tesp = 30;
                                                         const duration = 30;
-                                                        const costPerEvent = (params.workoverMobCost || 8) + (duration * (params.workoverDailyRate || 800) / 1000);
+                                                        const mobCost = 8;
+                                                        const dailyRate = 800;
+                                                        const costPerEvent = mobCost + (duration * dailyRate / 1000);
                                                         const total = numWells * lambda * costPerEvent * 1000000;
                                                         setParams(prev => ({
                                                             ...prev,
+                                                            completionType: 'electric',
                                                             workoverLambda: lambda,
                                                             workoverFailureProfile: 'bathtub',
                                                             workoverTesp: tesp,
                                                             workoverDuration: duration,
+                                                            workoverMobCost: mobCost,
+                                                            workoverDailyRate: dailyRate,
                                                             workoverCost: total
                                                         }));
                                                     }}
-                                                    className="flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all border-2 bg-white dark:bg-slate-900 hover:shadow-md hover:scale-105 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
+                                                    className={`flex flex-col items-center justify-center p-3 rounded-lg text-[10px] font-medium transition-all ${(params.completionType === 'electric' || (!params.completionType && Math.abs((params.workoverLambda || 0.15) - 0.04) < 0.001))
+                                                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-1 ring-blue-500 text-blue-800 dark:text-blue-100'
+                                                        : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 hover:border-blue-400 dark:hover:border-blue-600'
+                                                        }`}
                                                 >
-                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CI Elétrica</span>
-                                                    <span className="text-[9px] text-slate-500">λ=0.04 • 30d</span>
+                                                    <span className={`text-xs font-bold mb-1 ${(params.completionType === 'electric' || (!params.completionType && Math.abs((params.workoverLambda || 0.15) - 0.04) < 0.001)) ? 'text-blue-700 dark:text-blue-200' : 'text-slate-700 dark:text-slate-300'}`}>CI Elétrica</span>
+                                                    <span className="text-[9px] opacity-80">λ=0.04 • 30d</span>
                                                 </button>
                                             </div>
                                             <p className="text-[9px] text-blue-600 dark:text-blue-400 mt-2 text-center">

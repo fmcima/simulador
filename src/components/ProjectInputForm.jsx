@@ -174,12 +174,16 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             {params.platformOwnership === 'chartered' ? '(Poços + Subsea)' : '(Plataforma + Poços + Subsea)'}
                         </span>
                     </label>
-                    <input
-                        type="range" min="0" max="10000000000" step="100000000"
-                        value={params.totalCapex}
-                        onChange={(e) => handleChange('totalCapex', Number(e.target.value))}
-                        className={`w-full ${colorClass}`}
-                    />
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => handleChange('totalCapex', Math.max(0, Number(params.totalCapex) - 100000000))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                        <input
+                            type="range" min="0" max="10000000000" step="100000000"
+                            value={params.totalCapex}
+                            onChange={(e) => handleChange('totalCapex', Number(e.target.value))}
+                            className={`flex-1 ${colorClass}`}
+                        />
+                        <button onClick={() => handleChange('totalCapex', Math.min(10000000000, Number(params.totalCapex) + 100000000))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                    </div>
                     <div className={`flex ${onNavigateToCapex ? 'justify-between' : 'justify-end'} items-center mt-1`}>
                         {onNavigateToCapex && (
                             <button
@@ -207,7 +211,11 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                                 <span>Duração do Investimento (Anos)</span>
                                 <span className="font-bold">{params.capexDuration}</span>
                             </label>
-                            <input type="range" min="1" max="8" step="1" value={params.capexDuration} onChange={(e) => handleChange('capexDuration', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => handleChange('capexDuration', Math.max(1, Number(params.capexDuration) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                                <input type="range" min="1" max="8" step="1" value={params.capexDuration} onChange={(e) => handleChange('capexDuration', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
+                                <button onClick={() => handleChange('capexDuration', Math.min(8, Number(params.capexDuration) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                            </div>
                         </div>
 
                         <div>
@@ -215,7 +223,11 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                                 <span>Ano do Pico de Investimento</span>
                                 <span className="font-bold">Ano {params.capexPeakRelative || 1}</span>
                             </label>
-                            <input type="range" min="1" max={params.capexDuration} step="1" value={params.capexPeakRelative || 1} onChange={(e) => handleChange('capexPeakRelative', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => handleChange('capexPeakRelative', Math.max(1, (params.capexPeakRelative || 1) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                                <input type="range" min="1" max={params.capexDuration} step="1" value={params.capexPeakRelative || 1} onChange={(e) => handleChange('capexPeakRelative', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
+                                <button onClick={() => handleChange('capexPeakRelative', Math.min(params.capexDuration, (params.capexPeakRelative || 1) + 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                            </div>
                         </div>
 
                         <div>
@@ -223,7 +235,11 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                                 <span>Concentração do Investimento</span>
                                 <span className="font-bold">{params.capexConcentration}%</span>
                             </label>
-                            <input type="range" min="0" max="100" step="10" value={params.capexConcentration} onChange={(e) => handleChange('capexConcentration', Number(e.target.value))} className={`w-full ${colorClass}`} />
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => handleChange('capexConcentration', Math.max(0, Number(params.capexConcentration) - 5))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
+                                <input type="range" min="0" max="100" step="5" value={params.capexConcentration} onChange={(e) => handleChange('capexConcentration', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
+                                <button onClick={() => handleChange('capexConcentration', Math.min(100, Number(params.capexConcentration) + 5))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronUp size={16} /></button>
+                            </div>
                         </div>
                     </div>
                 </div>

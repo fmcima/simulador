@@ -233,6 +233,9 @@ const TaxParameters = ({ params, setParams, results }) => {
                                         onChange={(e) => handleChange('serviceTaxRate', Number(e.target.value))}
                                         className="w-full accent-orange-500"
                                     />
+                                    <p className="text-[10px] text-orange-400 dark:text-orange-500 mt-1 italic">
+                                        * Valor típico composto por PIS (1.65%), COFINS (7.60%) e ISS (5.00%).
+                                    </p>
                                 </div>
                             </div>
                         )}
