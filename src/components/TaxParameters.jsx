@@ -1,8 +1,11 @@
 import React from 'react';
 import { Ship, Landmark, Info, Activity } from 'lucide-react';
 import { formatCurrency } from '../utils/calculations';
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 
-const TaxParameters = ({ params, setParams }) => {
+const TaxParameters = ({ params, setParams, results }) => {
     const handleChange = (field, value) => {
         setParams(prev => ({ ...prev, [field]: value }));
     };
@@ -417,11 +420,98 @@ const TaxParameters = ({ params, setParams }) => {
             </div>
 
             <div className="lg:col-span-8 space-y-6">
+                {/* --- CHART: TAX BREAKDOWN (MOVED TO TOP) --- */}
+                {results && results.yearlyData && (
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-[600px] animate-in fade-in slide-in-from-top-4 flex flex-col">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+                            <Landmark className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                            Composição da Carga Tributária (Fluxo de Caixa)
+                        </h3>
+
+                        {/* SUMMARY CARD */}
+                        {(() => {
+                            const totalTaxes = results.yearlyData.reduce((acc, d) => acc + Math.abs(d.royalties) + Math.abs(d.specialParticipation) + Math.abs(d.profitOilGov) + Math.abs(d.corporateTax), 0);
+                            const totalRevenue = results.yearlyData.reduce((acc, d) => acc + d.revenue, 0);
+                            const taxRate = totalRevenue > 0 ? ((totalTaxes / totalRevenue) * 100).toFixed(1) : '0.0';
+
+                            return (
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                        <span className="text-xs text-indigo-600 dark:text-indigo-300 font-bold uppercase block mb-1">Total de Tributos (Gov. Take)</span>
+                                        <span className="text-xl font-bold text-indigo-900 dark:text-indigo-100">{formatCurrency(totalTaxes)}</span>
+                                    </div>
+                                    <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                                        <span className="text-xs text-emerald-600 dark:text-emerald-300 font-bold uppercase block mb-1">% da Receita Bruta</span>
+                                        <span className="text-xl font-bold text-emerald-900 dark:text-emerald-100">{taxRate}%</span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        <div className="flex-1 min-h-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={results.yearlyData.map(d => ({
+                                        year: d.year,
+                                        royalties: Math.abs(d.royalties),
+                                        specialParticipation: Math.abs(d.specialParticipation),
+                                        profitOilGov: Math.abs(d.profitOilGov),
+                                        corporateTax: Math.abs(d.corporateTax || 0)
+                                    }))}
+                                    margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={'#e2e8f0'} />
+                                    <XAxis
+                                        dataKey="year"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: '#64748b' }}
+                                    />
+                                    <YAxis
+                                        fontSize={12}
+                                        tickFormatter={(val) => `$${(val / 1000000).toFixed(0)}M`}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: '#64748b' }}
+                                        label={{ value: 'USD (Milhões)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#94a3b8', fontSize: 12 }, dx: -10 }}
+                                    />
+                                    <Tooltip
+                                        formatter={(val) => formatCurrency(val)}
+                                        labelFormatter={(l) => `Ano ${l}`}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        cursor={{ fill: '#f1f5f9', opacity: 0.4 }}
+                                    />
+                                    <Legend />
+                                    <Bar dataKey="royalties" name="Royalties" stackId="a" fill="#3b82f6" />
+                                    <Bar dataKey="specialParticipation" name="Part. Especial" stackId="a" fill="#8b5cf6" />
+                                    <Bar dataKey="profitOilGov" name="Governo (Partilha)" stackId="a" fill="#10b981" />
+                                    <Bar dataKey="corporateTax" name="IRPJ/CSLL" stackId="a" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* NOTE AT BOTTOM */}
+                        <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-3 rounded-lg flex gap-2">
+                            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                            <div className="text-xs text-blue-800 dark:text-blue-200">
+                                <p className="font-bold mb-1">Nota sobre Tributos Indiretos:</p>
+                                <p>
+                                    Este gráfico exibe apenas os tributos diretos sobre a produção e o lucro (Government Take).
+                                    Tributos indiretos como <strong>REPETRO/ICMS</strong> (incidentes sobre o CAPEX) e
+                                    <strong> PIS/COFINS/ISS</strong> (incidentes sobre o Afretamento) estão contabilizados
+                                    diretamente nas linhas de Investimento e Custos Operacionais.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* --- DEPRECIAÇÃO DETALHADA --- */}
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-orange-600 dark:text-orange-400" /> Distribuição do CAPEX e Depreciação
+                            <Activity className="w-5 h-5 text-orange-600 dark:text-orange-400" /> Depreciação
                         </h3>
                         <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
                             <button
@@ -449,89 +539,45 @@ const TaxParameters = ({ params, setParams }) => {
                             <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2">O valor total do CAPEX será depreciado linearmente por este período.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* CAPEX Split - Sliders */}
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-2">Distribuição do Investimento (%)</h4>
+                        <div className="space-y-4">
+                            <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-2">MÉTODO DE DEPRECIAÇÃO POR CATEGORIA</h4>
 
-                                {['platform', 'wells', 'subsea'].map(key => {
-                                    const isDisabled = key === 'platform' && params.platformOwnership === 'chartered';
+                            {['platform', 'wells', 'subsea'].map(key => {
+                                const isDisabled = key === 'platform' && params.platformOwnership === 'chartered';
+                                if (isDisabled) return null;
 
-                                    return (
-                                        <div key={key} className={isDisabled ? 'opacity-50' : ''}>
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span className="capitalize">{key === 'wells' ? 'Poços' : key === 'platform' ? 'Plataforma' : 'Subsea'}</span>
-                                                <div className="text-right">
-                                                    <span className="font-bold mr-2">
-                                                        {isDisabled ? '0% (Afretada)' : `${parseFloat(params.capexSplit[key]).toFixed(1)}%`}
-                                                    </span>
-                                                    {!isDisabled && (
-                                                        <span className="text-xs text-slate-700 dark:text-slate-200 font-bold font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">
-                                                            ${((params.totalCapex * params.capexSplit[key]) / 100 / 1000000000).toFixed(1)}B
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <input
-                                                type="range" min="0" max="100"
-                                                value={isDisabled ? 0 : params.capexSplit[key]}
-                                                disabled={isDisabled}
-                                                onChange={(e) => handleChangeCapexSplit(key, Number(e.target.value))}
-                                                className={`w-full ${key === 'platform' ? 'accent-blue-600' : key === 'wells' ? 'accent-emerald-600' : 'accent-purple-600'}`}
-                                            />
+                                // Solução defensiva para evitar erro se depreciationConfig[key] não estiver definido
+                                if (!params.depreciationConfig || !params.depreciationConfig[key]) return null;
+
+                                return (
+                                    <div key={key} className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold capitalize">{key === 'wells' ? 'Poços' : key === 'platform' ? 'Plataforma' : 'Subsea'}</span>
+                                            <select
+                                                value={params.depreciationConfig[key].method}
+                                                onChange={(e) => handleChangeDepreciationConfig(key, 'method', e.target.value)}
+                                                className="text-[10px] p-1 rounded border border-slate-300 dark:border-slate-600 outline-none bg-white dark:bg-slate-800 dark:text-slate-200"
+                                            >
+                                                <option value="linear">Linear</option>
+                                                <option value="accelerated">Acelerada</option>
+                                                <option value="uop">Unidades de Produção (UOP)</option>
+                                            </select>
                                         </div>
-                                    );
-                                })}
-                                <div className="text-[10px] text-right text-slate-400 dark:text-slate-500">
-                                    Total: {
-                                        ((params.platformOwnership === 'chartered' ? 0 : params.capexSplit.platform) +
-                                            params.capexSplit.wells +
-                                            params.capexSplit.subsea).toFixed(1)
-                                    }%
-                                </div>
-                            </div>
 
-                            {/* Configuração de Método */}
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-2">MÉTODO DE DEPRECIAÇÃO POR CATEGORIA</h4>
-
-                                {['platform', 'wells', 'subsea'].map(key => {
-                                    const isDisabled = key === 'platform' && params.platformOwnership === 'chartered';
-                                    if (isDisabled) return null;
-
-                                    // Solução defensiva para evitar erro se depreciationConfig[key] não estiver definido
-                                    if (!params.depreciationConfig || !params.depreciationConfig[key]) return null;
-
-                                    return (
-                                        <div key={key} className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs font-bold capitalize">{key === 'wells' ? 'Poços' : key === 'platform' ? 'Plataforma' : 'Subsea'}</span>
-                                                <select
-                                                    value={params.depreciationConfig[key].method}
-                                                    onChange={(e) => handleChangeDepreciationConfig(key, 'method', e.target.value)}
-                                                    className="text-[10px] p-1 rounded border border-slate-300 dark:border-slate-600 outline-none bg-white dark:bg-slate-800 dark:text-slate-200"
-                                                >
-                                                    <option value="linear">Linear</option>
-                                                    <option value="accelerated">Acelerada</option>
-                                                    <option value="uop">Unidades de Produção (UOP)</option>
-                                                </select>
+                                        {params.depreciationConfig[key].method !== 'uop' && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 w-16">Anos:</span>
+                                                <input
+                                                    type="number" min="1" max="30"
+                                                    value={params.depreciationConfig[key].years}
+                                                    onChange={(e) => handleChangeDepreciationConfig(key, 'years', Number(e.target.value))}
+                                                    className="w-12 p-1 text-[10px] text-right border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200"
+                                                />
                                             </div>
-
-                                            {params.depreciationConfig[key].method !== 'uop' && (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 w-16">Anos:</span>
-                                                    <input
-                                                        type="number" min="1" max="30"
-                                                        value={params.depreciationConfig[key].years}
-                                                        onChange={(e) => handleChangeDepreciationConfig(key, 'years', Number(e.target.value))}
-                                                        className="w-12 p-1 text-[10px] text-right border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>

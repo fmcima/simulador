@@ -121,7 +121,7 @@ export default function App() {
 
         taxRegime: 'sharing',
         royaltiesRate: 10,
-        specialParticipationRate: 0,
+        specialParticipationRate: 10, // Default 10% (was 0) to ensure visibility in Concession mode
         costOilCap: 50,
         profitOilGovShare: 30,
         corporateTaxRate: 34,
@@ -1103,7 +1103,7 @@ export default function App() {
 
                 {/* --- VIEW: TAX (FISCAL) --- */}
                 {activeTab === 'tax' && (
-                    <TaxParameters params={projectA} setParams={setProjectA} />
+                    <TaxParameters params={projectA} setParams={setProjectA} results={resultsA} />
                 )}
 
                 {/* --- VIEW: COMPARE --- */}

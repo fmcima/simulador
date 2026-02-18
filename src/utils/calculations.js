@@ -820,6 +820,7 @@ export const generateProjectData = (params) => {
             royalties: safeNumber(-royalties),
             specialParticipation: safeNumber(-specialParticipation),
             profitOilGov: safeNumber(-profitOilGov),
+            corporateTax: safeNumber(-corporateTax),
             depreciation: safeNumber(-depreciation),
             capexTax: safeNumber(-capexTax),
             depreciationTaxShield: safeNumber(depreciationTaxShield),
