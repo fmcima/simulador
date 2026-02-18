@@ -177,9 +177,9 @@ const TaxParameters = ({ params, setParams, results }) => {
                                         <span className="text-xs font-bold text-orange-600 dark:text-orange-400 pl-1">$</span>
                                         <input
                                             type="number"
-                                            step="0.1"
+                                            step="0.01"
                                             min="0"
-                                            value={params.charterPV / 1000000000}
+                                            value={(params.charterPV / 1000000000).toFixed(2)}
                                             onChange={(e) => handleChange('charterPV', Number(e.target.value) * 1000000000)}
                                             className="w-full text-sm p-1 outline-none text-orange-800 dark:text-orange-200 font-bold bg-transparent"
                                         />

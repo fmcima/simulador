@@ -356,6 +356,9 @@ export default function FpsoCapex({ initialParams, onUpdate, peakProduction = 18
                                             <button onClick={() => setIntegrationLoc('brazil')} className={`px-3 py-2 rounded text-xs font-bold transition-all ${integrationLoc === 'brazil' ? 'bg-blue-50 text-slate-900 border-blue-500 ring-1 ring-blue-500 dark:bg-blue-900/20 dark:text-blue-100 dark:border-blue-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:hover:text-slate-200'}`}>Brasil</button>
                                         </div>
                                     </div>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
+                                        * Custos no Brasil são tipicamente maiores devido à menor produtividade da mão de obra, custos fiscais e logística complexa em comparação aos estaleiros asiáticos.
+                                    </p>
                                     <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/20">
                                         <div className="flex justify-between items-center">
                                             <div className="flex flex-col"><span className="text-xs font-bold uppercase text-amber-700 dark:text-amber-400">Gerenciamento (EPCM)</span><span className="text-[10px] text-amber-600/80 dark:text-amber-500/80">Taxa sobre Hard Costs</span></div>
