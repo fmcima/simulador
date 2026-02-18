@@ -431,7 +431,11 @@ export const generateProjectData = (params) => {
 
         if (year < capexDuration) {
             const weight = capexWeights[year] / weightSum;
-            const capexBase = constructionCapexTotal * weight;
+            // Apply Inflation to CAPEX (Nominal Terms)
+            // Assuming inputs are in Real Terms (Year 0).
+            const capexInflationFactor = Math.pow(1 + costInflation / 100, year);
+
+            const capexBase = (constructionCapexTotal * weight) * capexInflationFactor;
             // Imposto Proporcional ao desembolso
             const taxPart = capexBase * effectiveTaxRate;
 
@@ -441,7 +445,10 @@ export const generateProjectData = (params) => {
 
         const productionYear = year - (capexDuration - 1);
         if (productionYear === 1 || productionYear === 2) {
-            const capexBase = postOilCapexTotal / 2;
+            // Post-Oil CAPEX also suffers inflation
+            const capexInflationFactor = Math.pow(1 + costInflation / 100, year);
+            const capexBase = (postOilCapexTotal / 2) * capexInflationFactor;
+
             const taxPart = capexBase * effectiveTaxRate;
             capex += capexBase + taxPart;
             capexTax += taxPart;
@@ -732,9 +739,9 @@ export const generateProjectData = (params) => {
                     // Compensação de Prejuízos (Regra simplificada: 100% ou Regra BR: 30%?)
                     // Para garantir o efeito VPL da depreciação acelerada, usamos a lógica padrão de compensação.
                     // Adotando regra de trava de 30% (padrão Brasil) para maior realismo:
-                    const limit = taxableIncomeBeforeLoss * 1.0; // Usando 100% para maximizar o efeito didático da depreciação, ou mudar para 0.3 se quiser realismo BR. Vamos de 100% por enquanto para corrigir o "bug" lógico do usuário.
+                    const limit = taxableIncomeBeforeLoss * 0.30; // Trava de 30% (Lei 8.981/95)
 
-                    const lossUsage = Math.min(accumulatedLoss, limit); // Se quiser travar em 30%: Math.min(accumulatedLoss, taxableIncomeBeforeLoss * 0.30);
+                    const lossUsage = Math.min(accumulatedLoss, limit);
                     accumulatedLoss -= lossUsage;
                     const finalTaxable = taxableIncomeBeforeLoss - lossUsage;
 
@@ -760,7 +767,9 @@ export const generateProjectData = (params) => {
                     accumulatedLoss += Math.abs(taxableIncomeBeforeLoss);
                     corporateTax = 0;
                 } else {
-                    const lossUsage = Math.min(accumulatedLoss, taxableIncomeBeforeLoss);
+                    // Trava de 30% também se aplica aqui (Lucro Real)
+                    const limit = taxableIncomeBeforeLoss * 0.30;
+                    const lossUsage = Math.min(accumulatedLoss, limit);
                     accumulatedLoss -= lossUsage;
                     const finalTaxable = taxableIncomeBeforeLoss - lossUsage;
 
@@ -776,7 +785,9 @@ export const generateProjectData = (params) => {
                     accumulatedLoss += Math.abs(taxableIncomeBeforeLoss);
                     corporateTax = 0;
                 } else {
-                    const lossUsage = Math.min(accumulatedLoss, taxableIncomeBeforeLoss);
+                    // Trava de 30%
+                    const limit = taxableIncomeBeforeLoss * 0.30;
+                    const lossUsage = Math.min(accumulatedLoss, limit);
                     accumulatedLoss -= lossUsage;
                     const finalTaxable = taxableIncomeBeforeLoss - lossUsage;
 

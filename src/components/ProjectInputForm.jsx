@@ -36,13 +36,15 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         onChange={(e) => handleChange('totalCapex', Number(e.target.value))}
                         className={`w-full ${colorClass}`}
                     />
-                    <div className="flex justify-between items-center mt-1">
-                        <button
-                            onClick={onNavigateToCapex}
-                            className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium border border-blue-200 dark:border-blue-800"
-                        >
-                            Detalhamento
-                        </button>
+                    <div className={`flex ${onNavigateToCapex ? 'justify-between' : 'justify-end'} items-center mt-1`}>
+                        {onNavigateToCapex && (
+                            <button
+                                onClick={onNavigateToCapex}
+                                className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium border border-blue-200 dark:border-blue-800"
+                            >
+                                Detalhamento
+                            </button>
+                        )}
                         <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 border border-slate-200 dark:border-slate-800">
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Manual (Bi $):</span>
                             <input
@@ -186,12 +188,15 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                                     </div>
                                 </div>
                             </label>
-                            <button
-                                onClick={onNavigateToOpex}
-                                className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium border border-blue-200 dark:border-blue-800"
-                            >
-                                Detalhamento
-                            </button>
+                            {onNavigateToOpex && (
+                                <button
+                                    onClick={onNavigateToOpex}
+                                    className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium border border-blue-200 dark:border-blue-800"
+                                >
+                                    Detalhamento
+                                </button>
+                            )}
+
                         </div>
                         <input
                             type="range" min="10" max="90" step="5"

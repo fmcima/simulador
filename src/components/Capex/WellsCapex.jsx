@@ -22,18 +22,18 @@ export default function WellsCapex({ costs, onUpdate, initialParams, projectPara
     const [complexity, setComplexity] = useState(initialParams?.complexity || 'high'); // 'low' | 'high'
 
     // Durations (Days) - Treated as T1 (First Well) if Learning Curve is active
-    const [drillingDays, setDrillingDays] = useState(initialParams?.drillingDays || 90);
-    const [completionDays, setCompletionDays] = useState(initialParams?.completionDays || 35);
+    const [drillingDays, setDrillingDays] = useState(initialParams?.drillingDays || 70); // Pre-Salt High Default
+    const [completionDays, setCompletionDays] = useState(initialParams?.completionDays || 25); // Pre-Salt High Default
     const [connectionDays, setConnectionDays] = useState(initialParams?.connectionDays || 15);
-    const [npt, setNpt] = useState(initialParams?.npt || 18); // %
+    const [npt, setNpt] = useState(initialParams?.npt || 12); // %
 
     // Learning Curve State
     const [useLearningCurve, setUseLearningCurve] = useState(initialParams?.useLearningCurve !== undefined ? initialParams.useLearningCurve : true);
     const [learningRate, setLearningRate] = useState(initialParams?.learningRate || 0.90);
 
     // --- NEW: Rates & Materials State ---
-    const [rigRate, setRigRate] = useState(initialParams?.rigRate || 490); // $k/day
-    const [serviceRate, setServiceRate] = useState(initialParams?.serviceRate || 440); // $k/day
+    const [rigRate, setRigRate] = useState(initialParams?.rigRate || 400); // $k/day
+    const [serviceRate, setServiceRate] = useState(initialParams?.serviceRate || 400); // $k/day
 
     const [casingCost, setCasingCost] = useState(initialParams?.casingCost || 24); // $ MM
     const [tubingCost, setTubingCost] = useState(initialParams?.tubingCost || 18.5); // $ MM
