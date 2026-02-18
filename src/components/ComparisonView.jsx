@@ -101,6 +101,7 @@ const ComparisonView = ({ projectA, setProjectA, projectB, setProjectB, resultsA
                                 <th className="p-3 text-blue-700">Cenário A</th>
                                 <th className="p-3 text-orange-600">Cenário B</th>
                                 <th className="p-3">Dif (B-A)</th>
+                                <th className="p-3">Dif %</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -120,6 +121,9 @@ const ComparisonView = ({ projectA, setProjectA, projectB, setProjectB, resultsA
                                             {m.key === 'vpl' ? formatBillions(diff) :
                                                 m.key === 'payback' ? diff.toFixed(1) :
                                                     diff.toFixed(2)}
+                                        </td>
+                                        <td className={`p-3 font-medium ${getDiffColor(valA, valB, m.diffGood)}`}>
+                                            {valA ? ((diff / Math.abs(valA)) * 100).toFixed(1) : '0.0'}%
                                         </td>
                                     </tr>
                                 );
