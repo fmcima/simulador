@@ -6,7 +6,7 @@ import {
 import {
     Activity, LayoutTemplate, LineChart as ChartIcon, Landmark, Settings,
     Split, Table as TableIcon, Maximize, Minimize, TrendingUp, BookOpen, Wrench,
-    Moon, Sun, Anchor, Book
+    Moon, Sun, Anchor, Book, Ship
 } from 'lucide-react';
 
 import { useTheme } from './hooks/useTheme';
@@ -168,26 +168,7 @@ export default function App() {
     const resultsA = useProjectCalculations(projectA);
     const resultsB = useProjectCalculations(projectB);
 
-    // ERROR BOUNDARY DISPLAY
-    if (resultsA.error) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-slate-900 text-white p-10">
-                <div className="max-w-2xl bg-red-900/50 border border-red-500 p-8 rounded-xl">
-                    <h1 className="text-3xl font-bold mb-4 text-red-200">Critical Calculation Error</h1>
-                    <pre className="whitespace-pre-wrap bg-black/50 p-4 rounded text-red-100 font-mono text-sm overflow-auto max-h-[60vh]">
-                        {resultsA.error}
-                        {'\n\nCall Stack (check console for full details).'}
-                    </pre>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="mt-6 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors"
-                    >
-                        Reload Simulator
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    // ERROR BOUNDARY Logic moved to render to prevent Hook violation
 
     const toggleFullScreen = async () => {
         // Check if we are currently in native fullscreen
@@ -232,6 +213,7 @@ export default function App() {
 
     // Dados Curva de Produção Chart
     const productionChartData = useMemo(() => {
+        if (resultsA.error) return []; // Retornar vazio se erro, mas manter hook
         return resultsA.yearlyData
             .filter(d => !d.isDecomYear && d.productionVolume > 0)
             .map(d => ({
@@ -242,86 +224,131 @@ export default function App() {
                 bsw: d.bsw || 0
             }));
     }, [resultsA]);
-
     // --- Sincronização de Eixos para Gráfico de Fluxo de Caixa ---
     const syncedDomains = useMemo(() => {
-        const data = resultsA.yearlyData;
-        if (!data || data.length === 0) return { left: ['auto', 'auto'], right: ['auto', 'auto'] };
-
-        // 1. Obter Extremos Reais
-        const minLeft = Math.min(0, ...data.map(d => d.freeCashFlow || 0));
-        const maxLeft = Math.max(0, ...data.map(d => d.freeCashFlow || 0));
-
-        const minRight = Math.min(0, ...data.map(d => d.accumulatedDiscountedCashFlow || 0));
-        const maxRight = Math.max(0, ...data.map(d => d.accumulatedDiscountedCashFlow || 0));
-
-        const absMinLeft = Math.abs(minLeft);
-        const absMinRight = Math.abs(minRight);
-
-        // Fração Negativa Real (0 a 1)
-        const rangeLeft = absMinLeft + maxLeft;
-        const rangeRight = absMinRight + maxRight;
-
-        // Evitar divisão por zero
-        if (rangeLeft === 0 || rangeRight === 0) return { left: ['auto', 'auto'], right: ['auto', 'auto'] };
-
-        const fracLeft = absMinLeft / rangeLeft;   // % do eixo que deve ser negativo
-        const fracRight = absMinRight / rangeRight;
-
-        // Estratégia: Testar os dois cenários (forçar fL ou forçar fR) e escolher o que desperdiça menos espaço
-
-        const calculateDomains = (targetFrac) => {
-            // Left
-            // N_L / (N_L + P_L) = targetFrac
-            // N_L * (1 - target) = P_L * target
-            // Se N_L é o gargalo (fracAtual < target): N_new = P_old * target / (1-target)
-            // Se P_L é o gargalo (fracAtual > target): P_new = N_old * (1-target) / target
-
-            let newMinLeft = absMinLeft;
-            let newMaxLeft = maxLeft;
-
-            if (fracLeft < targetFrac) {
-                // Precisamos de mais negativo
-                newMinLeft = maxLeft * targetFrac / (1 - targetFrac);
-            } else {
-                // Precisamos de mais positivo
-                newMaxLeft = absMinLeft * (1 - targetFrac) / targetFrac;
+        try {
+            const data = resultsA.yearlyData;
+            // Validate data existence
+            if (!data || !Array.isArray(data) || data.length === 0) {
+                return { left: ['auto', 'auto'], right: ['auto', 'auto'] };
             }
 
-            let newMinRight = absMinRight;
-            let newMaxRight = maxRight;
+            // 1. Obter Extremos Reais
+            const safeData = data.filter(d =>
+                d && typeof d === 'object' &&
+                Number.isFinite(d.freeCashFlow) &&
+                Number.isFinite(d.accumulatedDiscountedCashFlow)
+            );
 
-            if (fracRight < targetFrac) {
-                newMinRight = maxRight * targetFrac / (1 - targetFrac);
-            } else {
-                newMaxRight = absMinRight * (1 - targetFrac) / targetFrac;
+            if (safeData.length === 0) return { left: ['auto', 'auto'], right: ['auto', 'auto'] };
+
+            const minLeft = Math.min(0, ...safeData.map(d => d.freeCashFlow));
+            const maxLeft = Math.max(0, ...safeData.map(d => d.freeCashFlow));
+
+            const minRight = Math.min(0, ...safeData.map(d => d.accumulatedDiscountedCashFlow));
+            const maxRight = Math.max(0, ...safeData.map(d => d.accumulatedDiscountedCashFlow));
+
+            const absMinLeft = Math.abs(minLeft);
+            const absMinRight = Math.abs(minRight);
+
+            // Fração Negativa Real (0 a 1)
+            const rangeLeft = absMinLeft + maxLeft;
+            const rangeRight = absMinRight + maxRight;
+
+            // Evitar divisão por zero ou ranges minúsculos
+            if (rangeLeft < 0.000001 || rangeRight < 0.000001) {
+                return { left: ['auto', 'auto'], right: ['auto', 'auto'] };
             }
 
-            const wasteLeft = (newMinLeft + newMaxLeft) - rangeLeft;
-            const wasteRight = (newMinRight + newMaxRight) - rangeRight;
+            const fracLeft = absMinLeft / rangeLeft;   // % do eixo que deve ser negativo
+            const fracRight = absMinRight / rangeRight;
 
-            return {
-                domains: {
-                    left: [-newMinLeft, newMaxLeft],
-                    right: [-newMinRight, newMaxRight]
-                },
-                waste: wasteLeft + wasteRight
+            // Estratégia: Testar os dois cenários (forçar fL ou forçar fR) e escolher o que desperdiça menos espaço
+
+            const calculateDomains = (targetFrac) => {
+                let newMinLeft = absMinLeft;
+                let newMaxLeft = maxLeft;
+
+                // Protect against NaN production if targetFrac is 0 or 1 purely
+                if (targetFrac <= 0.001 || targetFrac >= 0.999) return null;
+
+                if (fracLeft < targetFrac) {
+                    newMinLeft = maxLeft * targetFrac / (1 - targetFrac);
+                } else {
+                    newMaxLeft = absMinLeft * (1 - targetFrac) / targetFrac;
+                }
+
+                let newMinRight = absMinRight;
+                let newMaxRight = maxRight;
+
+                if (fracRight < targetFrac) {
+                    newMinRight = maxRight * targetFrac / (1 - targetFrac);
+                } else {
+                    newMaxRight = absMinRight * (1 - targetFrac) / targetFrac;
+                }
+
+                // Ensure calculateDomains returns valid finite numbers
+                if (!Number.isFinite(newMinLeft) || !Number.isFinite(newMaxLeft) ||
+                    !Number.isFinite(newMinRight) || !Number.isFinite(newMaxRight)) {
+                    return null;
+                }
+
+                const wasteLeft = (newMinLeft + newMaxLeft) - rangeLeft;
+                const wasteRight = (newMinRight + newMaxRight) - rangeRight;
+
+                return {
+                    domains: {
+                        left: [-newMinLeft, newMaxLeft],
+                        right: [-newMinRight, newMaxRight]
+                    },
+                    waste: wasteLeft + wasteRight
+                };
             };
-        };
 
-        // Cenário 1: Alinhar pelo Left (fracLeft)
-        // Se target = fracLeft, Left não muda (waste=0). Right ajusta.
-        const c1 = calculateDomains(fracLeft);
+            // Cenário 1: Alinhar pelo Left (fracLeft)
+            const c1 = calculateDomains(fracLeft);
 
-        // Cenário 2: Alinhar pelo Right (fracRight)
-        const c2 = calculateDomains(fracRight);
+            // Cenário 2: Alinhar pelo Right (fracRight)
+            const c2 = calculateDomains(fracRight);
 
-        // Escolher o menor desperdício
-        // Adicionar margem de segurança pequena (opcional) para evitar corte exato
-        const best = c1.waste <= c2.waste ? c1.domains : c2.domains;
+            // Escolher o menor desperdício
+            let best = { left: ['auto', 'auto'], right: ['auto', 'auto'] };
 
-        return best;
+            if (c1 && c2) {
+                best = c1.waste <= c2.waste ? c1.domains : c2.domains;
+            } else if (c1) {
+                best = c1.domains;
+            } else if (c2) {
+                best = c2.domains;
+            } else {
+                // Fallback valid domains based on safeData if algo fails
+                best = {
+                    left: [minLeft, maxLeft],
+                    right: [minRight, maxRight]
+                };
+            }
 
+            return best;
+
+        } catch (err) {
+            console.error("Error in syncedDomains calculation:", err);
+            return { left: ['auto', 'auto'], right: ['auto', 'auto'] };
+        }
+    }, [resultsA]);
+
+    // Sanitized Data for Charts
+    const safeSensitivityData = useMemo(() => {
+        if (!resultsA.capexSensitivityData) return [];
+        return resultsA.capexSensitivityData.filter(d =>
+            Number.isFinite(d.spread) && Number.isFinite(d.vpl_ia)
+        );
+    }, [resultsA]);
+
+    const safeNpvProfile = useMemo(() => {
+        if (!resultsA.npvProfile) return [];
+        return resultsA.npvProfile.filter(d =>
+            Number.isFinite(d.npv) && Number.isFinite(d.rate)
+        );
     }, [resultsA]);
 
     const handleChangeProjectA = (field, value) => {
@@ -357,7 +384,7 @@ export default function App() {
                 ...prev,
                 totalCapex: newTotalCapex,
                 capexSplit: newSplit,
-                fpsoParams: detailedParams
+                fpsoParams: { ...detailedParams, calculatedTotal: fpsoCostMillions }
             };
         });
     }, []);
@@ -774,8 +801,8 @@ export default function App() {
                                                     return null;
                                                 }}
                                             />
-                                            <Scatter name="Sensibilidade" data={resultsA.capexSensitivityData} fill="#8884d8" line={{ stroke: '#8884d8', strokeWidth: 2 }}>
-                                                {resultsA.capexSensitivityData.map((entry, index) => (
+                                            <Scatter name="Sensibilidade" data={safeSensitivityData} fill="#8884d8" line={{ stroke: '#8884d8', strokeWidth: 2 }}>
+                                                {safeSensitivityData.map((entry, index) => (
                                                     <cell key={`cell-${index}`} fill={entry.isBase ? '#ef4444' : '#8884d8'} r={entry.isBase ? 6 : 4} />
                                                 ))}
                                             </Scatter>
@@ -786,7 +813,7 @@ export default function App() {
                                 <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-72 hover:shadow-md transition-shadow">
                                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-100 mb-2">Perfil VPL (Taxa de Desconto)</h3>
                                     <ResponsiveContainer width="100%" height="90%">
-                                        <LineChart data={resultsA.npvProfile} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                                        <LineChart data={safeNpvProfile} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
                                             <XAxis
                                                 dataKey="rate"

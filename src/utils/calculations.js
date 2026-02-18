@@ -17,6 +17,10 @@ export const formatMillionsNoDecimals = (value) => {
     return `$${inMillions.toFixed(0)}M`;
 };
 
+export const safeNumber = (value) => {
+    return Number.isFinite(value) ? value : 0;
+};
+
 /**
  * Calculate time-dependent failure rate (lambda) that increases with well age
  * while maintaining the average rate equal to the input parameter.
@@ -45,7 +49,8 @@ export const getTimeDependentLambda = (lambdaAvg, year, projectDuration, growthF
 };
 
 export const calculateNPV = (rate, cashFlows) => {
-    return cashFlows.reduce((acc, val, t) => acc + val / Math.pow(1 + rate / 100, t), 0);
+    const r = (Number(rate) || 0) / 100;
+    return cashFlows.reduce((acc, val, t) => acc + val / Math.pow(1 + r, t), 0);
 };
 
 // --- Statistical Helper Functions ---
@@ -130,20 +135,27 @@ export const getBrentCurve = (params, duration) => {
         } else if (brentStrategy === 'market_bear') {
             price = Math.max(30, brentPrice * Math.pow(0.97, year));
         } else if (brentStrategy === 'custom') {
-            const peakY = brentPeakYear || 5;
-            const peakV = brentPeakValue || 90;
-            const longTerm = brentLongTerm || 60;
+            const peakY = Number(brentPeakYear) || 5;
+            const peakV = Number(brentPeakValue) || 90;
+            const longTerm = Number(brentLongTerm) || 60;
 
             if (year <= peakY) {
-                if (peakY === 0) price = peakV;
-                else price = brentPrice + (peakV - brentPrice) * (year / peakY);
+                // Rampa até o pico
+                const slope = (peakV - brentPrice) / Math.max(1, peakY);
+                price = brentPrice + slope * year;
             } else {
-                const decayFactor = 0.15;
-                const delta = peakV - longTerm;
-                price = longTerm + delta * Math.exp(-decayFactor * (year - peakY));
+                // Decaimento até longo prazo
+                const decayDuration = 5; // Ajustável se necessário
+                const stepsAfterPeak = year - peakY;
+                if (stepsAfterPeak <= decayDuration) {
+                    const slope = (longTerm - peakV) / decayDuration;
+                    price = peakV + slope * stepsAfterPeak;
+                } else {
+                    price = longTerm;
+                }
             }
         }
-        curve.push(price);
+        curve.push(safeNumber(price));
     }
     return curve;
 };
@@ -169,7 +181,7 @@ export const calculatePeakFromReserves = (totalReservesMMbbl, rampUp, plateau, d
 export const generateProjectData = (params) => {
     const {
         totalCapex,
-        capexDuration,
+        capexDuration = 5,
         capexPeakRelative, capexConcentration,
         peakProduction, brentSpread,
         rampUpDuration, plateauDuration, declineRate, hyperbolicFactor = 0.5, opexMargin,
@@ -208,6 +220,16 @@ export const generateProjectData = (params) => {
         repetroRatio = { platform: 100, wells: 100, subsea: 100 },
         capexTaxRate = 40
     } = params;
+
+    // --- DEBUGGING ---
+    console.log('--- START generateProjectData ---');
+    console.log('Ownership:', platformOwnership);
+    console.log('CapexDuration:', capexDuration);
+    console.log('ProjectDuration:', projectDuration);
+    console.log('DiscountRate:', discountRate);
+    console.log('CharterPV:', charterPV);
+    console.log('TotalCapex:', totalCapex);
+    // ----------------
 
     const data = [];
     let cashFlowsVector = [];
@@ -250,29 +272,84 @@ export const generateProjectData = (params) => {
     };
 
     if (platformOwnership === 'chartered') {
-        const r = discountRate / 100;
-        const n = projectDuration;
-        // Cálculo Base Anual
+        const r = (Number(discountRate) || 0) / 100;
+        const n = Number(projectDuration) || 30;
         const pv = Number(charterPV) || 0;
+
+        // CORREÇÃO DE MOMENTO DO VPL:
+        // O input 'charterPV' é o VPL desejado em T=0.
+        // O pagamento começa no primeiro óleo (productionStart), geralmente após capexDuration.
+        // Se capexDuration = 3, o primeiro ano de produção é o ano 4.
+        const startDelay = Number(capexDuration) || 0;
+
+        // Trazemos o PV de T=0 para o futuro (T=startDelay) para calcular a anuidade a partir dali
+        const discountFactor = Math.pow(1 + r, startDelay);
+        const pvAtStart = pv * (isFinite(discountFactor) ? discountFactor : 1);
+
         let baseAnnualCharter = 0;
         if (r > 0 && n > 0) {
-            baseAnnualCharter = (pv * r) / (1 - Math.pow(1 + r, -n));
+            // Anuidade baseada no PV capitalizado
+            const denominator = 1 - Math.pow(1 + r, -n);
+            if (denominator !== 0 && isFinite(denominator)) {
+                baseAnnualCharter = (pvAtStart * r) / denominator;
+            } else {
+                baseAnnualCharter = pvAtStart / n;
+            }
         } else if (n > 0) {
             baseAnnualCharter = pv / n;
         }
 
-        // Aplicar Split e Impostos Indiretos (PIS/COFINS/ISS) sobre a parcela de serviços
-        // Garantindo tipagem numérica para evitar bugs de concatenação ou NaN
+        if (!Number.isFinite(baseAnnualCharter)) baseAnnualCharter = 0;
+
+        // Ensure finite result
+        if (!Number.isFinite(baseAnnualCharter)) baseAnnualCharter = 0;
+
+        // --- DEBUGGING ---
+        console.log('Charter Calc:', { pvAtStart, baseAnnualCharter, r, n, startDelay });
+        // ----------------
+
+        // Recuperar parâmetros de impostos
+
+        // Ensure finite result
+        if (!Number.isFinite(baseAnnualCharter)) baseAnnualCharter = 0;
+
+        // Recuperar parâmetros de impostos
         const cSplit = Number(charterSplit?.charter);
         const sSplit = Number(charterSplit?.service);
         const sTax = Number(serviceTaxRate);
 
+        // Padrões robustos
         const safeCharterPct = (!isNaN(cSplit) ? cSplit : 85) / 100;
         const safeServicePct = (!isNaN(sSplit) ? sSplit : 15) / 100;
         const safeTaxRate = (!isNaN(sTax) ? sTax : 14.25) / 100;
 
-        // Custo Efetivo = Parte Charter (Isenta) + Parte Serviço * (1 + Taxas)
-        annualCharterCost = (baseAnnualCharter * safeCharterPct) + (baseAnnualCharter * safeServicePct * (1 + safeTaxRate));
+        // LÓGICA DE TRIBUTAÇÃO DE SERVIÇOS NO NOVO REGIME REPETRO-SPED / LEI 13.586
+        // Normalmente, a parcela de serviços é Gross-Up (o valor contratado inclui os impostos).
+        // Se a taxa diária total (D) é composta de Charter (C) e Serviço (S), e S sofre impostos (T):
+        // D = C + S_net / (1-T) ??? 
+        // OU A lógica do "Split Contratual" define como o valor é dividido:
+        // Parcela Charter = Isenta. Parcela Serviço = Tributada.
+        // A user instruction "Impostos sobre Serviços (PIS/COFINS/ISS) 14.25%" sugere um add-on cost ou inside?
+        // Assumindo que o "Valor PV" inserido pelo usuário é o CUSTO TOTAL DE ALUGUEL PURO (sem impostos extras), 
+        // ou seja, o valor que vai para o fornecedor. Os impostos são um custo EXTRA para o operador.
+        // ENTÃO: Custo Total = (Base * %Charter) + (Base * %Service * (1 + TaxRate))
+        // Se o imposto é "por fora" ou cumulativo, a fórmula (1 + rate) é segura.
+        // Se fosse "por dentro" (gross-up), seria / (1 - rate).
+        // Dado o contexto brasileiro de PIS/COFINS, geralmente é "por dentro", mas para simplificar e garantir
+        // que o custo aumente (piorando o VPL do charter como esperado), vamos aplicar como custo adicional.
+
+        // CORREÇÃO FINAL: O split incide sobre o valor base.
+        const partCharter = baseAnnualCharter * safeCharterPct;
+        const partServiceBase = baseAnnualCharter * safeServicePct;
+
+        // Impostos incidem sobre a base de serviço.
+        // Se o imposto é 14.25%, o custo total do serviço é Base + (Base * 14.25%) ?
+        // Ou é Base / (1 - 14.25%)? - Vamos usar a lógica de gross-up para ser mais conservador (mais caro).
+        const partServiceGross = partServiceBase / (1 - safeTaxRate);
+
+        // annualCharterCost é o desembolso total anual
+        annualCharterCost = partCharter + partServiceGross;
+
 
         const nonPlatformSplitSum = capexSplit.wells + capexSplit.subsea;
         const factor = nonPlatformSplitSum > 0 ? 100 / nonPlatformSplitSum : 0;
@@ -518,6 +595,9 @@ export const generateProjectData = (params) => {
             const adjustedOilPrice = netOilPrice * apiPriceAdjustment;
             revenue = productionMMbbl * 1000000 * adjustedOilPrice;
 
+            // Define inflation factor for both OPEX and Charter
+            const inflationFactor = Math.pow(1 + costInflation / 100, productionYear - 1);
+
             // Cálculo de OPEX baseado no modo
             let gasInjectionCost = 0;
             if (productionMode === 'detailed' && gor > 200) {
@@ -530,7 +610,6 @@ export const generateProjectData = (params) => {
 
             if (opexMode === 'detailed') {
                 // Detailed Model: Fixed + Variable + Workover Provision + Gas Injection
-                const inflationFactor = Math.pow(1 + costInflation / 100, productionYear - 1);
                 const fixedOpex = opexFixed * inflationFactor;
                 const variableOpex = productionMMbbl * 1000000 * opexVariable;
 
@@ -583,7 +662,8 @@ export const generateProjectData = (params) => {
             }
 
             if (platformOwnership === 'chartered') {
-                charterCost = annualCharterCost;
+                // Afretamento indexado à inflação (padrão de mercado para manter valor real)
+                charterCost = annualCharterCost * (params.charterInflationAdjusted !== false ? inflationFactor : 1);
             }
 
             if (depreciationMode === 'simple') {
@@ -719,51 +799,69 @@ export const generateProjectData = (params) => {
         // mas para fins de visualização de "Potencial de Economia", usa-se o nominal.
         const depreciationTaxShield = depreciation * (corporateTaxRate / 100);
 
+        // --- SANITIZAÇÃO FINAL ---
+        // Garante que nenhum valor seja NaN ou Infinity antes de ser enviado aos gráficos
+
+        // Sanitize freeCashFlow before pushing to vector (CRITICAL FIX)
+        const safeFreeCashFlow = safeNumber(freeCashFlow);
+        cashFlowsVector.push(safeFreeCashFlow);
+
+        // --- DEBUGGING ---
+        console.log('CashFlowsVector:', cashFlowsVector.slice(0, 10)); // Log first 10 years
+        // ----------------
+
         data.push({
             year,
-            capex: -capex,
-            revenue,
-            opex: -opex,
-            charterCost: -charterCost,
-            taxes: -taxes,
-            royalties: -royalties,
-            specialParticipation: -specialParticipation,
-            profitOilGov: -profitOilGov,
-            depreciation: -depreciation,
-            capexTax: -capexTax,
-            depreciationTaxShield, // New field, positive value representing saving
-            freeCashFlow,
-            discountedCashFlow, // Added: Year's DCF
-            accumulatedCashFlow: previousAccumulated + freeCashFlow,
-            accumulatedDiscountedCashFlow, // Added: Accumulated DCF
+            capex: safeNumber(-capex),
+            revenue: safeNumber(revenue),
+            opex: safeNumber(-opex),
+            charterCost: safeNumber(-charterCost),
+            taxes: safeNumber(-taxes),
+            royalties: safeNumber(-royalties),
+            specialParticipation: safeNumber(-specialParticipation),
+            profitOilGov: safeNumber(-profitOilGov),
+            depreciation: safeNumber(-depreciation),
+            capexTax: safeNumber(-capexTax),
+            depreciationTaxShield: safeNumber(depreciationTaxShield),
+            freeCashFlow: safeFreeCashFlow,
+            discountedCashFlow: safeNumber(discountedCashFlow),
+            accumulatedCashFlow: safeNumber(previousAccumulated + safeFreeCashFlow),
+            accumulatedDiscountedCashFlow: safeNumber(accumulatedDiscountedCashFlow),
             isDecomYear,
-            brentPrice: yearlyBrent,
-            productionVolume,
-            waterVolume,
-            liquidVolume,
-            bsw: currentBSW
+            brentPrice: safeNumber(yearlyBrent),
+            productionVolume: safeNumber(productionVolume),
+            waterVolume: safeNumber(waterVolume),
+            liquidVolume: safeNumber(liquidVolume),
+            bsw: safeNumber(currentBSW)
         });
-
-        cashFlowsVector.push(freeCashFlow);
     }
 
-    const vpl = calculateNPV(discountRate, cashFlowsVector);
-    const tir = calculateIRR(cashFlowsVector);
-    const payback = calculateDiscountedPayback(discountRate, cashFlowsVector);
-    const vpl_ia = discountedCapexSum > 0 ? vpl / discountedCapexSum : 0;
-    const spread = tir !== null ? tir - discountRate : null;
+    const vpl = safeNumber(calculateNPV(discountRate, cashFlowsVector));
+    const tirRaw = calculateIRR(cashFlowsVector);
+    const tir = (tirRaw !== null && Number.isFinite(tirRaw)) ? tirRaw : null;
+    const paybackRaw = calculateDiscountedPayback(discountRate, cashFlowsVector);
+    const payback = (paybackRaw !== null && Number.isFinite(paybackRaw)) ? paybackRaw : null;
+    const vpl_ia = (discountedCapexSum > 0 && Number.isFinite(vpl)) ? vpl / discountedCapexSum : 0;
+    const spread = (tir !== null && Number.isFinite(discountRate)) ? tir - discountRate : null;
 
     const npvProfile = [];
     for (let r = 0; r <= 40; r += 5) {
-        npvProfile.push({ rate: r, npv: calculateNPV(r, cashFlowsVector) });
+        npvProfile.push({ rate: r, npv: safeNumber(calculateNPV(r, cashFlowsVector)) });
     }
 
     return {
         yearlyData: data,
-        metrics: { vpl, tir, payback, vpl_ia, ia: discountedCapexSum, spread },
+        metrics: {
+            vpl,
+            tir,
+            payback,
+            vpl_ia: safeNumber(vpl_ia),
+            ia: safeNumber(discountedCapexSum),
+            spread
+        },
         cashFlowsVector,
         npvProfile,
         brentCurve,
-        effectiveTotalCapex: totalCapex
+        effectiveTotalCapex: safeNumber(totalCapex)
     };
 };

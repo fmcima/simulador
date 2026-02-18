@@ -31,26 +31,75 @@ const TaxParameters = ({ params, setParams }) => {
         setParams(prev => {
             if (prev.platformOwnership === newMode) return prev;
 
-            let newCapex = prev.totalCapex;
-            const platformShare = prev.capexSplit.platform / 100;
+            let newTotalCapex = prev.totalCapex;
+            let newSplit = { ...prev.capexSplit };
+            let newCharterPV = prev.charterPV; // Default to prev unless changed
 
             if (newMode === 'chartered') {
                 // Switching Owned -> Chartered
-                // Reduce Total Capex by removing Platform Share
-                newCapex = prev.totalCapex * (1 - platformShare);
+                // Objetivo: Manter os valores ABSOLUTOS de Poços e Subsea.
+                // 1. Calcular valores absolutos atuais
+                const currentWellsAbs = prev.totalCapex * (prev.capexSplit.wells / 100);
+                const currentSubseaAbs = prev.totalCapex * (prev.capexSplit.subsea / 100);
+                const currentPlatformAbs = prev.totalCapex * (prev.capexSplit.platform / 100);
+
+                // Use current FPSO Capex as initial Charter PV
+                if (currentPlatformAbs > 0) newCharterPV = currentPlatformAbs;
+
+                // 2. Novo Total é a soma de Poços + Subsea (Plataforma vira 0)
+                newTotalCapex = currentWellsAbs + currentSubseaAbs;
+
+                // 3. Recalcular percentuais para somar 100% do novo total
+                if (newTotalCapex > 0) {
+                    newSplit.platform = 0;
+                    newSplit.wells = (currentWellsAbs / newTotalCapex) * 100;
+                    newSplit.subsea = (currentSubseaAbs / newTotalCapex) * 100;
+                } else {
+                    // Fallback se tudo for zero
+                    newSplit = { platform: 0, wells: 66.6, subsea: 33.4 };
+                }
+
             } else {
                 // Switching Chartered -> Owned
-                // Restore Total Capex by adding back Platform Share
-                // (prev.totalCapex represents the 1-share part)
-                if (platformShare < 1) {
-                    newCapex = prev.totalCapex / (1 - platformShare);
+                // Objetivo: Restaurar a Plataforma usando o valor real configurado na aba de FPSO.
+
+                // 1. Obter Custo da Plataforma (do Módulo de FPSO)
+                let platformCost = 0;
+                if (prev.fpsoParams) {
+                    // Tenta usar o total calculado persistido (que vem do App.jsx via handleUpdateCapex)
+                    // Se não existir (legado ou primeira render), tenta simpleTotal ou fallback.
+                    const savedTotal = prev.fpsoParams.calculatedTotal || prev.fpsoParams.simpleTotal;
+
+                    if (savedTotal) {
+                        platformCost = savedTotal * 1000000;
+                    } else {
+                        platformCost = 2500000000;
+                    }
+                } else {
+                    platformCost = 2500000000; // Default fallback $2.5B
+                }
+
+                // Recupera os valores absolutos de Poços e Subsea (que são a TOTALIDADE do Capex atual no modo Chartered)
+                const currentWellsAbs = prev.totalCapex * (prev.capexSplit.wells / 100);
+                const currentSubseaAbs = prev.totalCapex * (prev.capexSplit.subsea / 100);
+
+                // Novo Total = P + W + S
+                newTotalCapex = platformCost + currentWellsAbs + currentSubseaAbs;
+
+                // Recalcular percentuais
+                if (newTotalCapex > 0) {
+                    newSplit.platform = (platformCost / newTotalCapex) * 100;
+                    newSplit.wells = (currentWellsAbs / newTotalCapex) * 100;
+                    newSplit.subsea = (currentSubseaAbs / newTotalCapex) * 100;
                 }
             }
 
             return {
                 ...prev,
                 platformOwnership: newMode,
-                totalCapex: newCapex
+                totalCapex: newTotalCapex,
+                capexSplit: newSplit,
+                charterPV: newCharterPV
             };
         });
     };
