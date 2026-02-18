@@ -379,6 +379,15 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                     Custos que não variam com a produção (Aluguel de Sonda, Pessoal, Logística Básica, Manutenção de Rotina). Representa ~90% do OPEX em offshore.
                                 </p>
+                                <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        <span className="font-bold">Valores Típicos (O&M):</span>
+                                        <br />• FPSO Pequeno (100 kbpd): $60 - $80 MM/ano
+                                        <br />• FPSO Médio (150 kbpd): $90 - $110 MM/ano
+                                        <br />• FPSO Grande (180+ kbpd): $120 - $160 MM/ano
+                                        <br /><span className="italic opacity-80">* Se afretado, somar taxa diária (Charter Rate).</span>
+                                    </p>
+                                </div>
                             </div>
 
                             {/* OPEX VARIÁVEL */}
@@ -396,6 +405,14 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                     Custos consumíveis (Produtos Químicos, Tratamento de Água, Energia extra) por barril produzido.
                                 </p>
+                                <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        <span className="font-bold">Valores Típicos (Brasil Offshore):</span>
+                                        <br />• Pré-Sal (Alta Produtividade): $2 - $4 /bbl
+                                        <br />• Pós-Sal (Maduro): $10 - $18 /bbl
+                                        <br />• Pós-Sal (Novo): $6 - $10 /bbl
+                                    </p>
+                                </div>
                             </div>
 
                             {/* WORKOVER SECTION */}
@@ -760,23 +777,7 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                     </div>
 
 
-                                    <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-2">
-                                        <p><span className="font-bold text-slate-700 dark:text-slate-200">Premissas e Referências de Mercado:</span></p>
-                                        <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400">
-                                            <li>
-                                                <strong>OPEX Fixo:</strong> Predominante em projetos offshore (~80-90% do total). Inclui aluguel de sonda/FPSO (se afretado), logística (barcos, helicópteros), pessoal embarcado e manutenção de rotina. Modelo segue estimativa baseada em capacidade instalada.
-                                            </li>
-                                            <li>
-                                                <strong>OPEX Variável:</strong> Custos diretos de consumíveis (produtos químicos, energia, tratamento de água) proporcionais ao volume produzido. Tende a aumentar com o BSW (água) no fim da vida útil.
-                                            </li>
-                                            <li>
-                                                <strong>Workover:</strong> Provisão anualizada para grandes intervenções em poços (troca de BCS, estimulação) e reparos submarinos.
-                                            </li>
-                                        </ul>
-                                        <p className="pt-1 text-[10px] text-slate-400 dark:text-slate-500 italic">
-                                            Fontes: Planos Estratégicos Petrobras, benchmarks da Rystad Energy e relatórios técnicos da Wood Mackenzie.
-                                        </p>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -847,6 +848,14 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                     <span>Base: {params.wellsParams?.numWells || 16} Poços</span>
                                     <span>Total: {formatMillionsNoDecimals((params.wellsParams?.numWells || 16) * (params.abexPerWell || 25000000))}</span>
                                 </div>
+                                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/10 rounded border border-amber-100 dark:border-amber-800/30">
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        <span className="font-bold">Valores Típicos P&A (Offshore Brasil):</span>
+                                        <br />• Lâmina D'água Rasa (&lt;400m): $8 - $12 MM/poço
+                                        <br />• Lâmina D'água Profunda (&gt;1000m): $20 - $35 MM/poço
+                                        <br />• Poço Submarino Complexo: Até $45 MM/poço
+                                    </p>
+                                </div>
                             </div>
 
                             {/* 2. Subsea */}
@@ -866,6 +875,13 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                                     Custo de recolhimento de linhas e equipamentos submarinos.
                                 </p>
+                                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/10 rounded border border-amber-100 dark:border-amber-800/30">
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        <span className="font-bold">Referência de Mercado:</span>
+                                        <br />• A remoção completa de sistemas subsea custa tipicamente entre <span className="font-semibold">20% a 40%</span> do CAPEX original de instalação (considerando inflação).
+                                        <br />• Remoção Parcial (deixar linhas enterradas): Reduz custo para ~15-20%.
+                                    </p>
+                                </div>
                             </div>
 
                             {/* 3. Platform */}
@@ -885,6 +901,14 @@ const OpexParameters = ({ params, setParams, onNavigateToWells }) => {
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                                     Custo fixo lump-sum para desconexão, limpeza e destinação da unidade.
                                 </p>
+                                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/10 rounded border border-amber-100 dark:border-amber-800/30">
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                        <span className="font-bold">Estimativa Típica (FPSO):</span>
+                                        <br />• Limpeza de Tanques e Desconexão: $40 - $60 MM
+                                        <br />• Rebocagem e Reciclagem (Green Recycling): $50 - $100 MM
+                                        <br />• <span className="font-semibold">Total Típico: $100 - $180 MM</span>
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Total Summary for Detailed Mode */}
