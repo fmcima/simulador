@@ -406,11 +406,11 @@ const TaxParameters = ({ params, setParams, results }) => {
                         <div>
                             <label className="text-sm font-medium text-slate-700 dark:text-slate-200 flex justify-between mb-2">
                                 <span className="flex items-center gap-2"><Activity size={16} className="text-slate-400 dark:text-slate-500" /> Investimento em P&D (% Receita)</span>
-                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{params.rdRate}%</span>
+                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{params.rdRate ?? 1}%</span>
                             </label>
                             <input
                                 type="range" min="0" max="2" step="0.1"
-                                value={params.rdRate}
+                                value={params.rdRate ?? 1}
                                 onChange={(e) => handleChange('rdRate', Number(e.target.value))}
                                 className="w-full accent-emerald-600"
                             />
