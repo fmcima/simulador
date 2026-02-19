@@ -25,7 +25,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
                             <span>Produção Pico (mil bpd)</span>
-                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded">{params.peakProduction}k</span>
+                            <span className="text-sm font-bold bg-slate-100 dark:bg-slate-800 px-1.5 rounded">{params.peakProduction}k</span>
                         </label>
                         <div className="flex items-center gap-2">
                             <button onClick={() => handleChange('peakProduction', Math.max(1, Number(params.peakProduction) - 5))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
@@ -62,7 +62,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
                             <span>Preço Brent Inicial</span>
-                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded">${params.brentPrice}</span>
+                            <span className="text-sm font-bold bg-slate-100 dark:bg-slate-800 px-1.5 rounded">${params.brentPrice}</span>
                         </label>
                         <div className="flex items-center gap-2">
                             <button onClick={() => handleChange('brentPrice', Math.max(30, Number(params.brentPrice) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
@@ -78,7 +78,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             <div>
                                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
                                     <span>Ano de Pico</span>
-                                    <span className="font-bold">Ano {params.brentPeakYear || 5}</span>
+                                    <span className="text-sm font-bold">Ano {params.brentPeakYear || 5}</span>
                                 </label>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => handleChange('brentPeakYear', Math.max(1, (params.brentPeakYear || 5) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
@@ -93,7 +93,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             <div>
                                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
                                     <span>Valor no Pico ($)</span>
-                                    <span className="font-bold">${params.brentPeakValue || 90}</span>
+                                    <span className="text-sm font-bold">${params.brentPeakValue || 90}</span>
                                 </label>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => handleChange('brentPeakValue', Math.max(30, (params.brentPeakValue || 90) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
@@ -108,7 +108,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                             <div>
                                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
                                     <span>Longo Prazo ($)</span>
-                                    <span className="font-bold">${params.brentLongTerm || 60}</span>
+                                    <span className="text-sm font-bold">${params.brentLongTerm || 60}</span>
                                 </label>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => handleChange('brentLongTerm', Math.max(30, (params.brentLongTerm || 60) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={14} /></button>
@@ -127,8 +127,9 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         </h4>
                         <div className="flex justify-between items-center mb-1">
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                Margem OPEX: {params.opexMargin}%
-                                <div className="group relative">
+                                <span>Margem OPEX</span>
+                                <span className="text-sm font-bold bg-slate-100 dark:bg-slate-800 px-1.5 rounded ml-1">{params.opexMargin}%</span>
+                                <div className="group relative ml-1">
                                     <Info className="w-3 h-3 text-slate-400 cursor-help" />
                                     <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded shadow-lg hidden group-hover:block z-50 pointer-events-none text-center">
                                         Percentual da Receita Bruta (modo simplificado)
@@ -209,7 +210,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         <div>
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1 flex justify-between">
                                 <span>Duração do Investimento (Anos)</span>
-                                <span className="font-bold">{params.capexDuration}</span>
+                                <span className="text-sm font-bold">{params.capexDuration}</span>
                             </label>
                             <div className="flex items-center gap-2">
                                 <button onClick={() => handleChange('capexDuration', Math.max(1, Number(params.capexDuration) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
@@ -221,7 +222,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         <div>
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1 flex justify-between">
                                 <span>Ano do Pico de Investimento</span>
-                                <span className="font-bold">Ano {params.capexPeakRelative || 1}</span>
+                                <span className="text-sm font-bold">Ano {params.capexPeakRelative || 1}</span>
                             </label>
                             <div className="flex items-center gap-2">
                                 <button onClick={() => handleChange('capexPeakRelative', Math.max(1, (params.capexPeakRelative || 1) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
@@ -233,7 +234,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         <div>
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1 flex justify-between">
                                 <span>Concentração do Investimento</span>
-                                <span className="font-bold">{params.capexConcentration}%</span>
+                                <span className="text-sm font-bold">{params.capexConcentration}%</span>
                             </label>
                             <div className="flex items-center gap-2">
                                 <button onClick={() => handleChange('capexConcentration', Math.max(0, Number(params.capexConcentration) - 5))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
@@ -252,7 +253,10 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                 </h3>
                 <div className="space-y-3">
                     <div>
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">TMA (%): {params.discountRate}</label>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
+                            <span>TMA (%)</span>
+                            <span className="text-sm font-bold bg-slate-100 dark:bg-slate-800 px-1.5 rounded">{params.discountRate}</span>
+                        </label>
                         <div className="flex items-center gap-2">
                             <button onClick={() => handleChange('discountRate', Math.max(0, Number(params.discountRate) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
                             <input type="range" min="0" max="25" step="1" value={params.discountRate} onChange={(e) => handleChange('discountRate', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
@@ -260,7 +264,10 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Duração do Projeto (Anos): {params.projectDuration}</label>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
+                            <span>Duração do Projeto (Anos)</span>
+                            <span className="text-sm font-bold bg-slate-100 dark:bg-slate-800 px-1.5 rounded">{params.projectDuration}</span>
+                        </label>
                         <div className="flex items-center gap-2">
                             <button onClick={() => handleChange('projectDuration', Math.max(10, Number(params.projectDuration) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
                             <input type="range" min="10" max="40" step="1" value={params.projectDuration} onChange={(e) => handleChange('projectDuration', Number(e.target.value))} className={`flex-1 ${colorClass}`} />
@@ -272,7 +279,7 @@ const ProjectInputForm = ({ params, setParams, label, colorClass = "accent-blue-
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex justify-between">
                             <span>Inflação de Custos (Real %)</span>
-                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded">{params.costInflation}%</span>
+                            <span className="text-sm font-bold bg-slate-100 dark:bg-slate-800 px-1.5 rounded">{params.costInflation}%</span>
                         </label>
                         <div className="flex items-center gap-2">
                             <button onClick={() => handleChange('costInflation', Math.max(0, Number(params.costInflation) - 1))} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"><ChevronDown size={16} /></button>
