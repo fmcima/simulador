@@ -2,7 +2,7 @@ import React from 'react';
 import { Ship, Landmark, Info, Activity } from 'lucide-react';
 import { formatCurrency } from '../utils/calculations';
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList
 } from 'recharts';
 
 const TaxParameters = ({ params, setParams, results }) => {
@@ -556,26 +556,82 @@ const TaxParameters = ({ params, setParams, results }) => {
                                     <div key={key} className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
                                         <div className="flex justify-between items-center mb-2">
                                             <span className="text-xs font-bold capitalize">{key === 'wells' ? 'Poços' : key === 'platform' ? 'Plataforma' : 'Subsea'}</span>
-                                            <select
-                                                value={params.depreciationConfig[key].method}
-                                                onChange={(e) => handleChangeDepreciationConfig(key, 'method', e.target.value)}
-                                                className="text-[10px] p-1 rounded border border-slate-300 dark:border-slate-600 outline-none bg-white dark:bg-slate-800 dark:text-slate-200"
-                                            >
-                                                <option value="linear">Linear</option>
-                                                <option value="accelerated">Acelerada</option>
-                                                <option value="uop">Unidades de Produção (UOP)</option>
-                                            </select>
+
+                                            <div className="flex items-center gap-3">
+                                                {params.depreciationConfig[key].method !== 'uop' && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400">Anos:</span>
+                                                        <input
+                                                            type="number" min="1" max="30"
+                                                            value={params.depreciationConfig[key].years}
+                                                            onChange={(e) => handleChangeDepreciationConfig(key, 'years', Number(e.target.value))}
+                                                            className="w-12 p-1 text-[10px] text-right border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200 outline-none"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <select
+                                                    value={params.depreciationConfig[key].method}
+                                                    onChange={(e) => handleChangeDepreciationConfig(key, 'method', e.target.value)}
+                                                    className="text-[10px] p-1 rounded border border-slate-300 dark:border-slate-600 outline-none bg-white dark:bg-slate-800 dark:text-slate-200"
+                                                >
+                                                    <option value="linear">Linear</option>
+                                                    <option value="accelerated">Acelerada</option>
+                                                    <option value="uop">Unidades de Produção (UOP)</option>
+                                                </select>
+                                            </div>
                                         </div>
 
-                                        {params.depreciationConfig[key].method !== 'uop' && (
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 w-16">Anos:</span>
-                                                <input
-                                                    type="number" min="1" max="30"
-                                                    value={params.depreciationConfig[key].years}
-                                                    onChange={(e) => handleChangeDepreciationConfig(key, 'years', Number(e.target.value))}
-                                                    className="w-12 p-1 text-[10px] text-right border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200"
-                                                />
+                                        {/* CHART FOR THIS CATEGORY */}
+                                        {results?.yearlyData && (
+                                            <div className="h-48 mt-4">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart
+                                                        data={results.yearlyData.map(d => ({
+                                                            year: d.year,
+                                                            value: Math.abs(d[key === 'platform' ? 'depreciationPlatform' : key === 'wells' ? 'depreciationWells' : 'depreciationSubsea'] || 0)
+                                                        }))}
+                                                        margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+                                                    >
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                        <XAxis
+                                                            dataKey="year"
+                                                            axisLine={false}
+                                                            tickLine={false}
+                                                            tick={{ fontSize: 10, fill: '#64748b' }}
+                                                        />
+                                                        <YAxis
+                                                            axisLine={false}
+                                                            tickLine={false}
+                                                            tick={{ fontSize: 10, fill: '#64748b' }}
+                                                            tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                                                        />
+                                                        <Tooltip
+                                                            cursor={{ fill: '#f1f5f9' }}
+                                                            formatter={(val) => formatCurrency(val)}
+                                                            labelFormatter={(l) => `Ano ${l}`}
+                                                            contentStyle={{ fontSize: '10px', borderRadius: '4px', border: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                                                        />
+                                                        <Bar
+                                                            dataKey="value"
+                                                            fill={key === 'platform' ? '#3b82f6' : key === 'wells' ? '#10b981' : '#8b5cf6'}
+                                                            radius={[4, 4, 0, 0]}
+                                                        >
+                                                            <LabelList
+                                                                dataKey="value"
+                                                                position="top"
+                                                                formatter={(val) => {
+                                                                    if (val === 0) return '';
+                                                                    if (val >= 1e9) {
+                                                                        return '$' + (val / 1e9).toFixed(2) + 'B';
+                                                                    }
+                                                                    return '$' + (val / 1e6).toFixed(0) + 'M';
+                                                                }}
+                                                                style={{ fontSize: '9px', fill: '#64748b', fontWeight: 500 }}
+                                                            />
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
                                             </div>
                                         )}
                                     </div>

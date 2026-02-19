@@ -442,6 +442,9 @@ export const generateProjectData = (params) => {
         let taxes = 0;
         let capexTax = 0;
         let depreciation = 0;
+        let depPlatform = 0;
+        let depWells = 0;
+        let depSubsea = 0;
         let isDecomYear = (year === projectDuration + 1);
         let productionVolume = 0;
         let productionMMbbl = 0;
@@ -698,6 +701,8 @@ export const generateProjectData = (params) => {
                 charterCost = annualCharterCost * (params.charterInflationAdjusted !== false ? inflationFactor : 1);
             }
 
+
+
             if (depreciationMode === 'simple') {
                 if (productionYear <= depreciationYears) {
                     const charge = capexForConstruction / depreciationYears;
@@ -736,9 +741,11 @@ export const generateProjectData = (params) => {
                     return charge;
                 };
 
-                depreciation += calculateCharge('platform');
-                depreciation += calculateCharge('wells');
-                depreciation += calculateCharge('subsea');
+                depPlatform = calculateCharge('platform');
+                depWells = calculateCharge('wells');
+                depSubsea = calculateCharge('subsea');
+
+                depreciation = depPlatform + depWells + depSubsea;
             }
 
             royalties = revenue * (royaltiesRate / 100);
@@ -857,6 +864,9 @@ export const generateProjectData = (params) => {
             profitOilGov: safeNumber(-profitOilGov),
             corporateTax: safeNumber(-corporateTax),
             depreciation: safeNumber(-depreciation),
+            depreciationPlatform: safeNumber(-depPlatform),
+            depreciationWells: safeNumber(-depWells),
+            depreciationSubsea: safeNumber(-depSubsea),
             capexTax: safeNumber(-capexTax),
             depreciationTaxShield: safeNumber(depreciationTaxShield),
             freeCashFlow: safeFreeCashFlow,
